@@ -11,14 +11,21 @@ export const getPlayers = query({
 export const addPlayer = mutation({
   args: {
     name: v.string(),
+    email: v.string(),
     position: v.optional(v.string()),
     number: v.optional(v.number()),
     notes: v.optional(v.string()),
+    isAdmin: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    const trimmedEmail = args.email.trim();
+    const normalizedEmail = trimmedEmail.toLowerCase();
     const id = await ctx.db.insert("players", {
       ...args,
+      email: trimmedEmail,
+      emailLowercase: normalizedEmail,
+      isAdmin: args.isAdmin ?? false,
       createdAt: now,
     });
     return id;
@@ -29,13 +36,21 @@ export const updatePlayer = mutation({
   args: {
     playerId: v.id("players"),
     name: v.optional(v.string()),
+    email: v.optional(v.string()),
     position: v.optional(v.string()),
     number: v.optional(v.number()),
     notes: v.optional(v.string()),
+    isAdmin: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { playerId, ...fields } = args;
-    await ctx.db.patch(playerId, fields);
+    const { playerId, email, ...fields } = args;
+    const patch: Record<string, unknown> = { ...fields };
+    if (email !== undefined) {
+      const trimmedEmail = email.trim();
+      patch.email = trimmedEmail;
+      patch.emailLowercase = trimmedEmail.toLowerCase();
+    }
+    await ctx.db.patch(playerId, patch);
   },
 });
 

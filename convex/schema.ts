@@ -1,14 +1,21 @@
 import { defineSchema, defineTable } from "convex/server";
+import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  ...authTables,
   players: defineTable({
     name: v.string(),
+    email: v.string(),
+    emailLowercase: v.string(),
     position: v.optional(v.string()),
     number: v.optional(v.number()),
     notes: v.optional(v.string()),
+    isAdmin: v.boolean(),
     createdAt: v.number(),
-  }).index("by_name", ["name"]),
+  })
+    .index("by_name", ["name"])
+    .index("by_email", ["emailLowercase"]),
   games: defineTable({
     opponent: v.string(),
     startTime: v.number(),

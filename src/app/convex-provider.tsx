@@ -1,19 +1,15 @@
-'use client';
+"use client";
 
-import { ReactNode, useMemo } from "react";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
+import { ConvexAuthNextjsProvider } from "@convex-dev/auth/nextjs";
+import { ConvexReactClient } from "convex/react";
+import { ReactNode } from "react";
 
-function useConvexClient() {
-  const url = process.env.NEXT_PUBLIC_CONVEX_URL;
-  if (!url) {
-    throw new Error(
-      "NEXT_PUBLIC_CONVEX_URL is not set. Run `npx convex dev` and ensure the environment variable is configured."
-    );
-  }
-  return useMemo(() => new ConvexReactClient(url), [url]);
-}
+const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
-export function ConvexProviderWrapper({ children }: { children: ReactNode }) {
-  const convex = useConvexClient();
-  return <ConvexProvider client={convex}>{children}</ConvexProvider>;
+export function ConvexClientProvider({ children }: { children: ReactNode }) {
+  return (
+    <ConvexAuthNextjsProvider client={convex}>
+      {children}
+    </ConvexAuthNextjsProvider>
+  );
 }
