@@ -8,6 +8,7 @@ export default defineSchema({
     name: v.string(),
     email: v.string(),
     emailLowercase: v.string(),
+    userId: v.optional(v.id("users")),
     position: v.optional(v.string()),
     number: v.optional(v.number()),
     notes: v.optional(v.string()),
@@ -15,7 +16,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_name", ["name"])
-    .index("by_email", ["emailLowercase"]),
+    .index("by_email", ["emailLowercase"]) 
+    .index("by_user", ["userId"]),
   games: defineTable({
     opponent: v.string(),
     startTime: v.number(),

@@ -8,6 +8,18 @@ export const getPlayers = query({
   },
 });
 
+export const isEmailAllowed = query({
+  args: { email: v.string() },
+  handler: async (ctx, { email }) => {
+    const normalized = email.trim().toLowerCase();
+    const player = await ctx.db
+      .query("players")
+      .withIndex("by_email", (q) => q.eq("emailLowercase", normalized))
+      .unique();
+    return player !== null;
+  },
+});
+
 export const addPlayer = mutation({
   args: {
     name: v.string(),

@@ -1,15 +1,28 @@
-import { convexAuthNextjsMiddleware } from "@convex-dev/auth/nextjs/server";
+import {
+  convexAuthNextjsMiddleware,
+  createRouteMatcher,
+  nextjsMiddlewareRedirect,
+} from "@convex-dev/auth/nextjs/server";
 
-export default convexAuthNextjsMiddleware();
+const isSignInPage = createRouteMatcher(["/signin"]);
+const isAuthApi = createRouteMatcher(["/api/auth(.*)"]);
+
+export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
+  const authed = await convexAuth.isAuthenticated();
+
+  if (isSignInPage(request) && authed) {
+    return nextjsMiddlewareRedirect(request, "/");
+  }
+
+  if (!authed && !isSignInPage(request) && !isAuthApi(request)) {
+    return nextjsMiddlewareRedirect(request, "/signin");
+  }
+});
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!_next/static|_next/image|favicon.ico).*)",
+    "/((?!.*\\..*|_next).*)",
+    "/",
+    "/(api|trpc)(.*)",
   ],
 };

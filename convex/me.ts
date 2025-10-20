@@ -21,9 +21,13 @@ export const get = query({
     const email: string | undefined =
       (user as any).email ?? (user as any).emailAddress ?? undefined;
 
-    // Attempt to look up a matching player profile by lowercased email.
-    let player: any | null = null;
-    if (email) {
+    // Prefer linking via userId if available; fallback to email mapping for legacy rows.
+    let player: any | null = await ctx.db
+      .query("players")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique();
+
+    if (!player && email) {
       player = await ctx.db
         .query("players")
         .withIndex("by_email", (q) => q.eq("emailLowercase", email.toLowerCase()))
