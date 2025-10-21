@@ -88,7 +88,7 @@ export default function Page() {
     resetPlayerForm()
   }
 
-  const onEdit = (player: NonNullable<typeof players>[number]) => {
+  const onEdit = (player: PlayerRow) => {
     setEditingId(player._id)
     setPlayerForm({
       name: player.name,
@@ -250,8 +250,8 @@ export default function Page() {
         {players && players.length > 0 && (
           <RosterDataTable
             data={players as unknown as PlayerRow[]}
-            onEdit={(p) => onEdit(p as any)}
-            onDelete={(id) => onDelete(id)}
+            onEdit={onEdit}
+            onDelete={onDelete}
           />
         )}
       </section>

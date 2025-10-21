@@ -4,6 +4,7 @@ import "./globals.css";
 import { ConvexClientProvider } from "./convex-provider";
 import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server";
 import { Toaster } from "@/components/ui/sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </ConvexAuthNextjsServerProvider>
         <Toaster />
+        <SpeedInsights />
       </body>
     </html>
   );

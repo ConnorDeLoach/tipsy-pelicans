@@ -3,6 +3,7 @@
 import * as React from "react"
 import { IconDashboard, IconUsers } from "@tabler/icons-react"
 import Image from "next/image"
+import Link from "next/link"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -49,7 +50,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="/">
+              <Link href="/">
                 <Image
                   src="/favicon.png"
                   alt="Tipsy Pelicans logo"
@@ -59,7 +60,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   priority
                 />
                 <span className="text-base font-semibold">Tipsy Pelicans</span>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
