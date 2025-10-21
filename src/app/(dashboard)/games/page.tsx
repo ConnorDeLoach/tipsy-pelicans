@@ -144,9 +144,9 @@ export default function Page() {
     }
     try {
       await setRsvp({ gameId, playerId, status });
-    } catch (err: any) {
+    } catch (err: unknown) {
       const message =
-        typeof err?.message === "string"
+        err instanceof Error && typeof err.message === "string"
           ? err.message
           : "Failed to update attendance.";
       toast.error(message);
@@ -386,9 +386,7 @@ export default function Page() {
                                   {player.name}
                                 </p>
                                 {(() => {
-                                  const flair = (player as any).flair as
-                                    | string
-                                    | undefined;
+                                  const flair = player.flair;
                                   if (!flair) return null;
                                   return flair
                                     .split(",")
@@ -576,9 +574,7 @@ export default function Page() {
                                     {player.name}
                                   </p>
                                   {(() => {
-                                    const flair = (player as any).flair as
-                                      | string
-                                      | undefined;
+                                    const flair = player.flair;
                                     if (!flair) return null;
                                     return flair
                                       .split(",")
