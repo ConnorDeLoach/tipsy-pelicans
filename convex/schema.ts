@@ -9,14 +9,23 @@ export default defineSchema({
     email: v.string(),
     emailLowercase: v.string(),
     userId: v.optional(v.id("users")),
-    position: v.optional(v.string()),
+    position: v.optional(
+      v.union(
+        v.literal("RW"),
+        v.literal("C"),
+        v.literal("LW"),
+        v.literal("LD"),
+        v.literal("RD"),
+        v.literal("G")
+      )
+    ),
     number: v.optional(v.number()),
-    notes: v.optional(v.string()),
+    flair: v.optional(v.string()),
     isAdmin: v.boolean(),
     createdAt: v.number(),
   })
     .index("by_name", ["name"])
-    .index("by_email", ["emailLowercase"]) 
+    .index("by_email", ["emailLowercase"])
     .index("by_user", ["userId"]),
   games: defineTable({
     opponent: v.string(),

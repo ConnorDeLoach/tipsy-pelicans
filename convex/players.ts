@@ -24,9 +24,18 @@ export const addPlayer = mutation({
   args: {
     name: v.string(),
     email: v.string(),
-    position: v.optional(v.string()),
+    position: v.optional(
+      v.union(
+        v.literal("RW"),
+        v.literal("C"),
+        v.literal("LW"),
+        v.literal("LD"),
+        v.literal("RD"),
+        v.literal("G"),
+      )
+    ),
     number: v.optional(v.number()),
-    notes: v.optional(v.string()),
+    flair: v.optional(v.string()),
     isAdmin: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -49,9 +58,18 @@ export const updatePlayer = mutation({
     playerId: v.id("players"),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
-    position: v.optional(v.string()),
+    position: v.optional(
+      v.union(
+        v.literal("RW"),
+        v.literal("C"),
+        v.literal("LW"),
+        v.literal("LD"),
+        v.literal("RD"),
+        v.literal("G"),
+      )
+    ),
     number: v.optional(v.number()),
-    notes: v.optional(v.string()),
+    flair: v.optional(v.string()),
     isAdmin: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {

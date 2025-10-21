@@ -12,13 +12,16 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+
+type PositionOption = "RW" | "C" | "LW" | "LD" | "RD" | "G"
 
 type PlayerFormState = {
   name: string
   email: string
-  position: string
+  position: PositionOption | ""
   number: string
-  notes: string
+  flair: string
   isAdmin: boolean
 }
 
@@ -33,7 +36,7 @@ export default function Page() {
     email: "",
     position: "",
     number: "",
-    notes: "",
+    flair: "",
     isAdmin: false,
   })
   const [editingId, setEditingId] = useState<Id<"players"> | null>(null)
@@ -45,7 +48,7 @@ export default function Page() {
       email: "",
       position: "",
       number: "",
-      notes: "",
+      flair: "",
       isAdmin: false,
     })
     setEditingId(null)
@@ -70,9 +73,9 @@ export default function Page() {
     const payload = {
       name: trimmedName,
       email: trimmedEmail,
-      position: playerForm.position.trim() || undefined,
+      position: playerForm.position ? (playerForm.position as PositionOption) : undefined,
       number: playerForm.number ? Number(playerForm.number) : undefined,
-      notes: playerForm.notes.trim() || undefined,
+      flair: playerForm.flair.trim() || undefined,
       isAdmin: playerForm.isAdmin,
     }
 
@@ -93,9 +96,9 @@ export default function Page() {
     setPlayerForm({
       name: player.name,
       email: player.email ?? "",
-      position: player.position ?? "",
+      position: (player.position as PositionOption | undefined) ?? "",
       number: player.number?.toString() ?? "",
-      notes: player.notes ?? "",
+      flair: player.flair ?? "",
       isAdmin: player.isAdmin ?? false,
     })
     setIsDialogOpen(true)
@@ -169,17 +172,27 @@ export default function Page() {
             </div>
             <div className="grid gap-1 text-sm">
               <Label htmlFor="position">Position</Label>
-              <Input
-                id="position"
-                value={playerForm.position}
-                onChange={(event) =>
+              <Select
+                value={playerForm.position || undefined}
+                onValueChange={(value) =>
                   setPlayerForm((prev) => ({
                     ...prev,
-                    position: event.target.value,
+                    position: value as PositionOption,
                   }))
                 }
-                placeholder="Forward, defense, goalie..."
-              />
+              >
+                <SelectTrigger id="position">
+                  <SelectValue placeholder="Pick a position (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="RW">RW</SelectItem>
+                  <SelectItem value="C">C</SelectItem>
+                  <SelectItem value="LW">LW</SelectItem>
+                  <SelectItem value="LD">LD</SelectItem>
+                  <SelectItem value="RD">RD</SelectItem>
+                  <SelectItem value="G">G</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-1 text-sm">
               <Label htmlFor="number">Jersey number</Label>
@@ -211,17 +224,17 @@ export default function Page() {
               </Label>
             </div>
             <div className="grid gap-1 text-sm">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor="flair">Flair</Label>
               <Textarea
-                id="notes"
-                value={playerForm.notes}
+                id="flair"
+                value={playerForm.flair}
                 onChange={(event) =>
                   setPlayerForm((prev) => ({
                     ...prev,
-                    notes: event.target.value,
+                    flair: event.target.value,
                   }))
                 }
-                placeholder="Injuries, preferred shift, etc."
+                placeholder="Fun tags or comma-separated chips (e.g., Sniper, Enforcer)"
               />
             </div>
             <DialogFooter>

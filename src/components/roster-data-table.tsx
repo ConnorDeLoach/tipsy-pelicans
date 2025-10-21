@@ -31,7 +31,7 @@ export type PlayerRow = {
   number?: number
   position?: string
   isAdmin?: boolean
-  notes?: string
+  flair?: string
 }
 
 export function RosterDataTable({

@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 
 export const listGames = query({
   args: {},
@@ -65,6 +66,25 @@ export const setRsvp = mutation({
     status: v.union(v.literal("yes"), v.literal("no"), v.literal("maybe")),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) {
+      throw new Error("Not authenticated");
+    }
+
+    const callerPlayer = await ctx.db
+      .query("players")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique();
+
+    if (!callerPlayer) {
+      throw new Error("Player profile not found");
+    }
+
+    const isAdmin = callerPlayer.isAdmin === true;
+    if (!isAdmin && callerPlayer._id !== args.playerId) {
+      throw new Error("Not authorized to modify other players' RSVPs");
+    }
+
     const existing = await ctx.db
       .query("gameRsvps")
       .withIndex("by_game_player", (q) =>

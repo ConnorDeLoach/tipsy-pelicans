@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { api } from "@/convex/_generated/api"
-import { Id } from "@/convex/_generated/dataModel"
-import { useMutation, useQuery } from "convex/react"
-import { useMemo, useState } from "react"
-import { toast } from "sonner"
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,23 +15,47 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Calendar } from "@/components/ui/calendar"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 
-type RsvpStatus = "yes" | "no" | "maybe"
+type RsvpStatus = "yes" | "no" | "maybe";
 
 export default function Page() {
-  const players = useQuery(api.players.getPlayers)
-  const games = useQuery(api.games.listGamesWithRsvps)
-  const setRsvp = useMutation(api.games.setRsvp)
-  const deleteGame = useMutation(api.games.removeGame)
-  const createGame = useMutation(api.games.createGame)
-  const me = useQuery(api.me.get)
+  const players = useQuery(api.players.getPlayers);
+  const games = useQuery(api.games.listGamesWithRsvps);
+  const setRsvp = useMutation(api.games.setRsvp);
+  const deleteGame = useMutation(api.games.removeGame);
+  const createGame = useMutation(api.games.createGame);
+  const me = useQuery(api.me.get);
+
+  const orderedPlayers = useMemo(() => {
+    if (!players) return undefined;
+    const meId = me?.playerId;
+    if (!meId) return players;
+    const arr = [...players];
+    arr.sort((a, b) => {
+      if (a._id === meId) return -1;
+      if (b._id === meId) return 1;
+      return 0;
+    });
+    return arr;
+  }, [players, me?.playerId]);
 
   const dateFormatter = useMemo(
     () =>
@@ -40,79 +64,94 @@ export default function Page() {
         timeStyle: "short",
       }),
     []
-  )
+  );
 
-  const isAdmin = me?.role === "admin"
-  const [opponent, setOpponent] = useState("")
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
-  const [time, setTime] = useState("")
-  const [location, setLocation] = useState("")
-  const [notes, setNotes] = useState("")
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const isAdmin = me?.role === "admin";
+  const [opponent, setOpponent] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [time, setTime] = useState("");
+  const [location, setLocation] = useState("");
+  const [notes, setNotes] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const resetForm = () => {
-    setOpponent("")
-    setSelectedDate(undefined)
-    setTime("")
-    setLocation("")
-    setNotes("")
-  }
+    setOpponent("");
+    setSelectedDate(undefined);
+    setTime("");
+    setLocation("");
+    setNotes("");
+  };
 
   const onCreateGame = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!opponent.trim()) {
-      toast.error("Please enter an opponent.")
-      return
+      toast.error("Please enter an opponent.");
+      return;
     }
     if (!selectedDate) {
-      toast.error("Please pick a date.")
-      return
+      toast.error("Please pick a date.");
+      return;
     }
     if (!time) {
-      toast.error("Please choose a time.")
-      return
+      toast.error("Please choose a time.");
+      return;
     }
-    const [hh, mm] = time.split(":")
-    const dt = new Date(selectedDate)
-    dt.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0)
-    const startTime = dt.getTime()
+    const [hh, mm] = time.split(":");
+    const dt = new Date(selectedDate);
+    dt.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
+    const startTime = dt.getTime();
     await createGame({
       opponent: opponent.trim(),
       startTime,
       location: location.trim() || undefined,
       notes: notes.trim() || undefined,
-    })
-    toast.success("Game scheduled")
-    resetForm()
-    setIsDialogOpen(false)
-  }
+    });
+    toast.success("Game scheduled");
+    resetForm();
+    setIsDialogOpen(false);
+  };
 
-  type GameWithRsvps = NonNullable<typeof games>[number]
+  type GameWithRsvps = NonNullable<typeof games>[number];
 
   const upcomingGames = useMemo(() => {
     if (!games) {
-      return []
+      return [];
     }
-    const now = Date.now()
-    return games.filter((entry) => entry.game.startTime >= now)
-  }, [games])
+    const now = Date.now();
+    return games.filter((entry) => entry.game.startTime >= now);
+  }, [games]);
 
-  const hasLoadedGames = games !== undefined
+  const hasLoadedGames = games !== undefined;
+
+  const firstUpcomingGame = upcomingGames[0];
+  const otherUpcomingGames = upcomingGames.slice(1);
 
   const getRsvpStatus = (
     game: GameWithRsvps,
     playerId: Id<"players">
   ): RsvpStatus | undefined => {
-    return game.rsvps.find((rsvp) => rsvp.playerId === playerId)?.status
-  }
+    return game.rsvps.find((rsvp) => rsvp.playerId === playerId)?.status;
+  };
 
   const handleRsvp = async (
     gameId: Id<"games">,
     playerId: Id<"players">,
     status: RsvpStatus
   ) => {
-    await setRsvp({ gameId, playerId, status })
-  }
+    if (!isAdmin && me?.playerId !== playerId) {
+      toast.error("You can only update your own attendance.");
+      return;
+    }
+    try {
+      await setRsvp({ gameId, playerId, status });
+    } catch (err: any) {
+      const message =
+        typeof err?.message === "string"
+          ? err.message
+          : "Failed to update attendance.";
+      toast.error(message);
+    }
+  };
 
   return (
     <div className="px-4 lg:px-6">
@@ -122,8 +161,8 @@ export default function Page() {
           <Button
             type="button"
             onClick={() => {
-              resetForm()
-              setIsDialogOpen(true)
+              resetForm();
+              setIsDialogOpen(true);
             }}
           >
             Add game
@@ -135,9 +174,9 @@ export default function Page() {
         <Dialog
           open={isDialogOpen}
           onOpenChange={(open) => {
-            setIsDialogOpen(open)
+            setIsDialogOpen(open);
             if (!open) {
-              resetForm()
+              resetForm();
             }
           }}
         >
@@ -148,28 +187,58 @@ export default function Page() {
             <form onSubmit={onCreateGame} className="grid gap-4">
               <div className="grid gap-1 text-sm">
                 <Label htmlFor="opponent">Opponent</Label>
-                <Input id="opponent" value={opponent} onChange={(e) => setOpponent(e.target.value)} required />
+                <Input
+                  id="opponent"
+                  value={opponent}
+                  onChange={(e) => setOpponent(e.target.value)}
+                  required
+                />
               </div>
               <div className="grid gap-1 text-sm">
                 <Label>Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className="justify-start font-normal">
-                      {selectedDate ? dateFormatter.format(selectedDate) : "Pick a date"}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="justify-start font-normal"
+                    >
+                      {selectedDate
+                        ? dateFormatter.format(selectedDate)
+                        : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="p-0 border border-border bg-card">
-                    <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus />
+                  <PopoverContent
+                    align="start"
+                    className="p-0 border border-border bg-card"
+                  >
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                    />
                   </PopoverContent>
                 </Popover>
               </div>
               <div className="grid gap-1 text-sm">
                 <Label htmlFor="time">Time</Label>
-                <Input id="time" type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
+                <Input
+                  id="time"
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  required
+                />
               </div>
               <div className="grid gap-1 text-sm">
                 <Label htmlFor="location">Location</Label>
-                <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Optional" />
+                <Input
+                  id="location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="Optional"
+                />
               </div>
               <div className="grid gap-1 text-sm">
                 <Label htmlFor="notes">Notes</Label>
@@ -193,149 +262,397 @@ export default function Page() {
       )}
 
       <div className="mt-4 space-y-4">
-        {!hasLoadedGames && <p className="text-muted-foreground">Loading games…</p>}
+        {!hasLoadedGames && (
+          <p className="text-muted-foreground">Loading games…</p>
+        )}
         {hasLoadedGames && upcomingGames.length === 0 && (
           <p className="text-muted-foreground">No upcoming games scheduled.</p>
         )}
-        <ul className="space-y-4">
-          {upcomingGames.map((entry) => {
-            const yesCount = entry.rsvps.filter((rsvp) => rsvp.status === "yes").length
-            const noCount = entry.rsvps.filter((rsvp) => rsvp.status === "no").length
-            const maybeCount = entry.rsvps.filter((rsvp) => rsvp.status === "maybe").length
 
-            return (
-              <li
-                key={entry.game._id}
-                className="rounded-xl border border-border bg-card p-6 shadow"
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">vs. {entry.game.opponent}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {dateFormatter.format(new Date(entry.game.startTime))}
-                    </p>
-                    {entry.game.location && (
-                      <p className="text-sm text-muted-foreground">{entry.game.location}</p>
-                    )}
-                    {entry.game.notes && (
-                      <p className="mt-2 text-sm text-muted-foreground">{entry.game.notes}</p>
-                    )}
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <span className="rounded-full border border-primary/40 px-3 py-1">
-                        Yes: {yesCount}
-                      </span>
-                      <span className="rounded-full border border-chart-4/40 px-3 py-1">
-                        Maybe: {maybeCount}
-                      </span>
-                      <span className="rounded-full border border-destructive/40 px-3 py-1">
-                        No: {noCount}
-                      </span>
+        {hasLoadedGames && firstUpcomingGame && (
+          <ul className="space-y-4">
+            {(() => {
+              const entry = firstUpcomingGame;
+              const yesCount = entry.rsvps.filter(
+                (rsvp) => rsvp.status === "yes"
+              ).length;
+              const noCount = entry.rsvps.filter(
+                (rsvp) => rsvp.status === "no"
+              ).length;
+              const maybeCount = entry.rsvps.filter(
+                (rsvp) => rsvp.status === "maybe"
+              ).length;
+              return (
+                <li
+                  key={entry.game._id}
+                  className="rounded-xl border border-border bg-card p-6 shadow"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        vs. {entry.game.opponent}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {dateFormatter.format(new Date(entry.game.startTime))}
+                      </p>
+                      {entry.game.location && (
+                        <p className="text-sm text-muted-foreground">
+                          {entry.game.location}
+                        </p>
+                      )}
+                      {entry.game.notes && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {entry.game.notes}
+                        </p>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span className="rounded-full border border-primary/40 px-3 py-1">
+                          Yes: {yesCount}
+                        </span>
+                        <span className="rounded-full border border-chart-4/40 px-3 py-1">
+                          Maybe: {maybeCount}
+                        </span>
+                        <span className="rounded-full border border-destructive/40 px-3 py-1">
+                          No: {noCount}
+                        </span>
+                      </div>
                     </div>
+
+                    {me?.role === "admin" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button className="self-end rounded border border-destructive px-3 py-1 text-sm font-medium text-destructive hover:bg-destructive/15">
+                            Remove game
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Remove this game?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will delete the game and all RSVPs. This
+                              action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={async () => {
+                                await deleteGame({ gameId: entry.game._id });
+                                toast.success("Game removed");
+                              }}
+                            >
+                              Remove
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
 
-                  {me?.role === "admin" && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <button className="self-end rounded border border-destructive px-3 py-1 text-sm font-medium text-destructive hover:bg-destructive/15">
-                          Remove game
-                        </button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Remove this game?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will delete the game and all RSVPs. This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={async () => {
-                              await deleteGame({ gameId: entry.game._id })
-                              toast.success("Game removed")
-                            }}
+                  <div className="mt-5 space-y-3">
+                    <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      Player availability
+                    </h4>
+                    {!players && (
+                      <p className="text-sm text-muted-foreground">
+                        Loading players…
+                      </p>
+                    )}
+                    {players && players.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Add players to start collecting RSVPs.
+                      </p>
+                    )}
+                    <ul className="space-y-2">
+                      {orderedPlayers?.map((player) => {
+                        const canEdit = isAdmin || me?.playerId === player._id;
+                        const status = getRsvpStatus(entry, player._id);
+                        const yesActive = status === "yes";
+                        const maybeActive = status === "maybe";
+                        const noActive = status === "no";
+                        const disabledClass = canEdit
+                          ? ""
+                          : " opacity-50 cursor-not-allowed";
+                        return (
+                          <li
+                            key={player._id}
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted p-3"
                           >
-                            Remove
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-1">
+                                <p className="text-sm font-medium text-foreground">
+                                  {player.name}
+                                </p>
+                                {(() => {
+                                  const flair = (player as any).flair as
+                                    | string
+                                    | undefined;
+                                  if (!flair) return null;
+                                  return flair
+                                    .split(",")
+                                    .map((s) => s.trim())
+                                    .filter(Boolean)
+                                    .slice(0, 6)
+                                    .map((label, idx) => (
+                                      <Badge key={idx} variant="secondary">
+                                        {label}
+                                      </Badge>
+                                    ));
+                                })()}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {player.position ?? "Position TBD"}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={yesActive ? "default" : "outline"}
+                                className={disabledClass}
+                                onClick={() =>
+                                  handleRsvp(entry.game._id, player._id, "yes")
+                                }
+                              >
+                                Yes
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={maybeActive ? "secondary" : "outline"}
+                                className={disabledClass}
+                                onClick={() =>
+                                  handleRsvp(
+                                    entry.game._id,
+                                    player._id,
+                                    "maybe"
+                                  )
+                                }
+                              >
+                                Maybe
+                              </Button>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant={noActive ? "destructive" : "outline"}
+                                className={disabledClass}
+                                onClick={() =>
+                                  handleRsvp(entry.game._id, player._id, "no")
+                                }
+                              >
+                                No
+                              </Button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </li>
+              );
+            })()}
+          </ul>
+        )}
 
-                <div className="mt-5 space-y-3">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    Player availability
-                  </h4>
-                  {!players && (
-                    <p className="text-sm text-muted-foreground">Loading players…</p>
-                  )}
-                  {players && players.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      Add players to start collecting RSVPs.
-                    </p>
-                  )}
-                  <ul className="space-y-2">
-                    {players?.map((player) => {
-                      const status = getRsvpStatus(entry, player._id)
-                      const buildButtonClasses = (target: RsvpStatus) => {
-                        const base = "rounded px-3 py-1 text-xs font-medium transition border"
-                        const activeStyles: Record<RsvpStatus, string> = {
-                          yes: "border-primary bg-primary text-primary-foreground",
-                          maybe: "border-secondary bg-secondary text-secondary-foreground",
-                          no: "border-destructive bg-destructive text-destructive-foreground",
-                        }
-                        const inactiveStyles: Record<RsvpStatus, string> = {
-                          yes: "border-primary/70 text-primary hover:bg-primary/10",
-                          maybe: "border-secondary/70 text-secondary hover:bg-secondary/10",
-                          no: "border-destructive/70 text-destructive hover:bg-destructive/10",
-                        }
-                        return `${base} ${status === target ? activeStyles[target] : inactiveStyles[target]}`
-                      }
-                      return (
-                        <li
-                          key={player._id}
-                          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted p-3"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-foreground">{player.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {player.position ?? "Position TBD"}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              className={buildButtonClasses("yes")}
-                              onClick={() => handleRsvp(entry.game._id, player._id, "yes")}
-                            >
-                              Yes
+        {hasLoadedGames && otherUpcomingGames.length > 0 && (
+          <div className="space-y-2">
+            {otherUpcomingGames.map((entry) => {
+              const yesCount = entry.rsvps.filter(
+                (rsvp) => rsvp.status === "yes"
+              ).length;
+              const noCount = entry.rsvps.filter(
+                (rsvp) => rsvp.status === "no"
+              ).length;
+              const maybeCount = entry.rsvps.filter(
+                (rsvp) => rsvp.status === "maybe"
+              ).length;
+              return (
+                <details
+                  key={entry.game._id}
+                  className="rounded-xl border border-border bg-card shadow"
+                >
+                  <summary className="flex cursor-pointer list-none items-center justify-between px-6 py-4">
+                    <span className="text-lg font-semibold">
+                      vs. {entry.game.opponent}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      {dateFormatter.format(new Date(entry.game.startTime))}
+                    </span>
+                  </summary>
+                  <div className="px-6 pb-6">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        {entry.game.location && (
+                          <p className="text-sm text-muted-foreground">
+                            {entry.game.location}
+                          </p>
+                        )}
+                        {entry.game.notes && (
+                          <p className="mt-2 text-sm text-muted-foreground">
+                            {entry.game.notes}
+                          </p>
+                        )}
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          <span className="rounded-full border border-primary/40 px-3 py-1">
+                            Yes: {yesCount}
+                          </span>
+                          <span className="rounded-full border border-chart-4/40 px-3 py-1">
+                            Maybe: {maybeCount}
+                          </span>
+                          <span className="rounded-full border border-destructive/40 px-3 py-1">
+                            No: {noCount}
+                          </span>
+                        </div>
+                      </div>
+
+                      {me?.role === "admin" && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button className="self-end rounded border border-destructive px-3 py-1 text-sm font-medium text-destructive hover:bg-destructive/15">
+                              Remove game
                             </button>
-                            <button
-                              type="button"
-                              className={buildButtonClasses("maybe")}
-                              onClick={() => handleRsvp(entry.game._id, player._id, "maybe")}
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Remove this game?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will delete the game and all RSVPs. This
+                                action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={async () => {
+                                  await deleteGame({ gameId: entry.game._id });
+                                  toast.success("Game removed");
+                                }}
+                              >
+                                Remove
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </div>
+
+                    <div className="mt-5 space-y-3">
+                      <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                        Player availability
+                      </h4>
+                      {!players && (
+                        <p className="text-sm text-muted-foreground">
+                          Loading players…
+                        </p>
+                      )}
+                      {players && players.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                          Add players to start collecting RSVPs.
+                        </p>
+                      )}
+                      <ul className="space-y-2">
+                        {orderedPlayers?.map((player) => {
+                          const canEdit =
+                            isAdmin || me?.playerId === player._id;
+                          const status = getRsvpStatus(entry, player._id);
+                          const yesActive = status === "yes";
+                          const maybeActive = status === "maybe";
+                          const noActive = status === "no";
+                          const disabledClass = canEdit
+                            ? ""
+                            : " opacity-50 cursor-not-allowed";
+                          return (
+                            <li
+                              key={player._id}
+                              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted p-3"
                             >
-                              Maybe
-                            </button>
-                            <button
-                              type="button"
-                              className={buildButtonClasses("no")}
-                              onClick={() => handleRsvp(entry.game._id, player._id, "no")}
-                            >
-                              No
-                            </button>
-                          </div>
-                        </li>
-                      )
-                    })}
-                  </ul>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
+                              <div>
+                                <div className="flex flex-wrap items-center gap-1">
+                                  <p className="text-sm font-medium text-foreground">
+                                    {player.name}
+                                  </p>
+                                  {(() => {
+                                    const flair = (player as any).flair as
+                                      | string
+                                      | undefined;
+                                    if (!flair) return null;
+                                    return flair
+                                      .split(",")
+                                      .map((s) => s.trim())
+                                      .filter(Boolean)
+                                      .slice(0, 6)
+                                      .map((label, idx) => (
+                                        <Badge key={idx} variant="secondary">
+                                          {label}
+                                        </Badge>
+                                      ));
+                                  })()}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {player.position ?? "Position TBD"}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={yesActive ? "default" : "outline"}
+                                  className={disabledClass}
+                                  onClick={() =>
+                                    handleRsvp(
+                                      entry.game._id,
+                                      player._id,
+                                      "yes"
+                                    )
+                                  }
+                                >
+                                  Yes
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={
+                                    maybeActive ? "secondary" : "outline"
+                                  }
+                                  className={disabledClass}
+                                  onClick={() =>
+                                    handleRsvp(
+                                      entry.game._id,
+                                      player._id,
+                                      "maybe"
+                                    )
+                                  }
+                                >
+                                  Maybe
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={noActive ? "destructive" : "outline"}
+                                  className={disabledClass}
+                                  onClick={() =>
+                                    handleRsvp(entry.game._id, player._id, "no")
+                                  }
+                                >
+                                  No
+                                </Button>
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
-  )
+  );
 }
