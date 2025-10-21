@@ -9,10 +9,12 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
 import type * as games from "../games.js";
 import type * as http from "../http.js";
 import type * as me from "../me.js";
 import type * as players from "../players.js";
+import type * as reminders from "../reminders.js";
 
 import type {
   ApiFromModules,
@@ -30,10 +32,12 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  crons: typeof crons;
   games: typeof games;
   http: typeof http;
   me: typeof me;
   players: typeof players;
+  reminders: typeof reminders;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 
