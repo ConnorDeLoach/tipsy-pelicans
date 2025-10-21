@@ -5,23 +5,13 @@ import { Id } from "@/convex/_generated/dataModel"
 import { useMutation, useQuery } from "convex/react"
 import { FormEvent, useState } from "react"
 import { toast } from "sonner"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
 import { RosterDataTable, type PlayerRow } from "@/components/roster-data-table"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 type PlayerFormState = {
   name: string
@@ -47,6 +37,7 @@ export default function Page() {
     isAdmin: false,
   })
   const [editingId, setEditingId] = useState<Id<"players"> | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const resetPlayerForm = () => {
     setPlayerForm({
@@ -93,6 +84,7 @@ export default function Page() {
       toast.success("Player added")
     }
 
+    setIsDialogOpen(false)
     resetPlayerForm()
   }
 
@@ -106,6 +98,7 @@ export default function Page() {
       notes: player.notes ?? "",
       isAdmin: player.isAdmin ?? false,
     })
+    setIsDialogOpen(true)
   }
 
   const onDelete = async (playerId: Id<"players">) => {
@@ -118,11 +111,33 @@ export default function Page() {
 
   return (
     <div className="px-4 lg:px-6">
-      <h1 className="text-2xl font-semibold">Roster Management</h1>
-      <section className="mt-6 grid gap-8 lg:grid-cols-[2fr_3fr]">
-        <form onSubmit={onSubmit} className="rounded-xl border border-border bg-card p-6 shadow">
-          <h2 className="text-xl font-medium">{editingId ? "Edit player" : "Add a new player"}</h2>
-          <div className="mt-4 grid gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-semibold">Roster Management</h1>
+        <Button
+          type="button"
+          onClick={() => {
+            resetPlayerForm()
+            setIsDialogOpen(true)
+          }}
+        >
+          Add player
+        </Button>
+      </div>
+
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          setIsDialogOpen(open)
+          if (!open) {
+            resetPlayerForm()
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingId ? "Edit player" : "Add a new player"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={onSubmit} className="grid gap-4">
             <div className="grid gap-1 text-sm">
               <Label htmlFor="name">Name</Label>
               <Input
@@ -209,34 +224,36 @@ export default function Page() {
                 placeholder="Injuries, preferred shift, etc."
               />
             </div>
-          </div>
-
-          <div className="mt-6 flex gap-3">
-            <Button type="submit">
-              {editingId ? "Save changes" : "Add player"}
-            </Button>
-            {editingId && (
-              <Button type="button" variant="outline" onClick={resetPlayerForm}>
+            <DialogFooter>
+              <Button type="submit">{editingId ? "Save changes" : "Add player"}</Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  resetPlayerForm()
+                  setIsDialogOpen(false)
+                }}
+              >
                 Cancel
               </Button>
-            )}
-          </div>
-        </form>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-        <section className="space-y-4">
-          <h2 className="text-xl font-medium">Current roster</h2>
-          {!players && <p className="text-muted-foreground">Loading roster…</p>}
-          {players && players.length === 0 && (
-            <p className="text-muted-foreground">No players yet. Add your first player with the form.</p>
-          )}
-          {players && players.length > 0 && (
-            <RosterDataTable
-              data={players as unknown as PlayerRow[]}
-              onEdit={(p) => onEdit(p as any)}
-              onDelete={(id) => onDelete(id)}
-            />
-          )}
-        </section>
+      <section className="mt-6 space-y-4">
+        <h2 className="text-xl font-medium">Current roster</h2>
+        {!players && <p className="text-muted-foreground">Loading roster…</p>}
+        {players && players.length === 0 && (
+          <p className="text-muted-foreground">No players yet. Use the Add player button to get started.</p>
+        )}
+        {players && players.length > 0 && (
+          <RosterDataTable
+            data={players as unknown as PlayerRow[]}
+            onEdit={(p) => onEdit(p as any)}
+            onDelete={(id) => onDelete(id)}
+          />
+        )}
       </section>
     </div>
   )

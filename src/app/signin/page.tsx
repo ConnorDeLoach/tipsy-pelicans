@@ -4,6 +4,9 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvex } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { FormEvent, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function SignInPage() {
   const { signIn } = useAuthActions();
@@ -12,14 +15,12 @@ export default function SignInPage() {
   const [loginMessage, setLoginMessage] = useState<string | null>(null);
   const [isSendingLink, setIsSendingLink] = useState(false);
 
-  const onSendMagicLink = async (event: FormEvent) => {
+  const onSubmitLogin = async (event: FormEvent) => {
     event.preventDefault();
     const trimmedEmail = loginEmail.trim();
 
     if (!trimmedEmail) {
-      setLoginMessage(
-        "Please enter an email address to receive a sign-in link."
-      );
+      setLoginMessage("Please enter an email address to receive a login link.");
       return;
     }
 
@@ -39,13 +40,13 @@ export default function SignInPage() {
 
       await signIn("resend", { email: trimmedEmail });
       setLoginMessage(
-        "Magic link sent! Check your inbox to finish signing in."
+        "Login link sent! Check your inbox to finish signing in."
       );
       setLoginEmail("");
     } catch (error) {
-      console.error("Failed to send magic link", error);
+      console.error("Failed to send login link", error);
       setLoginMessage(
-        "Something went wrong sending the magic link. Please try again."
+        "Something went wrong while sending the login link. Please try again."
       );
     } finally {
       setIsSendingLink(false);
@@ -53,34 +54,39 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50">
-      <main className="mx-auto flex max-w-5xl flex-col gap-12 px-6 py-12">
-        <section className="mx-auto w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 shadow">
-          <h1 className="text-2xl font-semibold">Sign in</h1>
-          <p className="mt-2 text-sm text-slate-300">
-            Enter your email and we&apos;ll send you a magic link to access the
-            roster.
-          </p>
-          <form onSubmit={onSendMagicLink} className="mt-6 grid gap-4">
-            <label className="grid gap-1 text-sm">
-              <span>Email</span>
-              <input
+    <div
+      className="flex min-h-screen flex-col text-foreground"
+      style={{
+        backgroundImage: "url('/fl-orange.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <main className="flex flex-1 items-center justify-center px-6 py-16">
+        <section
+          className="w-full max-w-md rounded-xl border border-border p-8 shadow text-white"
+          style={{ backgroundColor: "#316DB3" }}
+        >
+          <h1 className="text-2xl font-semibold">Tipsy Sign in</h1>
+          <p className="mt-2 text-sm text-white/80">For pelicans only</p>
+          <form onSubmit={onSubmitLogin} className="mt-8 grid gap-5">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
                 type="email"
-                className="rounded border border-slate-700 bg-slate-950 px-3 py-2 focus:border-sky-500 focus:outline-none"
+                autoComplete="email"
                 value={loginEmail}
                 onChange={(event) => setLoginEmail(event.target.value)}
                 required
               />
-            </label>
-            <button
-              type="submit"
-              className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isSendingLink}
-            >
-              {isSendingLink ? "Sending magic link…" : "Send magic link"}
-            </button>
+            </div>
+            <Button type="submit" disabled={isSendingLink}>
+              {isSendingLink ? "Logging in…" : "Login"}
+            </Button>
             {loginMessage && (
-              <p className="text-sm text-slate-300">{loginMessage}</p>
+              <p className="text-sm text-white/80">{loginMessage}</p>
             )}
           </form>
         </section>
