@@ -48,22 +48,22 @@ export function RosterDataTable({
       {
         accessorKey: "name",
         header: () => <span>Name</span>,
-        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+        cell: ({ row }) => <span className="font-medium text-foreground">{row.original.name}</span>,
       },
       {
         accessorKey: "email",
         header: () => <span>Email</span>,
-        cell: ({ row }) => <span className="text-slate-400">{row.original.email ?? "(no email)"}</span>,
+        cell: ({ row }) => <span className="text-muted-foreground">{row.original.email ?? "(no email)"}</span>,
       },
       {
         accessorKey: "number",
         header: () => <span>Number</span>,
-        cell: ({ row }) => <span className="text-slate-400">{row.original.number ?? "—"}</span>,
+        cell: ({ row }) => <span className="text-muted-foreground">{row.original.number ?? "—"}</span>,
       },
       {
         accessorKey: "position",
         header: () => <span>Position</span>,
-        cell: ({ row }) => <span className="text-slate-400">{row.original.position ?? "—"}</span>,
+        cell: ({ row }) => <span className="text-muted-foreground">{row.original.position ?? "—"}</span>,
       },
       {
         accessorKey: "isAdmin",
@@ -83,7 +83,7 @@ export function RosterDataTable({
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="border-rose-500 text-rose-400 hover:bg-rose-500/20">
+                    <Button variant="destructive" size="sm">
                       Remove
                     </Button>
                   </AlertDialogTrigger>
@@ -123,13 +123,17 @@ export function RosterDataTable({
   })
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 shadow">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card shadow">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((hg) => (
             <TableRow key={hg.id}>
               {hg.headers.map((header) => (
-                <TableHead key={header.id} onClick={header.column.getToggleSortingHandler?.()} className="cursor-pointer select-none">
+                <TableHead
+                  key={header.id}
+                  onClick={header.column.getToggleSortingHandler?.()}
+                  className="cursor-pointer select-none text-muted-foreground"
+                >
                   {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   {header.column.getIsSorted() === "asc" && " \u2191"}
                   {header.column.getIsSorted() === "desc" && " \u2193"}
@@ -141,15 +145,17 @@ export function RosterDataTable({
         <TableBody>
           {table.getRowModel().rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={columns.length} className="h-24 text-center">
+              <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
                 No results
               </TableCell>
             </TableRow>
           )}
           {table.getRowModel().rows.map((row) => (
-            <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+            <TableRow key={row.id} data-state={row.getIsSelected() && "selected"} className="hover:bg-muted/50">
               {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</TableCell>
+                <TableCell key={cell.id} className="text-sm text-foreground">
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </TableCell>
               ))}
             </TableRow>
           ))}

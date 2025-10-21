@@ -105,7 +105,7 @@ export default function Page() {
     <div className="px-4 lg:px-6">
       <h1 className="text-2xl font-semibold">Upcoming Games</h1>
       {isAdmin && (
-        <section className="mt-6 rounded-xl border border-slate-800 bg-slate-900 p-6 shadow">
+        <section className="mt-6 rounded-xl border border-border bg-card p-6 shadow">
           <h2 className="text-xl font-medium">Schedule a game</h2>
           <form onSubmit={onCreateGame} className="mt-4 grid gap-4 md:grid-cols-2">
             <div className="grid gap-1 text-sm">
@@ -121,7 +121,7 @@ export default function Page() {
                     {selectedDate ? dateFormatter.format(selectedDate) : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent align="start" className="p-0">
+                <PopoverContent align="start" className="p-0 border border-border bg-card">
                   <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} initialFocus />
                 </PopoverContent>
               </Popover>
@@ -139,20 +139,22 @@ export default function Page() {
 
             <div className="md:col-span-2 grid gap-1 text-sm">
               <Label htmlFor="notes">Notes</Label>
-              <textarea id="notes" className="min-h-[80px] rounded border border-slate-700 bg-slate-950 px-3 py-2 focus:border-sky-500 focus:outline-none" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Parking, special jerseys, etc." />
+              <textarea id="notes" className="min-h-[80px] rounded border border-border bg-muted px-3 py-2 focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Parking, special jerseys, etc." />
             </div>
 
             <div className="md:col-span-2 flex gap-3">
-              <Button type="submit" className="bg-emerald-500 text-slate-950 hover:bg-emerald-400">Add game</Button>
-              <Button type="button" variant="outline" onClick={resetForm}>Clear</Button>
+              <Button type="submit">Add game</Button>
+              <Button type="button" variant="outline" onClick={resetForm}>
+                Clear
+              </Button>
             </div>
           </form>
         </section>
       )}
       <div className="mt-4 space-y-4">
-        {!games && <p className="text-slate-400">Loading games…</p>}
+        {!games && <p className="text-muted-foreground">Loading games…</p>}
         {games && games.length === 0 && (
-          <p className="text-slate-400">No games scheduled.</p>
+          <p className="text-muted-foreground">No games scheduled.</p>
         )}
         <ul className="space-y-4">
           {games?.map((entry) => {
@@ -163,28 +165,28 @@ export default function Page() {
             return (
               <li
                 key={entry.game._id}
-                className="rounded-xl border border-slate-800 bg-slate-900 p-6 shadow"
+                className="rounded-xl border border-border bg-card p-6 shadow"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <h3 className="text-lg font-semibold">vs. {entry.game.opponent}</h3>
-                    <p className="text-sm text-slate-300">
+                    <p className="text-sm text-muted-foreground">
                       {dateFormatter.format(new Date(entry.game.startTime))}
                     </p>
                     {entry.game.location && (
-                      <p className="text-sm text-slate-400">{entry.game.location}</p>
+                      <p className="text-sm text-muted-foreground">{entry.game.location}</p>
                     )}
                     {entry.game.notes && (
-                      <p className="mt-2 text-sm text-slate-300">{entry.game.notes}</p>
+                      <p className="mt-2 text-sm text-muted-foreground">{entry.game.notes}</p>
                     )}
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
-                      <span className="rounded-full border border-emerald-400/40 px-3 py-1">
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span className="rounded-full border border-primary/40 px-3 py-1">
                         Yes: {yesCount}
                       </span>
-                      <span className="rounded-full border border-amber-400/40 px-3 py-1">
+                      <span className="rounded-full border border-chart-4/40 px-3 py-1">
                         Maybe: {maybeCount}
                       </span>
-                      <span className="rounded-full border border-rose-400/40 px-3 py-1">
+                      <span className="rounded-full border border-destructive/40 px-3 py-1">
                         No: {noCount}
                       </span>
                     </div>
@@ -193,7 +195,7 @@ export default function Page() {
                   {me?.role === "admin" && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <button className="self-end rounded border border-rose-500 px-3 py-1 text-sm font-medium text-rose-400 hover:bg-rose-500/20">
+                        <button className="self-end rounded border border-destructive px-3 py-1 text-sm font-medium text-destructive hover:bg-destructive/15">
                           Remove game
                         </button>
                       </AlertDialogTrigger>
@@ -221,34 +223,42 @@ export default function Page() {
                 </div>
 
                 <div className="mt-5 space-y-3">
-                  <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
+                  <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                     Player availability
                   </h4>
                   {!players && (
-                    <p className="text-sm text-slate-400">Loading players…</p>
+                    <p className="text-sm text-muted-foreground">Loading players…</p>
                   )}
                   {players && players.length === 0 && (
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-muted-foreground">
                       Add players to start collecting RSVPs.
                     </p>
                   )}
                   <ul className="space-y-2">
                     {players?.map((player) => {
                       const status = getRsvpStatus(entry, player._id)
-                      const buildButtonClasses = (target: RsvpStatus) =>
-                        `rounded border px-3 py-1 text-xs font-medium transition ${
-                          status === target
-                            ? "bg-sky-500 text-slate-950"
-                            : "border-sky-500 text-sky-500 hover:bg-sky-500/20"
-                        }`
+                      const buildButtonClasses = (target: RsvpStatus) => {
+                        const base = "rounded px-3 py-1 text-xs font-medium transition border"
+                        const activeStyles: Record<RsvpStatus, string> = {
+                          yes: "border-primary bg-primary text-primary-foreground",
+                          maybe: "border-secondary bg-secondary text-secondary-foreground",
+                          no: "border-destructive bg-destructive text-destructive-foreground",
+                        }
+                        const inactiveStyles: Record<RsvpStatus, string> = {
+                          yes: "border-primary/70 text-primary hover:bg-primary/10",
+                          maybe: "border-secondary/70 text-secondary hover:bg-secondary/10",
+                          no: "border-destructive/70 text-destructive hover:bg-destructive/10",
+                        }
+                        return `${base} ${status === target ? activeStyles[target] : inactiveStyles[target]}`
+                      }
                       return (
                         <li
                           key={player._id}
-                          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-950/50 p-3"
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted p-3"
                         >
                           <div>
-                            <p className="text-sm font-medium text-slate-100">{player.name}</p>
-                            <p className="text-xs text-slate-400">
+                            <p className="text-sm font-medium text-foreground">{player.name}</p>
+                            <p className="text-xs text-muted-foreground">
                               {player.position ?? "Position TBD"}
                             </p>
                           </div>

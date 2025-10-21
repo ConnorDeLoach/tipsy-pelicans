@@ -17,6 +17,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { RosterDataTable, type PlayerRow } from "@/components/roster-data-table"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@/components/ui/button"
 
 type PlayerFormState = {
   name: string
@@ -115,13 +120,13 @@ export default function Page() {
     <div className="px-4 lg:px-6">
       <h1 className="text-2xl font-semibold">Roster Management</h1>
       <section className="mt-6 grid gap-8 lg:grid-cols-[2fr_3fr]">
-        <form onSubmit={onSubmit} className="rounded-xl border border-slate-800 bg-slate-900 p-6 shadow">
+        <form onSubmit={onSubmit} className="rounded-xl border border-border bg-card p-6 shadow">
           <h2 className="text-xl font-medium">{editingId ? "Edit player" : "Add a new player"}</h2>
           <div className="mt-4 grid gap-4">
-            <label className="grid gap-1 text-sm">
-              <span>Name</span>
-              <input
-                className="rounded border border-slate-700 bg-slate-950 px-3 py-2 focus:border-sky-500 focus:outline-none"
+            <div className="grid gap-1 text-sm">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
                 value={playerForm.name}
                 onChange={(event) =>
                   setPlayerForm((prev) => ({
@@ -131,12 +136,12 @@ export default function Page() {
                 }
                 required
               />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span>Email</span>
-              <input
+            </div>
+            <div className="grid gap-1 text-sm">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
                 type="email"
-                className="rounded border border-slate-700 bg-slate-950 px-3 py-2 focus:border-sky-500 focus:outline-none"
                 value={playerForm.email}
                 onChange={(event) =>
                   setPlayerForm((prev) => ({
@@ -146,11 +151,11 @@ export default function Page() {
                 }
                 required
               />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span>Position</span>
-              <input
-                className="rounded border border-slate-700 bg-slate-950 px-3 py-2 focus:border-sky-500 focus:outline-none"
+            </div>
+            <div className="grid gap-1 text-sm">
+              <Label htmlFor="position">Position</Label>
+              <Input
+                id="position"
                 value={playerForm.position}
                 onChange={(event) =>
                   setPlayerForm((prev) => ({
@@ -160,11 +165,11 @@ export default function Page() {
                 }
                 placeholder="Forward, defense, goalie..."
               />
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span>Jersey number</span>
-              <input
-                className="rounded border border-slate-700 bg-slate-950 px-3 py-2 focus:border-sky-500 focus:outline-none"
+            </div>
+            <div className="grid gap-1 text-sm">
+              <Label htmlFor="number">Jersey number</Label>
+              <Input
+                id="number"
                 value={playerForm.number}
                 onChange={(event) =>
                   setPlayerForm((prev) => ({
@@ -174,24 +179,26 @@ export default function Page() {
                 }
                 placeholder="Optional"
               />
-            </label>
-            <label className="flex items-center gap-3 text-sm">
-              <input
-                type="checkbox"
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <Checkbox
+                id="isAdmin"
                 checked={playerForm.isAdmin}
-                onChange={(event) =>
+                onCheckedChange={(checked) =>
                   setPlayerForm((prev) => ({
                     ...prev,
-                    isAdmin: event.target.checked,
+                    isAdmin: checked === true,
                   }))
                 }
               />
-              Admin
-            </label>
-            <label className="grid gap-1 text-sm">
-              <span>Notes</span>
-              <textarea
-                className="min-h-[100px] rounded border border-slate-700 bg-slate-950 px-3 py-2 focus:border-sky-500 focus:outline-none"
+              <Label htmlFor="isAdmin" className="text-sm font-medium">
+                Admin
+              </Label>
+            </div>
+            <div className="grid gap-1 text-sm">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
                 value={playerForm.notes}
                 onChange={(event) =>
                   setPlayerForm((prev) => ({
@@ -201,33 +208,26 @@ export default function Page() {
                 }
                 placeholder="Injuries, preferred shift, etc."
               />
-            </label>
+            </div>
           </div>
 
           <div className="mt-6 flex gap-3">
-            <button
-              type="submit"
-              className="rounded bg-sky-500 px-4 py-2 text-sm font-medium text-slate-950 transition hover:bg-sky-400"
-            >
+            <Button type="submit">
               {editingId ? "Save changes" : "Add player"}
-            </button>
+            </Button>
             {editingId && (
-              <button
-                type="button"
-                onClick={resetPlayerForm}
-                className="rounded border border-slate-700 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800"
-              >
+              <Button type="button" variant="outline" onClick={resetPlayerForm}>
                 Cancel
-              </button>
+              </Button>
             )}
           </div>
         </form>
 
         <section className="space-y-4">
           <h2 className="text-xl font-medium">Current roster</h2>
-          {!players && <p className="text-slate-400">Loading roster…</p>}
+          {!players && <p className="text-muted-foreground">Loading roster…</p>}
           {players && players.length === 0 && (
-            <p className="text-slate-400">No players yet. Add your first player with the form.</p>
+            <p className="text-muted-foreground">No players yet. Add your first player with the form.</p>
           )}
           {players && players.length > 0 && (
             <RosterDataTable
