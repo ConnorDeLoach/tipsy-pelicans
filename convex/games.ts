@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
@@ -6,6 +6,36 @@ export const listGames = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("games").withIndex("by_start_time").collect();
+  },
+});
+
+export const setRsvpInternal = internalMutation({
+  args: {
+    gameId: v.id("games"),
+    playerId: v.id("players"),
+    status: v.union(v.literal("yes"), v.literal("no"), v.literal("maybe")),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("gameRsvps")
+      .withIndex("by_game_player", (q) =>
+        q.eq("gameId", args.gameId).eq("playerId", args.playerId),
+      )
+      .unique();
+
+    const now = Date.now();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, { status: args.status, updatedAt: now });
+      return existing._id;
+    }
+
+    return await ctx.db.insert("gameRsvps", {
+      gameId: args.gameId,
+      playerId: args.playerId,
+      status: args.status,
+      updatedAt: now,
+    });
   },
 });
 

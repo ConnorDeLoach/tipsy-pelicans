@@ -15,6 +15,7 @@ import type * as http from "../http.js";
 import type * as me from "../me.js";
 import type * as players from "../players.js";
 import type * as reminders from "../reminders.js";
+import type * as rsvpTokens from "../rsvpTokens.js";
 
 import type {
   ApiFromModules,
@@ -38,6 +39,7 @@ declare const fullApi: ApiFromModules<{
   me: typeof me;
   players: typeof players;
   reminders: typeof reminders;
+  rsvpTokens: typeof rsvpTokens;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

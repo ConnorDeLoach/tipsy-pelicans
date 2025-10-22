@@ -6,6 +6,7 @@ import {
 
 const isSignInPage = createRouteMatcher(["/signin"]);
 const isAuthApi = createRouteMatcher(["/api/auth(.*)"]);
+const isRsvpPage = createRouteMatcher(["/rsvp"]);
 
 export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   const authed = await convexAuth.isAuthenticated();
@@ -14,15 +15,16 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
     return nextjsMiddlewareRedirect(request, "/");
   }
 
-  if (!authed && !isSignInPage(request) && !isAuthApi(request)) {
+  if (
+    !authed &&
+    !isSignInPage(request) &&
+    !isAuthApi(request) &&
+    !isRsvpPage(request)
+  ) {
     return nextjsMiddlewareRedirect(request, "/signin");
   }
 });
 
 export const config = {
-  matcher: [
-    "/((?!.*\\..*|_next).*)",
-    "/",
-    "/(api|trpc)(.*)",
-  ],
+  matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };

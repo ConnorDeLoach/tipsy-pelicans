@@ -15,6 +15,13 @@ export const weeklyGameReminder = internalAction({
       );
       return;
     }
+    const rsvpBase = process.env.PUBLIC_RSVP_BASE_URL;
+    if (!rsvpBase) {
+      console.warn(
+        "PUBLIC_RSVP_BASE_URL is not configured; skipping weekly reminder email"
+      );
+      return;
+    }
 
     const now = Date.now();
     const windowEnd = now + ONE_DAY_MS * 7;
@@ -54,12 +61,45 @@ export const weeklyGameReminder = internalAction({
       : "";
 
     for (const player of pendingPlayers) {
+      const inToken = crypto.randomUUID();
+      const outToken = crypto.randomUUID();
+      const expiresAt = Date.now() + 1000 * 60 * 60 * 72; // 72h
+
+      await ctx.runMutation(api.rsvpTokens.issuePair, {
+        playerId: player._id,
+        gameId: upcomingGame.game._id,
+        inToken,
+        outToken,
+        expiresAt,
+      });
+
+      const base = rsvpBase.replace(/\/$/, "");
+      const inUrl = `${base}/rsvp?token=${inToken}`;
+      const outUrl = `${base}/rsvp?token=${outToken}`;
+
       const personalizedText = `Hey ${player.name || "Pelican"},
 
 We have a game vs ${upcomingGame.game.opponent} on ${formattedStart}.
-${locationLine}${notesLine}Please RSVP in the Tipsy Pelicans dashboard so the captains can plan the lineup.
+${locationLine}${notesLine}Are you in or out?
+
+IN: ${inUrl}
+OUT: ${outUrl}
 
 Thanks!`;
+
+      const html = `
+        <p>Hey ${player.name || "Pelican"},</p>
+        <p>We have a game vs ${
+          upcomingGame.game.opponent
+        } on ${formattedStart}.</p>
+        ${locationLine ? `<p>${locationLine.replace(/\n$/, "")}</p>` : ""}
+        ${notesLine ? `<p>${notesLine.replace(/\n$/, "")}</p>` : ""}
+        <p><strong>Are you in or out?</strong></p>
+        <p>
+          <a href="${inUrl}" style="display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;border:1px solid #ddd;margin-right:8px;">✅ I’m in</a>
+          <a href="${outUrl}" style="display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;border:1px solid #ddd;">❌ I’m out</a>
+        </p>
+      `;
 
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -72,6 +112,7 @@ Thanks!`;
           to: player.email,
           subject,
           text: personalizedText,
+          html,
         }),
       });
 

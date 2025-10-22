@@ -43,4 +43,12 @@ export default defineSchema({
     .index("by_game", ["gameId"])
     .index("by_player", ["playerId"])
     .index("by_game_player", ["gameId", "playerId"]),
+  rsvpTokens: defineTable({
+    token: v.string(),
+    playerId: v.id("players"),
+    gameId: v.id("games"),
+    choice: v.union(v.literal("in"), v.literal("out")),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+  }).index("by_token", ["token"]),
 });

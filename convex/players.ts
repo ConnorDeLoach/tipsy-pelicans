@@ -31,7 +31,7 @@ export const addPlayer = mutation({
         v.literal("LW"),
         v.literal("LD"),
         v.literal("RD"),
-        v.literal("G"),
+        v.literal("G")
       )
     ),
     number: v.optional(v.number()),
@@ -65,7 +65,7 @@ export const updatePlayer = mutation({
         v.literal("LW"),
         v.literal("LD"),
         v.literal("RD"),
-        v.literal("G"),
+        v.literal("G")
       )
     ),
     number: v.optional(v.number()),
