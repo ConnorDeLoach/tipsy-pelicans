@@ -76,29 +76,44 @@ export const weeklyGameReminder = internalAction({
       const base = rsvpBase.replace(/\/$/, "");
       const inUrl = `${base}/rsvp?token=${inToken}`;
       const outUrl = `${base}/rsvp?token=${outToken}`;
+      const imageUrl = `${base}/tipsy-rsvp-recruit.png`;
+      const locationHtml = upcomingGame.game.location
+        ? `<p style="margin:0 0 12px;"><strong>Location:</strong> ${upcomingGame.game.location}</p>`
+        : "";
+      const notesHtml = upcomingGame.game.notes
+        ? `<p style="margin:0 0 12px;"><strong>Notes:</strong> ${upcomingGame.game.notes}</p>`
+        : "";
 
       const personalizedText = `Hey ${player.name || "Pelican"},
 
 We have a game vs ${upcomingGame.game.opponent} on ${formattedStart}.
-${locationLine}${notesLine}Are you in or out?
+${locationLine}${notesLine}Please respond with your RSVP below.
 
-IN: ${inUrl}
-OUT: ${outUrl}
+I'm in: ${inUrl}
+I'm out: ${outUrl}
 
-Thanks!`;
+Thanks!
+Tipsy Pelicans FC`;
 
       const html = `
-        <p>Hey ${player.name || "Pelican"},</p>
-        <p>We have a game vs ${
-          upcomingGame.game.opponent
-        } on ${formattedStart}.</p>
-        ${locationLine ? `<p>${locationLine.replace(/\n$/, "")}</p>` : ""}
-        ${notesLine ? `<p>${notesLine.replace(/\n$/, "")}</p>` : ""}
-        <p><strong>Are you in or out?</strong></p>
-        <p>
-          <a href="${inUrl}" style="display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;border:1px solid #ddd;margin-right:8px;">✅ I’m in</a>
-          <a href="${outUrl}" style="display:inline-block;padding:10px 14px;border-radius:8px;text-decoration:none;border:1px solid #ddd;">❌ I’m out</a>
-        </p>
+        <div style="font-family:'Segoe UI',Arial,sans-serif;background-color:#f8fafc;padding:24px;border-radius:12px;border:1px solid #e2e8f0;color:#0f172a;max-width:540px;margin:0 auto;">
+          <h1 style="margin:0 0 16px;font-size:24px;color:#0f172a;">Weekly Game Reminder</h1>
+          <p style="margin:0 0 12px;">Hey ${player.name || "Pelican"},</p>
+          <p style="margin:0 0 12px;">We have a game vs ${
+            upcomingGame.game.opponent
+          } on ${formattedStart}.</p>
+          ${locationHtml}
+          ${notesHtml}
+          <div style="margin:20px 0 16px;text-align:center;">
+            <img src="${imageUrl}" alt="Tipsy Pelicans RSVP" style="max-width:100%;height:auto;border-radius:12px;" />
+          </div>
+          <p style="margin:0 0 16px;font-weight:600;color:#1d4ed8;">Please choose your RSVP below:</p>
+          <div style="text-align:center;margin-bottom:24px;">
+            <a href="${inUrl}" style="display:inline-block;background-color:#fb923c;color:#ffffff;font-weight:600;padding:12px 24px;border-radius:999px;text-decoration:none;margin-right:12px;">✅ I’m in</a>
+            <a href="${outUrl}" style="display:inline-block;background-color:#1d4ed8;color:#ffffff;font-weight:600;padding:12px 24px;border-radius:999px;text-decoration:none;">❌ I’m out</a>
+          </div>
+          <p style="margin:0;font-size:14px;color:#475569;">Thanks!<br/>Tipsy Pelicans FC</p>
+        </div>
       `;
 
       const response = await fetch("https://api.resend.com/emails", {
