@@ -37,6 +37,10 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -45,37 +49,41 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+  --background: #FFFFFF;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #2563EB;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #1E293B;
+  --muted: #F1F5F9;
+  --muted-foreground: #475569;
+  --accent: #EA580C;
+  --accent-foreground: #FFFFFF;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #2563EB;
+  --chart-1: #2563EB;
+  --chart-2: #EA580C;
+  --chart-3: #1D4ED8;
+  --chart-4: #FDBA74;
+  --chart-5: #93C5FD;
+  --sidebar: #F5F9FF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #2563EB;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFEDD5;
+  --sidebar-accent-foreground: #7C2D12;
+  --sidebar-border: #E2E8F0;
+  --sidebar-ring: #2563EB;
+  --info: #2563EB;
+  --info-foreground: #FFFFFF;
+  --warning: #EA580C;
+  --warning-foreground: #FFFFFF;
 }
 
 .dark {
@@ -118,5 +126,67 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+  a {
+    @apply text-primary hover:underline;
+  }
+}
+
+@layer utilities {
+  .bg-hero-gradient {
+    background-image: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  }
+  .text-brand-gradient {
+    background-image: linear-gradient(90deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-tint-orange {
+    background-color: #FFF7ED;
+  }
+  .bg-tint-blue {
+    background-color: #F5F9FF;
+  }
+  .border-b-gradient-brand {
+    position: relative;
+  }
+  .border-b-gradient-brand::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+    background-image: linear-gradient(90deg, var(--primary), var(--accent));
+  }
+  .animate-tipsy-bounce {
+    animation: tipsy-bounce 3s ease-in-out infinite;
+    transform-origin: 50% 100%;
+  }
+  @keyframes tipsy-bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .animate-tipsy-wobble {
+    animation: tipsy-wobble 2.2s ease-in-out infinite;
+    transform-origin: 50% 70%;
+  }
+  @keyframes tipsy-wobble {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-2deg); }
+    75% { transform: rotate(2deg); }
+  }
+  .text-gradient-blue {
+    background-image: linear-gradient(90deg, #1D4ED8, #2563EB);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .text-gradient-orange {
+    background-image: linear-gradient(90deg, #EA580C, #C2410C);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 }

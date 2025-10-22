@@ -123,7 +123,7 @@ export function RosterDataTable({
   })
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-card shadow">
+    <div className="overflow-x-auto rounded-xl border border-border bg-tint-blue shadow">
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((hg) => (

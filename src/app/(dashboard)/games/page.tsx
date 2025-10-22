@@ -285,7 +285,7 @@ export default function Page() {
               return (
                 <li
                   key={entry.game._id}
-                  className="rounded-xl border border-border bg-card p-6 shadow"
+                  className="rounded-xl border border-border bg-tint-blue p-6 shadow"
                 >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -469,7 +469,7 @@ export default function Page() {
               return (
                 <details
                   key={entry.game._id}
-                  className="rounded-xl border border-border bg-card shadow"
+                  className="rounded-xl border border-border bg-tint-blue shadow"
                 >
                   <summary className="flex cursor-pointer list-none items-center justify-between px-6 py-4">
                     <span className="text-lg font-semibold">
