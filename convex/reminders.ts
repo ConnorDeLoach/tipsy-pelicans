@@ -113,6 +113,9 @@ Thanks!`;
           subject,
           text: personalizedText,
           html,
+          headers: {
+            "List-Unsubscribe": "<mailto:unsubscribe@tipsypelicans.com>",
+          },
         }),
       });
 
