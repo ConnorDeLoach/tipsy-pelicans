@@ -17,9 +17,18 @@ export default function RsvpPage() {
 
   const isIn = choice === "in";
   const isOut = choice === "out";
-  const mascotClass = isIn ? "animate-tipsy-bounce" : isOut ? "animate-tipsy-wobble" : "";
+  const mascotClass = isIn
+    ? "animate-tipsy-bounce"
+    : isOut
+    ? "animate-tipsy-wobble"
+    : "";
   const backdropClass = isIn ? "bg-tint-blue" : isOut ? "bg-tint-orange" : "";
   const statusWord = isIn ? "pleased" : isOut ? "displeased" : "undecided";
+  const mascotSrc = isIn
+    ? "/tipsy-inscryption-trans-pleased.png"
+    : isOut
+    ? "/tipsy-inscryption-trans.png"
+    : "/tipsy-inscryption-trans-pleased.png";
   const statusWordClass = isIn
     ? "text-gradient-blue"
     : isOut
@@ -32,19 +41,30 @@ export default function RsvpPage() {
     : "ring-1 ring-border/40";
 
   return (
-    <div className={`flex min-h-screen flex-col items-center justify-center p-6 ${backdropClass}`}>
+    <div
+      className={`flex min-h-screen flex-col items-center justify-center p-6 ${backdropClass}`}
+    >
       <Image
-        src="/tipsy-inscryption-trans.png"
+        src={mascotSrc}
         alt="Tipsy Pelicans mascot"
         width={640}
         height={640}
         className={`mb-6 h-auto w-96 sm:w-[32rem] ${mascotClass}`}
         priority
       />
-      <div className={`w-full max-w-md space-y-6 rounded-xl border border-border bg-card/90 p-6 shadow-2xl backdrop-blur-sm ${cardRingClass}`}>
-        <h1 className="text-2xl font-semibold text-brand-gradient">RSVP Confirmed</h1>
+      <div
+        className={`w-full max-w-md space-y-6 rounded-xl border border-border bg-card/90 p-6 shadow-2xl backdrop-blur-sm ${cardRingClass}`}
+      >
+        <h1 className="text-2xl font-semibold text-brand-gradient">
+          RSVP Confirmed
+        </h1>
         <p className="text-lg sm:text-xl">
-          Tipsy is ... <span className={`${statusWordClass} text-3xl sm:text-4xl font-extrabold align-baseline`}>{statusWord}</span>
+          Tipsy is ...{" "}
+          <span
+            className={`${statusWordClass} text-3xl sm:text-4xl font-extrabold align-baseline`}
+          >
+            {statusWord}
+          </span>
         </p>
         <p className="text-sm opacity-80">
           Need to change it? Head to the Games page.

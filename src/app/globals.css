@@ -161,21 +161,30 @@
     background-image: linear-gradient(90deg, var(--primary), var(--accent));
   }
   .animate-tipsy-bounce {
-    animation: tipsy-bounce 3s ease-in-out infinite;
-    transform-origin: 50% 100%;
+    animation: tipsy-bounce 4.2s ease-in-out infinite;
+    transform-origin: 50% 90%;
   }
   @keyframes tipsy-bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
+    0% { transform: translateY(0) rotate(0deg); }
+    20% { transform: translateY(-8px) translateX(3px) rotate(1.5deg); }
+    45% { transform: translateY(-4px) translateX(-2px) rotate(-1deg); }
+    70% { transform: translateY(-10px) translateX(2px) rotate(1deg); }
+    100% { transform: translateY(0) rotate(0deg); }
   }
   .animate-tipsy-wobble {
-    animation: tipsy-wobble 2.2s ease-in-out infinite;
-    transform-origin: 50% 70%;
+    animation: tipsy-wobble 1.1s cubic-bezier(0.36, 0, 0.66, -0.56) infinite;
+    transform-origin: 45% 65%;
   }
   @keyframes tipsy-wobble {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(-2deg); }
-    75% { transform: rotate(2deg); }
+    0% { transform: rotate(0deg) translate(0, 0); }
+    10% { transform: rotate(-10deg) translate(-6px, 2px); }
+    20% { transform: rotate(12deg) translate(5px, -4px); }
+    35% { transform: rotate(-18deg) translate(-4px, 3px); }
+    50% { transform: rotate(16deg) translate(3px, -2px); }
+    65% { transform: rotate(-14deg) translate(-5px, 1px); }
+    80% { transform: rotate(20deg) translate(4px, -3px); }
+    90% { transform: rotate(-8deg) translate(-3px, 2px); }
+    100% { transform: rotate(0deg) translate(0, 0); }
   }
   .text-gradient-blue {
     background-image: linear-gradient(90deg, #1D4ED8, #2563EB);
