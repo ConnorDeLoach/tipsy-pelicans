@@ -76,7 +76,7 @@ export const weeklyGameReminder = internalAction({
       const base = rsvpBase.replace(/\/$/, "");
       const inUrl = `${base}/rsvp?token=${inToken}`;
       const outUrl = `${base}/rsvp?token=${outToken}`;
-      const imageUrl = `${base}/tipsy-rsvp-recruit.png`;
+      const imageUrl = `${base}/kg2dwcw9jzc7ayg4bvqfzbdbs57szxk2`;
       const locationHtml = upcomingGame.game.location
         ? `<p style="margin:0 0 12px;"><strong>Location:</strong> ${upcomingGame.game.location}</p>`
         : "";
@@ -93,7 +93,7 @@ I'm in: ${inUrl}
 I'm out: ${outUrl}
 
 Thanks!
-Tipsy Pelicans FC`;
+Tipsy`;
 
       const html = `
         <div style="font-family:'Segoe UI',Arial,sans-serif;background-color:#f8fafc;padding:24px;border-radius:12px;border:1px solid #e2e8f0;color:#0f172a;max-width:540px;margin:0 auto;">
@@ -109,10 +109,10 @@ Tipsy Pelicans FC`;
           </div>
           <p style="margin:0 0 16px;font-weight:600;color:#1d4ed8;">Please choose your RSVP below:</p>
           <div style="text-align:center;margin-bottom:24px;">
-            <a href="${inUrl}" style="display:inline-block;background-color:#fb923c;color:#ffffff;font-weight:600;padding:12px 24px;border-radius:999px;text-decoration:none;margin-right:12px;">✅ I’m in</a>
-            <a href="${outUrl}" style="display:inline-block;background-color:#1d4ed8;color:#ffffff;font-weight:600;padding:12px 24px;border-radius:999px;text-decoration:none;">❌ I’m out</a>
+            <a href="${inUrl}" style="display:inline-block;background-color:#1d4ed8;color:#ffffff;font-weight:600;padding:12px 24px;border-radius:999px;text-decoration:none;margin-right:12px;">✅ I’m in</a>
+            <a href="${outUrl}" style="display:inline-block;background-color:#fb923c;color:#ffffff;font-weight:600;padding:12px 24px;border-radius:999px;text-decoration:none;">❌ I’m out</a>
           </div>
-          <p style="margin:0;font-size:14px;color:#475569;">Thanks!<br/>Tipsy Pelicans FC</p>
+          <p style="margin:0;font-size:14px;color:#475569;">Thanks!<br/>Tipsy</p>
         </div>
       `;
 
