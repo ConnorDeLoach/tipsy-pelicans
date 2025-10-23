@@ -45,12 +45,12 @@ export const weeklyGameReminder = internalAction({
       return;
     }
 
-    const startTime = new Date(upcomingGame.game.startTime);
     const formatter = new Intl.DateTimeFormat("en-US", {
       dateStyle: "full",
       timeStyle: "short",
+      timeZone: "America/New_York",
     });
-    const formattedStart = formatter.format(startTime);
+    const formattedStart = formatter.format(upcomingGame.game.startTime);
 
     const subject = `RSVP needed: vs ${upcomingGame.game.opponent} on ${formattedStart}`;
     const locationLine = upcomingGame.game.location
@@ -76,7 +76,7 @@ export const weeklyGameReminder = internalAction({
       const base = rsvpBase.replace(/\/$/, "");
       const inUrl = `${base}/rsvp?token=${inToken}`;
       const outUrl = `${base}/rsvp?token=${outToken}`;
-      const imageUrl = `${base}/kg2dwcw9jzc7ayg4bvqfzbdbs57szxk2`;
+      const imageUrl = `${process.env.SITE_URL}/tipsy-rsvp-recruit.png`;
       const locationHtml = upcomingGame.game.location
         ? `<p style="margin:0 0 12px;"><strong>Location:</strong> ${upcomingGame.game.location}</p>`
         : "";
