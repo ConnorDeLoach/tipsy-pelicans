@@ -8,26 +8,30 @@ const isSignInPage = createRouteMatcher(["/signin"]);
 const isAuthApi = createRouteMatcher(["/api/auth(.*)"]);
 const isRsvpPage = createRouteMatcher(["/rsvp"]);
 
-export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
-  const authed = await convexAuth.isAuthenticated();
+export default convexAuthNextjsMiddleware(
+  async (request, { convexAuth }) => {
+    const authed = await convexAuth.isAuthenticated();
 
-  if (isSignInPage(request) && authed) {
-    return nextjsMiddlewareRedirect(request, "/");
-  }
+    if (isSignInPage(request) && authed) {
+      return nextjsMiddlewareRedirect(request, "/");
+    }
 
-  if (
-    !authed &&
-    !isSignInPage(request) &&
-    !isAuthApi(request) &&
-    !isRsvpPage(request)
-  ) {
-    return nextjsMiddlewareRedirect(request, "/signin");
+    if (
+      !authed &&
+      !isSignInPage(request) &&
+      !isAuthApi(request) &&
+      !isRsvpPage(request)
+    ) {
+      return nextjsMiddlewareRedirect(request, "/signin");
+    }
+  },
+  {
+    cookieConfig: {
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    },
   }
-});
+);
 
 export const config = {
-  cookieConfig: {
-    maxAge: 60 * 60 * 24 * 30, // 30 days
-  },
   matcher: ["/((?!.*\\..*|_next).*)", "/", "/(api|trpc)(.*)"],
 };
