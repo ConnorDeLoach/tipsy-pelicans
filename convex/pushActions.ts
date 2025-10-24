@@ -59,6 +59,10 @@ export const sendToUser = internalAction({
     const i = internal as any;
     const subs = await ctx.runQuery(i.push.listUserSubs, { userId });
 
+    if (subs.length === 0) {
+      console.warn("pushActions.sendToUser: no subscriptions found", { userId });
+    }
+
     let attempted = 0;
     let success = 0;
     let gone = 0;
@@ -86,6 +90,15 @@ export const sendToUser = internalAction({
         const statusCode: number | undefined =
           err?.statusCode ?? err?.statusCode_;
         const isGone = statusCode === 404 || statusCode === 410;
+        console.error("pushActions.sendToUser: webpush error", {
+          userId,
+          subscriptionId: sub._id,
+          endpoint: sub.endpoint,
+          statusCode,
+          message: err?.message,
+          body: err?.body,
+          headers: err?.headers,
+        });
         await ctx.runMutation(i.push.markSendResult, {
           id: sub._id,
           ok: false,
@@ -96,7 +109,9 @@ export const sendToUser = internalAction({
       }
     }
 
-    return { attempted, success, gone, failed };
+    const summary = { attempted, success, gone, failed };
+    console.log("pushActions.sendToUser summary", { userId, ...summary });
+    return summary;
   },
 });
 
