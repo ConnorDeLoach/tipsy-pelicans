@@ -14,6 +14,8 @@ import type * as games from "../games.js";
 import type * as http from "../http.js";
 import type * as me from "../me.js";
 import type * as players from "../players.js";
+import type * as push from "../push.js";
+import type * as pushActions from "../pushActions.js";
 import type * as reminders from "../reminders.js";
 import type * as rsvpTokens from "../rsvpTokens.js";
 
@@ -38,6 +40,8 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   me: typeof me;
   players: typeof players;
+  push: typeof push;
+  pushActions: typeof pushActions;
   reminders: typeof reminders;
   rsvpTokens: typeof rsvpTokens;
 }>;

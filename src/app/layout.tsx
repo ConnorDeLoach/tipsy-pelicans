@@ -19,10 +19,27 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TIPSY",
   description: "We don't play sober",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#1d4ed8",
+  appleWebApp: {
+    capable: true,
+    title: "Tipsy",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
-    icon: "/favicon.png",
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
+    icon: [
+      {
+        url: "/pwa/manifest-icon-192.maskable.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/pwa/manifest-icon-512.maskable.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+    apple: "/pwa/apple-icon-180.png",
   },
 };
 

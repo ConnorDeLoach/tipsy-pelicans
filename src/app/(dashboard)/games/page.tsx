@@ -5,6 +5,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { EnablePushButton } from "@/components/EnablePushButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -157,17 +158,20 @@ export default function Page() {
     <div className="px-4 lg:px-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Upcoming Games</h1>
-        {isAdmin && (
-          <Button
-            type="button"
-            onClick={() => {
-              resetForm();
-              setIsDialogOpen(true);
-            }}
-          >
-            Add game
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          <EnablePushButton />
+          {isAdmin && (
+            <Button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setIsDialogOpen(true);
+              }}
+            >
+              Add game
+            </Button>
+          )}
+        </div>
       </div>
 
       {isAdmin && (

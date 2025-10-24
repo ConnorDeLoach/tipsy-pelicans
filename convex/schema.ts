@@ -51,4 +51,29 @@ export default defineSchema({
     expiresAt: v.number(),
     usedAt: v.optional(v.number()),
   }).index("by_token", ["token"]),
+  pushSubscriptions: defineTable({
+    userId: v.id("users"),
+    endpoint: v.string(),
+    keys: v.object({ p256dh: v.string(), auth: v.string() }),
+    ua: v.optional(v.string()),
+    platform: v.optional(
+      v.union(
+        v.literal("ios"),
+        v.literal("android"),
+        v.literal("desktop"),
+        v.literal("unknown")
+      )
+    ),
+    authVersion: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    lastSendAt: v.optional(v.number()),
+    errorCount: v.number(),
+    lastStatus: v.optional(
+      v.union(v.literal("ok"), v.literal("gone"), v.literal("error"))
+    ),
+  })
+    .index("byUser", ["userId"])
+    .index("byEndpoint", ["endpoint"])
+    .index("byStatus", ["lastStatus"]),
 });
