@@ -43,18 +43,29 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url =
-    (event.notification &&
-      event.notification.data &&
-      event.notification.data.url) ||
-    "/";
+  const data = (event.notification && event.notification.data) || {};
+  const action = event.action;
+  if (action === "rsvp-in" || action === "rsvp-out") {
+    const targetUrl =
+      action === "rsvp-in" ? data?.rsvp?.inUrl : data?.rsvp?.outUrl;
+    if (targetUrl) {
+      event.waitUntil(
+        (async () => {
+          try {
+            await fetch(targetUrl, { method: "GET", mode: "no-cors" });
+          } catch (e) {}
+        })()
+      );
+      return;
+    }
+  }
+  const url = (data && data.url) || "/";
   event.waitUntil(
     (async () => {
       const allClients = await self.clients.matchAll({
         type: "window",
         includeUncontrolled: true,
       });
-      // Focus existing tab if open
       for (const client of allClients) {
         if ("focus" in client) {
           const clientUrl = (client.url || "").split("#")[0];
@@ -64,7 +75,6 @@ self.addEventListener("notificationclick", (event) => {
           }
         }
       }
-      // Otherwise open a new tab
       if (self.clients.openWindow) {
         return self.clients.openWindow(url);
       }

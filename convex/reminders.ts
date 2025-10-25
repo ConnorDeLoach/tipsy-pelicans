@@ -1,5 +1,5 @@
 import { internalAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -83,6 +83,28 @@ export const weeklyGameReminder = internalAction({
       const notesHtml = upcomingGame.game.notes
         ? `<p style="margin:0 0 12px;"><strong>Notes:</strong> ${upcomingGame.game.notes}</p>`
         : "";
+
+      if (player.userId) {
+        const payload = {
+          title: `RSVP needed: vs ${upcomingGame.game.opponent} on ${formattedStart}`,
+          body: "Tap to respond.",
+          tag: `rsvp-${upcomingGame.game._id}-${player._id}`,
+          data: {
+            url: `${process.env.SITE_URL}/games`,
+            rsvp: { inUrl, outUrl },
+          },
+          actions: [
+            { action: "rsvp-in", title: "I’m in" },
+            { action: "rsvp-out", title: "I’m out" },
+          ],
+        };
+
+        await ctx.runAction(internal.pushActions.sendToUser, {
+          userId: player.userId,
+          payload,
+          options: { urgency: "high" },
+        });
+      }
 
       const personalizedText = `Hey ${player.name || "Pelican"},
 
