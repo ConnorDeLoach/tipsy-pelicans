@@ -10,7 +10,13 @@ crons.weekly(
     hourUTC: 14,
     minuteUTC: 0,
   },
-  internal.reminders.weeklyGameReminder,
+  internal.reminders.weeklyGameReminder
+);
+
+crons.weekly(
+  "weekly game reminder (Thu)",
+  { dayOfWeek: "thursday", hourUTC: 14, minuteUTC: 0 },
+  internal.reminders.weeklyGameReminder
 );
 
 export default crons;

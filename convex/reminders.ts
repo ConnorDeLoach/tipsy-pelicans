@@ -46,8 +46,11 @@ export const weeklyGameReminder = internalAction({
     }
 
     const formatter = new Intl.DateTimeFormat("en-US", {
-      dateStyle: "full",
-      timeStyle: "short",
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
       timeZone: "America/New_York",
     });
     const formattedStart = formatter.format(upcomingGame.game.startTime);
@@ -86,8 +89,8 @@ export const weeklyGameReminder = internalAction({
 
       if (player.userId) {
         const payload = {
-          title: `RSVP needed: vs ${upcomingGame.game.opponent} on ${formattedStart}`,
-          body: "Tap to respond.",
+          title: `${formattedStart}`,
+          body: `vs ${upcomingGame.game.opponent}`,
           tag: `rsvp-${upcomingGame.game._id}-${player._id}`,
           data: {
             url: `${process.env.SITE_URL}/games`,
