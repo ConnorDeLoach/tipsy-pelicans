@@ -1,10 +1,11 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
 export default function RsvpPage() {
+  const router = useRouter();
   const params = useSearchParams();
   const choice = params.get("status"); // "in" | "out" | null
 
@@ -72,6 +73,7 @@ export default function RsvpPage() {
         <div>
           <Link
             href="/games"
+            onMouseEnter={() => router.prefetch("/games")}
             className="inline-block rounded-md border px-4 py-2 hover:bg-muted"
           >
             Go to Games

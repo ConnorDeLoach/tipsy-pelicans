@@ -4,6 +4,7 @@ import * as React from "react"
 import { IconDashboard, IconUsers } from "@tabler/icons-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
@@ -17,6 +18,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -41,6 +43,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }),
     [me]
   )
+  const router = useRouter()
+  const { isMobile, setOpenMobile } = useSidebar()
+  React.useEffect(() => {
+    router.prefetch("/games")
+    if (me?.role === "admin") {
+      router.prefetch("/admin/roster")
+    }
+  }, [router, me?.role])
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -50,7 +60,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <Link href="/">
+              <Link
+                href="/"
+                onClick={() => {
+                  if (isMobile) setOpenMobile(false)
+                }}
+              >
                 <Image
                   src="/favicon.png"
                   alt="Tipsy Pelicans logo"
@@ -74,3 +89,4 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
+

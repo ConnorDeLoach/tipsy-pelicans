@@ -27,9 +27,56 @@ type PlayerFormState = {
 
 export default function Page() {
   const players = useQuery(api.players.getPlayers)
-  const addPlayer = useMutation(api.players.addPlayer)
-  const updatePlayer = useMutation(api.players.updatePlayer)
-  const removePlayer = useMutation(api.players.removePlayer)
+  const addPlayer = useMutation(api.players.addPlayer).withOptimisticUpdate(
+    (localStore, { name, email, position, number, flair, isAdmin }) => {
+      const list = localStore.getQuery(api.players.getPlayers)
+      if (!list) return
+      const trimmedEmail = email.trim()
+      const optimistic = {
+        _id: "optimistic:new-player" as Id<"players">,
+        _creationTime: Date.now(),
+        name,
+        email: trimmedEmail,
+        emailLowercase: trimmedEmail.toLowerCase(),
+        position,
+        number,
+        flair,
+        isAdmin: isAdmin ?? false,
+        createdAt: Date.now(),
+      } as any
+      const updated = [...list, optimistic].sort((a, b) => a.name.localeCompare(b.name))
+      localStore.setQuery(api.players.getPlayers, {}, updated)
+    }
+  )
+  const updatePlayer = useMutation(api.players.updatePlayer).withOptimisticUpdate(
+    (localStore, { playerId, email, ...fields }) => {
+      const list = localStore.getQuery(api.players.getPlayers)
+      if (!list) return
+      const updated = list.map((p) => {
+        if (p._id !== playerId) return p
+        const patch: any = { ...fields }
+        if (email !== undefined) {
+          const trimmed = email.trim()
+          patch.email = trimmed
+          patch.emailLowercase = trimmed.toLowerCase()
+        }
+        return { ...p, ...patch }
+      })
+      updated.sort((a, b) => a.name.localeCompare(b.name))
+      localStore.setQuery(api.players.getPlayers, {}, updated)
+    }
+  )
+  const removePlayer = useMutation(api.players.removePlayer).withOptimisticUpdate(
+    (localStore, { playerId }) => {
+      const list = localStore.getQuery(api.players.getPlayers)
+      if (!list) return
+      localStore.setQuery(
+        api.players.getPlayers,
+        {},
+        list.filter((p) => p._id !== playerId)
+      )
+    }
+  )
 
   const [playerForm, setPlayerForm] = useState<PlayerFormState>({
     name: "",

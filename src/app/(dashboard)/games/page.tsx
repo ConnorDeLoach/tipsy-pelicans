@@ -40,9 +40,72 @@ type RsvpStatus = "yes" | "no" | "maybe";
 export default function Page() {
   const players = useQuery(api.players.getPlayers);
   const games = useQuery(api.games.listGamesWithRsvps);
-  const setRsvp = useMutation(api.games.setRsvp);
-  const deleteGame = useMutation(api.games.removeGame);
-  const createGame = useMutation(api.games.createGame);
+  const setRsvp = useMutation(api.games.setRsvp).withOptimisticUpdate(
+    (localStore, { gameId, playerId, status }) => {
+      const list = localStore.getQuery(api.games.listGamesWithRsvps);
+      if (!list) return;
+      const updated = list.map((entry) => {
+        if (entry.game._id !== gameId) return entry;
+        const idx = entry.rsvps.findIndex((r) => r.playerId === playerId);
+        let nextRsvps;
+        if (idx >= 0) {
+          nextRsvps = entry.rsvps.slice();
+          nextRsvps[idx] = {
+            ...nextRsvps[idx],
+            status,
+            updatedAt: Date.now(),
+          } as any;
+        } else {
+          nextRsvps = [
+            ...entry.rsvps,
+            {
+              _id: "optimistic:rsvp" as Id<"gameRsvps">,
+              _creationTime: Date.now(),
+              gameId,
+              playerId,
+              status,
+              updatedAt: Date.now(),
+            },
+          ];
+        }
+        return { ...entry, rsvps: nextRsvps };
+      });
+      localStore.setQuery(api.games.listGamesWithRsvps, {}, updated);
+    }
+  );
+  const deleteGame = useMutation(api.games.removeGame).withOptimisticUpdate(
+    (localStore, { gameId }) => {
+      const list = localStore.getQuery(api.games.listGamesWithRsvps);
+      if (!list) return;
+      localStore.setQuery(
+        api.games.listGamesWithRsvps,
+        {},
+        list.filter((entry) => entry.game._id !== gameId)
+      );
+    }
+  );
+  const createGame = useMutation(api.games.createGame).withOptimisticUpdate(
+    (localStore, { opponent, startTime, location, notes }) => {
+      const list = localStore.getQuery(api.games.listGamesWithRsvps);
+      if (!list) return;
+      const optimistic = {
+        game: {
+          _id: "optimistic:new-game" as Id<"games">,
+          _creationTime: Date.now(),
+          opponent,
+          startTime,
+          location,
+          notes,
+          createdAt: Date.now(),
+        },
+        rsvps: [],
+      } as any;
+      const updated = [...list, optimistic].sort(
+        (a, b) => a.game.startTime - b.game.startTime
+      );
+      localStore.setQuery(api.games.listGamesWithRsvps, {}, updated);
+    }
+  );
   const me = useQuery(api.me.get);
 
   const orderedPlayers = useMemo(() => {

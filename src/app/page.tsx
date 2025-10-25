@@ -11,7 +11,9 @@ export default function Home() {
 
   useEffect(() => {
     if (me?.role) {
-      router.replace(me.role === "admin" ? "/admin/roster" : "/games");
+      const target = me.role === "admin" ? "/admin/roster" : "/games";
+      router.prefetch(target);
+      router.replace(target);
     }
   }, [me, router]);
 
