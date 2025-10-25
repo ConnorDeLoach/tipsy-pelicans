@@ -329,9 +329,6 @@ export default function Page() {
       )}
 
       <div className="mt-4 space-y-4">
-        {!hasLoadedGames && (
-          <p className="text-muted-foreground">Loading games…</p>
-        )}
         {hasLoadedGames && upcomingGames.length === 0 && (
           <p className="text-muted-foreground">No upcoming games scheduled.</p>
         )}

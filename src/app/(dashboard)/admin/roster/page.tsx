@@ -1,37 +1,52 @@
-"use client"
+"use client";
 
-import { api } from "@/convex/_generated/api"
-import { Id } from "@/convex/_generated/dataModel"
-import { useMutation, useQuery } from "convex/react"
-import { FormEvent, useState } from "react"
-import { toast } from "sonner"
-import { RosterDataTable, type PlayerRow } from "@/components/roster-data-table"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
+import { useMutation, useQuery } from "convex/react";
+import { FormEvent, useState } from "react";
+import { toast } from "sonner";
+import {
+  RosterDataTable,
+  type PlayerRow,
+} from "@/components/roster-data-table";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-type PositionOption = "RW" | "C" | "LW" | "LD" | "RD" | "G"
+type PositionOption = "RW" | "C" | "LW" | "LD" | "RD" | "G";
 
 type PlayerFormState = {
-  name: string
-  email: string
-  position: PositionOption | ""
-  number: string
-  flair: string
-  isAdmin: boolean
-}
+  name: string;
+  email: string;
+  position: PositionOption | "";
+  number: string;
+  flair: string;
+  isAdmin: boolean;
+};
 
 export default function Page() {
-  const players = useQuery(api.players.getPlayers)
+  const players = useQuery(api.players.getPlayers);
   const addPlayer = useMutation(api.players.addPlayer).withOptimisticUpdate(
     (localStore, { name, email, position, number, flair, isAdmin }) => {
-      const list = localStore.getQuery(api.players.getPlayers)
-      if (!list) return
-      const trimmedEmail = email.trim()
+      const list = localStore.getQuery(api.players.getPlayers);
+      if (!list) return;
+      const trimmedEmail = email.trim();
       const optimistic = {
         _id: "optimistic:new-player" as Id<"players">,
         _creationTime: Date.now(),
@@ -43,40 +58,42 @@ export default function Page() {
         flair,
         isAdmin: isAdmin ?? false,
         createdAt: Date.now(),
-      } as any
-      const updated = [...list, optimistic].sort((a, b) => a.name.localeCompare(b.name))
-      localStore.setQuery(api.players.getPlayers, {}, updated)
+      } as any;
+      const updated = [...list, optimistic].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+      localStore.setQuery(api.players.getPlayers, {}, updated);
     }
-  )
-  const updatePlayer = useMutation(api.players.updatePlayer).withOptimisticUpdate(
-    (localStore, { playerId, email, ...fields }) => {
-      const list = localStore.getQuery(api.players.getPlayers)
-      if (!list) return
-      const updated = list.map((p) => {
-        if (p._id !== playerId) return p
-        const patch: any = { ...fields }
-        if (email !== undefined) {
-          const trimmed = email.trim()
-          patch.email = trimmed
-          patch.emailLowercase = trimmed.toLowerCase()
-        }
-        return { ...p, ...patch }
-      })
-      updated.sort((a, b) => a.name.localeCompare(b.name))
-      localStore.setQuery(api.players.getPlayers, {}, updated)
-    }
-  )
-  const removePlayer = useMutation(api.players.removePlayer).withOptimisticUpdate(
-    (localStore, { playerId }) => {
-      const list = localStore.getQuery(api.players.getPlayers)
-      if (!list) return
-      localStore.setQuery(
-        api.players.getPlayers,
-        {},
-        list.filter((p) => p._id !== playerId)
-      )
-    }
-  )
+  );
+  const updatePlayer = useMutation(
+    api.players.updatePlayer
+  ).withOptimisticUpdate((localStore, { playerId, email, ...fields }) => {
+    const list = localStore.getQuery(api.players.getPlayers);
+    if (!list) return;
+    const updated = list.map((p) => {
+      if (p._id !== playerId) return p;
+      const patch: any = { ...fields };
+      if (email !== undefined) {
+        const trimmed = email.trim();
+        patch.email = trimmed;
+        patch.emailLowercase = trimmed.toLowerCase();
+      }
+      return { ...p, ...patch };
+    });
+    updated.sort((a, b) => a.name.localeCompare(b.name));
+    localStore.setQuery(api.players.getPlayers, {}, updated);
+  });
+  const removePlayer = useMutation(
+    api.players.removePlayer
+  ).withOptimisticUpdate((localStore, { playerId }) => {
+    const list = localStore.getQuery(api.players.getPlayers);
+    if (!list) return;
+    localStore.setQuery(
+      api.players.getPlayers,
+      {},
+      list.filter((p) => p._id !== playerId)
+    );
+  });
 
   const [playerForm, setPlayerForm] = useState<PlayerFormState>({
     name: "",
@@ -85,9 +102,9 @@ export default function Page() {
     number: "",
     flair: "",
     isAdmin: false,
-  })
-  const [editingId, setEditingId] = useState<Id<"players"> | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  });
+  const [editingId, setEditingId] = useState<Id<"players"> | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const resetPlayerForm = () => {
     setPlayerForm({
@@ -97,49 +114,51 @@ export default function Page() {
       number: "",
       flair: "",
       isAdmin: false,
-    })
-    setEditingId(null)
-  }
+    });
+    setEditingId(null);
+  };
 
   const onSubmit = async (event: FormEvent) => {
-    event.preventDefault()
+    event.preventDefault();
 
-    const trimmedName = playerForm.name.trim()
-    const trimmedEmail = playerForm.email.trim()
+    const trimmedName = playerForm.name.trim();
+    const trimmedEmail = playerForm.email.trim();
 
     if (!trimmedName) {
-      toast.error("Please enter a player name.")
-      return
+      toast.error("Please enter a player name.");
+      return;
     }
 
     if (!trimmedEmail) {
-      toast.error("Please enter an email address.")
-      return
+      toast.error("Please enter an email address.");
+      return;
     }
 
     const payload = {
       name: trimmedName,
       email: trimmedEmail,
-      position: playerForm.position ? (playerForm.position as PositionOption) : undefined,
+      position: playerForm.position
+        ? (playerForm.position as PositionOption)
+        : undefined,
       number: playerForm.number ? Number(playerForm.number) : undefined,
       flair: playerForm.flair.trim() || undefined,
       isAdmin: playerForm.isAdmin,
-    }
+    };
 
     if (editingId) {
-      await updatePlayer({ playerId: editingId, ...payload })
-      toast.success("Player updated")
+      await updatePlayer({ playerId: editingId, ...payload });
+      toast.success("Player updated");
     } else {
-      await addPlayer(payload)
-      toast.success("Player added")
+      await addPlayer(payload);
+      toast.success("Player added");
     }
 
-    setIsDialogOpen(false)
-    resetPlayerForm()
-  }
+    setIsDialogOpen(false);
+    resetPlayerForm();
+  };
 
   const onEdit = (player: PlayerRow) => {
-    setEditingId(player._id)
+    setEditingId(player._id);
     setPlayerForm({
       name: player.name,
       email: player.email ?? "",
@@ -147,17 +166,17 @@ export default function Page() {
       number: player.number?.toString() ?? "",
       flair: player.flair ?? "",
       isAdmin: player.isAdmin ?? false,
-    })
-    setIsDialogOpen(true)
-  }
+    });
+    setIsDialogOpen(true);
+  };
 
   const onDelete = async (playerId: Id<"players">) => {
-    await removePlayer({ playerId })
+    await removePlayer({ playerId });
     if (editingId === playerId) {
-      resetPlayerForm()
+      resetPlayerForm();
     }
-    toast.success("Player removed")
-  }
+    toast.success("Player removed");
+  };
 
   return (
     <div className="px-4 lg:px-6">
@@ -166,8 +185,8 @@ export default function Page() {
         <Button
           type="button"
           onClick={() => {
-            resetPlayerForm()
-            setIsDialogOpen(true)
+            resetPlayerForm();
+            setIsDialogOpen(true);
           }}
         >
           Add player
@@ -177,15 +196,17 @@ export default function Page() {
       <Dialog
         open={isDialogOpen}
         onOpenChange={(open) => {
-          setIsDialogOpen(open)
+          setIsDialogOpen(open);
           if (!open) {
-            resetPlayerForm()
+            resetPlayerForm();
           }
         }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit player" : "Add a new player"}</DialogTitle>
+            <DialogTitle>
+              {editingId ? "Edit player" : "Add a new player"}
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={onSubmit} className="grid gap-4">
             <div className="grid gap-1 text-sm">
@@ -285,13 +306,15 @@ export default function Page() {
               />
             </div>
             <DialogFooter>
-              <Button type="submit">{editingId ? "Save changes" : "Add player"}</Button>
+              <Button type="submit">
+                {editingId ? "Save changes" : "Add player"}
+              </Button>
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  resetPlayerForm()
-                  setIsDialogOpen(false)
+                  resetPlayerForm();
+                  setIsDialogOpen(false);
                 }}
               >
                 Cancel
@@ -303,9 +326,10 @@ export default function Page() {
 
       <section className="mt-6 space-y-4">
         <h2 className="text-xl font-medium">Current roster</h2>
-        {!players && <p className="text-muted-foreground">Loading roster…</p>}
         {players && players.length === 0 && (
-          <p className="text-muted-foreground">No players yet. Use the Add player button to get started.</p>
+          <p className="text-muted-foreground">
+            No players yet. Use the Add player button to get started.
+          </p>
         )}
         {players && players.length > 0 && (
           <RosterDataTable
@@ -316,5 +340,5 @@ export default function Page() {
         )}
       </section>
     </div>
-  )
+  );
 }
