@@ -24,7 +24,7 @@ http.route({
     if (record.expiresAt < now)
       return new Response("Token expired.", { status: 410 });
 
-    const status = record.choice === "in" ? "yes" : "no";
+    const status = record.choice;
     await ctx.runMutation(internal.games.setRsvpInternal, {
       gameId: record.gameId,
       playerId: record.playerId,

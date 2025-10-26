@@ -1,15 +1,16 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { IconDashboard, IconUsers } from "@tabler/icons-react"
-import Image from "next/image"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import * as React from "react";
+import { IconUsers } from "@tabler/icons-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
-import { api } from "@/convex/_generated/api"
-import { useQuery } from "convex/react"
+import { NavMain } from "@/components/nav-main";
+import { NavUser } from "@/components/nav-user";
+import { api } from "@/convex/_generated/api";
+import { useQuery } from "convex/react";
+import { HockeyStickIcon } from "@/components/icons/HockeyStickIcon";
 import {
   Sidebar,
   SidebarContent,
@@ -19,22 +20,17 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const me = useQuery(api.me.get)
-  const navMain = React.useMemo(
-    () => {
-      const items = [
-        { title: "Games", url: "/games", icon: IconDashboard },
-      ]
-      if (me?.role === "admin") {
-        items.unshift({ title: "Roster", url: "/admin/roster", icon: IconUsers })
-      }
-      return items
-    },
-    [me]
-  )
+  const me = useQuery(api.me.get);
+  const navMain = React.useMemo(() => {
+    const items = [{ title: "Games", url: "/games", icon: HockeyStickIcon }];
+    if (me?.role === "admin") {
+      items.unshift({ title: "Roster", url: "/admin/roster", icon: IconUsers });
+    }
+    return items;
+  }, [me]);
   const userInfo = React.useMemo(
     () => ({
       name: me?.name ?? "Tipsy Pelican",
@@ -42,15 +38,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       avatar: "/tipsy-bird.png",
     }),
     [me]
-  )
-  const router = useRouter()
-  const { isMobile, setOpenMobile } = useSidebar()
+  );
+  const router = useRouter();
+  const { isMobile, setOpenMobile } = useSidebar();
   React.useEffect(() => {
-    router.prefetch("/games")
+    router.prefetch("/games");
     if (me?.role === "admin") {
-      router.prefetch("/admin/roster")
+      router.prefetch("/admin/roster");
     }
-  }, [router, me?.role])
+  }, [router, me?.role]);
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -63,7 +59,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Link
                 href="/"
                 onClick={() => {
-                  if (isMobile) setOpenMobile(false)
+                  if (isMobile) setOpenMobile(false);
                 }}
               >
                 <Image
@@ -87,6 +83,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={userInfo} />
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
-

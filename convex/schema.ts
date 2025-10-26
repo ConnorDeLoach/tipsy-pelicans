@@ -4,6 +4,15 @@ import { v } from "convex/values";
 
 export default defineSchema({
   ...authTables,
+  opponents: defineTable({
+    name: v.string(),
+    nameLowercase: v.string(),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_name_lowercase", ["nameLowercase"]) 
+    .index("by_active", ["isActive"]),
   players: defineTable({
     name: v.string(),
     email: v.string(),
@@ -32,12 +41,22 @@ export default defineSchema({
     startTime: v.number(),
     location: v.optional(v.string()),
     notes: v.optional(v.string()),
+    opponentId: v.optional(v.id("opponents")),
+    status: v.union(v.literal("scheduled"), v.literal("final")),
+    teamScore: v.optional(v.number()),
+    opponentScore: v.optional(v.number()),
+    outcome: v.optional(
+      v.union(v.literal("win"), v.literal("loss"), v.literal("tie"))
+    ),
+    points: v.optional(v.number()),
     createdAt: v.number(),
-  }).index("by_start_time", ["startTime"]),
+  })
+    .index("by_start_time", ["startTime"]) 
+    .index("by_opponent", ["opponentId"]),
   gameRsvps: defineTable({
     gameId: v.id("games"),
     playerId: v.id("players"),
-    status: v.union(v.literal("yes"), v.literal("no"), v.literal("maybe")),
+    status: v.union(v.literal("in"), v.literal("out")),
     updatedAt: v.number(),
   })
     .index("by_game", ["gameId"])

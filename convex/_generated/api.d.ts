@@ -13,6 +13,7 @@ import type * as crons from "../crons.js";
 import type * as games from "../games.js";
 import type * as http from "../http.js";
 import type * as me from "../me.js";
+import type * as opponents from "../opponents.js";
 import type * as players from "../players.js";
 import type * as push from "../push.js";
 import type * as pushActions from "../pushActions.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   games: typeof games;
   http: typeof http;
   me: typeof me;
+  opponents: typeof opponents;
   players: typeof players;
   push: typeof push;
   pushActions: typeof pushActions;
