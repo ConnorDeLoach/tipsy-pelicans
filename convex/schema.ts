@@ -42,6 +42,7 @@ export default defineSchema({
     location: v.optional(v.string()),
     notes: v.optional(v.string()),
     opponentId: v.optional(v.id("opponents")),
+    seasonId: v.optional(v.string()),
     status: v.union(v.literal("scheduled"), v.literal("final")),
     teamScore: v.optional(v.number()),
     opponentScore: v.optional(v.number()),

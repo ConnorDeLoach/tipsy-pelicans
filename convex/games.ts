@@ -248,10 +248,12 @@ export const createGame = mutation({
       }
     }
 
+    const location = args.location?.trim();
+
     const id = await ctx.db.insert("games", {
       opponent: name!,
       startTime: args.startTime,
-      location: (args.location && args.location.trim()) || "Hertz Arena",
+      location: location ? location : undefined,
       notes: args.notes,
       opponentId,
       status: "scheduled",

@@ -809,7 +809,7 @@ export default function Page() {
                     key={entry.game._id}
                     className="rounded-xl border border-border bg-tint-blue p-6 shadow"
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
                         <div className="flex items-center gap-2">
                           {isAdmin && (
@@ -830,7 +830,7 @@ export default function Page() {
                           <p className="text-sm text-muted-foreground">{entry.game.location}</p>
                         )}
                       </div>
-                      <p className="text-sm font-medium text-muted-foreground">
+                      <p className="text-sm font-medium text-muted-foreground sm:text-right">
                         {dateFormatter.format(new Date(entry.game.startTime))}
                       </p>
                     </div>
