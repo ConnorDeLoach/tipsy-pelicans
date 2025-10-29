@@ -80,7 +80,7 @@ export const weeklyGameReminder = internalAction({
       const base = rsvpBase.replace(/\/$/, "");
       const inUrl = `${base}/rsvp?token=${inToken}`;
       const outUrl = `${base}/rsvp?token=${outToken}`;
-      const imageUrl = `${process.env.SITE_URL}/tipsy-rsvp-recruit.png`;
+      const imageUrl = `${process.env.SITE_URL}/tipsy-rsvp-recruit.webp`;
       const locationHtml = upcomingGame.game.location
         ? `<p style="margin:0 0 12px;"><strong>Location:</strong> ${upcomingGame.game.location}</p>`
         : "";
