@@ -36,6 +36,13 @@ export const addPlayer = mutation({
     ),
     number: v.optional(v.number()),
     flair: v.optional(v.string()),
+    role: v.optional(
+      v.union(
+        v.literal("player"),
+        v.literal("spare"),
+        v.literal("spectator")
+      )
+    ),
     isAdmin: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -46,6 +53,7 @@ export const addPlayer = mutation({
       ...args,
       email: trimmedEmail,
       emailLowercase: normalizedEmail,
+      role: args.role ?? "player",
       isAdmin: args.isAdmin ?? false,
       createdAt: now,
     });
@@ -70,6 +78,13 @@ export const updatePlayer = mutation({
     ),
     number: v.optional(v.number()),
     flair: v.optional(v.string()),
+    role: v.optional(
+      v.union(
+        v.literal("player"),
+        v.literal("spare"),
+        v.literal("spectator")
+      )
+    ),
     isAdmin: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -79,6 +94,11 @@ export const updatePlayer = mutation({
       const trimmedEmail = email.trim();
       patch.email = trimmedEmail;
       patch.emailLowercase = trimmedEmail.toLowerCase();
+    }
+    for (const key of Object.keys(patch)) {
+      if (patch[key] === undefined) {
+        delete patch[key];
+      }
     }
     await ctx.db.patch(playerId, patch);
   },

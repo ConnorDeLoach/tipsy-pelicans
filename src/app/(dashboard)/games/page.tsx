@@ -154,18 +154,23 @@ export default function Page() {
   );
   const me = useQuery(api.me.get);
 
-  const orderedPlayers = useMemo(() => {
+  const filteredPlayers = useMemo(() => {
     if (!players) return undefined;
+    return players.filter((p) => (p as any).role === "player");
+  }, [players]);
+
+  const orderedPlayers = useMemo(() => {
+    if (!filteredPlayers) return undefined;
     const meId = me?.playerId;
-    if (!meId) return players;
-    const arr = [...players];
+    if (!meId) return filteredPlayers;
+    const arr = [...filteredPlayers];
     arr.sort((a, b) => {
       if (a._id === meId) return -1;
       if (b._id === meId) return 1;
       return 0;
     });
     return arr;
-  }, [players, me?.playerId]);
+  }, [filteredPlayers, me?.playerId]);
 
   const dateFormatter = useMemo(
     () =>
@@ -523,11 +528,12 @@ export default function Page() {
               <ul className="space-y-4">
                 {(() => {
                   const entry = firstUpcomingGame;
+                  const eligible = new Set((filteredPlayers ?? []).map((p) => p._id));
                   const inCount = entry.rsvps.filter(
-                    (rsvp) => rsvp.status === "in"
+                    (rsvp) => rsvp.status === "in" && eligible.has(rsvp.playerId)
                   ).length;
                   const outCount = entry.rsvps.filter(
-                    (rsvp) => rsvp.status === "out"
+                    (rsvp) => rsvp.status === "out" && eligible.has(rsvp.playerId)
                   ).length;
                   return (
                     <li
@@ -584,9 +590,9 @@ export default function Page() {
                             Loading players…
                           </p>
                         )}
-                        {players && players.length === 0 && (
+                        {filteredPlayers && filteredPlayers.length === 0 && (
                           <p className="text-sm text-muted-foreground">
-                            Add players to start collecting RSVPs.
+                            No eligible players with the Player role.
                           </p>
                         )}
                         <ul className="space-y-2">
@@ -654,11 +660,12 @@ export default function Page() {
             {hasLoadedGames && otherUpcomingGames.length > 0 && (
               <div className="space-y-2">
                 {otherUpcomingGames.map((entry) => {
+                  const eligible = new Set((filteredPlayers ?? []).map((p) => p._id));
                   const inCount = entry.rsvps.filter(
-                    (rsvp) => rsvp.status === "in"
+                    (rsvp) => rsvp.status === "in" && eligible.has(rsvp.playerId)
                   ).length;
                   const outCount = entry.rsvps.filter(
-                    (rsvp) => rsvp.status === "out"
+                    (rsvp) => rsvp.status === "out" && eligible.has(rsvp.playerId)
                   ).length;
                   return (
                     <details

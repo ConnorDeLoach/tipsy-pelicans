@@ -35,7 +35,8 @@ export const weeklyGameReminder = internalAction({
       return;
     }
 
-    const players = await ctx.runQuery(api.players.getPlayers, {});
+    const allPlayers = await ctx.runQuery(api.players.getPlayers, {});
+    const players = allPlayers.filter((p: any) => (p as any).role === "player");
     const pendingPlayers = players.filter(
       (player) =>
         !upcomingGame.rsvps.some((rsvp) => rsvp.playerId === player._id)

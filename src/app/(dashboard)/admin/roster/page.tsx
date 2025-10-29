@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 
 type PositionOption = "RW" | "C" | "LW" | "LD" | "RD" | "G";
+type RoleOption = "player" | "spare" | "spectator";
 
 type PlayerFormState = {
   name: string;
@@ -37,13 +38,14 @@ type PlayerFormState = {
   position: PositionOption | "";
   number: string;
   flair: string;
+  role: RoleOption;
   isAdmin: boolean;
 };
 
 export default function Page() {
   const players = useQuery(api.players.getPlayers);
   const addPlayer = useMutation(api.players.addPlayer).withOptimisticUpdate(
-    (localStore, { name, email, position, number, flair, isAdmin }) => {
+    (localStore, { name, email, position, number, flair, isAdmin, role }) => {
       const list = localStore.getQuery(api.players.getPlayers);
       if (!list) return;
       const trimmedEmail = email.trim();
@@ -56,6 +58,7 @@ export default function Page() {
         position,
         number,
         flair,
+        role: role ?? "player",
         isAdmin: isAdmin ?? false,
         createdAt: Date.now(),
       } as any;
@@ -101,6 +104,7 @@ export default function Page() {
     position: "",
     number: "",
     flair: "",
+    role: "player",
     isAdmin: false,
   });
   const [editingId, setEditingId] = useState<Id<"players"> | null>(null);
@@ -113,6 +117,7 @@ export default function Page() {
       position: "",
       number: "",
       flair: "",
+      role: "player",
       isAdmin: false,
     });
     setEditingId(null);
@@ -142,6 +147,7 @@ export default function Page() {
         : undefined,
       number: playerForm.number ? Number(playerForm.number) : undefined,
       flair: playerForm.flair.trim() || undefined,
+      role: playerForm.role,
       isAdmin: playerForm.isAdmin,
     };
 
@@ -165,6 +171,7 @@ export default function Page() {
       position: (player.position as PositionOption | undefined) ?? "",
       number: player.number?.toString() ?? "",
       flair: player.flair ?? "",
+      role: (player as any).role ?? "player",
       isAdmin: player.isAdmin ?? false,
     });
     setIsDialogOpen(true);
@@ -237,6 +244,27 @@ export default function Page() {
                 }
                 required
               />
+            </div>
+            <div className="grid gap-1 text-sm">
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={playerForm.role}
+                onValueChange={(value) =>
+                  setPlayerForm((prev) => ({
+                    ...prev,
+                    role: value as RoleOption,
+                  }))
+                }
+              >
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="player">Player</SelectItem>
+                  <SelectItem value="spare">Spare</SelectItem>
+                  <SelectItem value="spectator">Spectator</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-1 text-sm">
               <Label htmlFor="position">Position</Label>

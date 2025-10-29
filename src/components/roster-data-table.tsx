@@ -30,6 +30,7 @@ export type PlayerRow = {
   email?: string
   number?: number
   position?: string
+  role?: "player" | "spare" | "spectator"
   isAdmin?: boolean
   flair?: string
 }

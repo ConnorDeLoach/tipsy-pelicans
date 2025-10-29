@@ -11,7 +11,7 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_name_lowercase", ["nameLowercase"]) 
+    .index("by_name_lowercase", ["nameLowercase"])
     .index("by_active", ["isActive"]),
   players: defineTable({
     name: v.string(),
@@ -30,6 +30,11 @@ export default defineSchema({
     ),
     number: v.optional(v.number()),
     flair: v.optional(v.string()),
+    role: v.union(
+      v.literal("player"),
+      v.literal("spare"),
+      v.literal("spectator")
+    ),
     isAdmin: v.boolean(),
     createdAt: v.number(),
   })
@@ -52,7 +57,7 @@ export default defineSchema({
     points: v.optional(v.number()),
     createdAt: v.number(),
   })
-    .index("by_start_time", ["startTime"]) 
+    .index("by_start_time", ["startTime"])
     .index("by_opponent", ["opponentId"]),
   gameRsvps: defineTable({
     gameId: v.id("games"),
