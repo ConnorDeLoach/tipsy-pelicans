@@ -712,9 +712,6 @@ export default function Page() {
                           )}
                           <ScorePill game={entry.game} />
                           <span className="text-lg font-semibold">vs. {entry.game.opponent}</span>
-                          {(entry.game as any).visibility === "private" && (
-                            <Badge variant="secondary">Private</Badge>
-                          )}
                         </span>
                         <span className="text-sm text-muted-foreground">
                           {dateFormatter.format(new Date(entry.game.startTime))}
@@ -857,9 +854,6 @@ export default function Page() {
                           )}
                           <ScorePill game={entry.game} />
                           <h3 className="text-lg font-semibold">vs. {entry.game.opponent}</h3>
-                          {(entry.game as any).visibility === "private" && (
-                            <Badge variant="secondary">Private</Badge>
-                          )}
                         </div>
                         {entry.game.location && (
                           <p className="text-sm text-muted-foreground">{entry.game.location}</p>

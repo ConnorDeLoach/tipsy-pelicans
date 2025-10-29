@@ -80,8 +80,13 @@ export function useEnablePush() {
         const existingKey: ArrayBuffer | undefined =
           existing.options?.applicationServerKey;
         if (eqUint8(existingKey ?? null, keyBytes)) {
+          const { endpoint, keys } = existing.toJSON() as {
+            endpoint: string;
+            expirationTime: number | null;
+            keys: { p256dh: string; auth: string };
+          };
           await upsert({
-            subscription: existing.toJSON() as any,
+            subscription: { endpoint, keys },
             ua: navigator.userAgent,
             platform: detectPlatform(),
             authVersion: "v1",
