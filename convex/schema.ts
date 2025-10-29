@@ -49,6 +49,7 @@ export default defineSchema({
     opponentId: v.optional(v.id("opponents")),
     seasonId: v.optional(v.string()),
     status: v.union(v.literal("scheduled"), v.literal("final")),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
     teamScore: v.optional(v.number()),
     opponentScore: v.optional(v.number()),
     outcome: v.optional(
@@ -58,7 +59,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_start_time", ["startTime"])
-    .index("by_opponent", ["opponentId"]),
+    .index("by_opponent", ["opponentId"]) 
+    .index("by_visibility_start_time", ["visibility", "startTime"]),
   gameRsvps: defineTable({
     gameId: v.id("games"),
     playerId: v.id("players"),

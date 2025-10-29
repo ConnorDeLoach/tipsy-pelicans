@@ -7,20 +7,23 @@ import {
 const isSignInPage = createRouteMatcher(["/signin"]);
 const isAuthApi = createRouteMatcher(["/api/auth(.*)"]);
 const isRsvpPage = createRouteMatcher(["/rsvp"]);
+const isHomePage = createRouteMatcher(["/"]);
 
 export default convexAuthNextjsMiddleware(
   async (request, { convexAuth }) => {
     const authed = await convexAuth.isAuthenticated();
 
-    if (isSignInPage(request) && authed) {
-      return nextjsMiddlewareRedirect(request, "/");
+    // If authenticated, redirect away from public entry points to dashboard
+    if ((isHomePage(request) || isSignInPage(request)) && authed) {
+      return nextjsMiddlewareRedirect(request, "/games");
     }
 
     if (
       !authed &&
       !isSignInPage(request) &&
       !isAuthApi(request) &&
-      !isRsvpPage(request)
+      !isRsvpPage(request) &&
+      !isHomePage(request)
     ) {
       return nextjsMiddlewareRedirect(request, "/signin");
     }

@@ -22,6 +22,43 @@ export const listGames = query({
   },
 });
 
+export const upcomingGames = query({
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, { limit }) => {
+    const now = Date.now();
+    // Pull public games using the visibility+startTime index
+    const publicResults = await ctx.db
+      .query("games")
+      .withIndex("by_visibility_start_time", (q) =>
+        q.eq("visibility", "public").gte("startTime", now)
+      )
+      .collect();
+
+    // Include legacy games (no visibility set) that are upcoming
+    const legacyResults = await ctx.db
+      .query("games")
+      .withIndex("by_start_time", (q) => q.gte("startTime", now))
+      .collect();
+
+    const combined = [...publicResults, ...legacyResults.filter((g) => (g as any).visibility === undefined)];
+
+    const filtered = combined
+      .filter((g) => g.status === "scheduled")
+      .sort((a, b) => a.startTime - b.startTime);
+
+    const sliced =
+      typeof limit === "number" ? filtered.slice(0, Math.max(0, Math.floor(limit))) : filtered;
+
+    return sliced.map((g) => ({
+      _id: g._id,
+      _creationTime: g._creationTime,
+      opponent: g.opponent,
+      startTime: g.startTime,
+      location: g.location,
+    }));
+  },
+});
+
 export const updateGameDetails = mutation({
   args: {
     gameId: v.id("games"),
@@ -29,6 +66,7 @@ export const updateGameDetails = mutation({
     startTime: v.optional(v.number()),
     location: v.optional(v.string()),
     notes: v.optional(v.string()),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
     teamScore: v.optional(v.number()),
     opponentScore: v.optional(v.number()),
   },
@@ -66,6 +104,10 @@ export const updateGameDetails = mutation({
     if (args.notes !== undefined) {
       const trimmed = args.notes.trim();
       patch.notes = trimmed.length ? trimmed : undefined;
+    }
+
+    if (args.visibility !== undefined) {
+      patch.visibility = args.visibility;
     }
 
     if (args.teamScore !== undefined) {
@@ -209,8 +251,18 @@ export const createGame = mutation({
     startTime: v.number(),
     location: v.optional(v.string()),
     notes: v.optional(v.string()),
+    visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
   },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Not authenticated");
+    const callerPlayer = await ctx.db
+      .query("players")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique();
+    if (!callerPlayer || callerPlayer.isAdmin !== true)
+      throw new Error("Not authorized");
+
     const now = Date.now();
     let opponentId: Id<"opponents"> | undefined = args.opponentId as
       | Id<"opponents">
@@ -248,14 +300,16 @@ export const createGame = mutation({
       }
     }
 
-    const location = args.location?.trim();
+    const locationInput = (args.location ?? "").trim();
+    const finalLocation = locationInput.length ? locationInput : "Hertz Arena";
 
     const id = await ctx.db.insert("games", {
       opponent: name!,
       startTime: args.startTime,
-      location: location ? location : undefined,
+      location: finalLocation,
       notes: args.notes,
       opponentId,
+      visibility: args.visibility ?? "public",
       status: "scheduled",
       createdAt: now,
     });

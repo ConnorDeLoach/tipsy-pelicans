@@ -197,6 +197,7 @@ export default function Page() {
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
 
@@ -209,6 +210,7 @@ export default function Page() {
   const [editNotes, setEditNotes] = useState("");
   const [editTeamScore, setEditTeamScore] = useState<string>("");
   const [editOpponentScore, setEditOpponentScore] = useState<string>("");
+  const [editVisibility, setEditVisibility] = useState<"public" | "private">("public");
 
   const openEdit = (entry: GameWithRsvps) => {
     setEditingGameId(entry.game._id);
@@ -230,6 +232,7 @@ export default function Page() {
         ? String((entry.game as any).opponentScore)
         : ""
     );
+    setEditVisibility(((entry.game as any).visibility as "public" | "private" | undefined) ?? "public");
     setIsEditOpen(true);
   };
 
@@ -243,6 +246,7 @@ export default function Page() {
     setEditNotes("");
     setEditTeamScore("");
     setEditOpponentScore("");
+    setEditVisibility("public");
   };
 
   const onSaveEdit = async () => {
@@ -271,6 +275,7 @@ export default function Page() {
         startTime,
         location: editLocation.trim(),
         notes: editNotes.trim(),
+        visibility: editVisibility,
         teamScore: teamScoreNum,
         opponentScore: opponentScoreNum,
       });
@@ -288,6 +293,7 @@ export default function Page() {
     setTime("");
     setLocation("");
     setNotes("");
+    setVisibility("public");
   };
 
   const onCreateGame = async (e: React.FormEvent) => {
@@ -313,6 +319,7 @@ export default function Page() {
       startTime,
       location: location.trim() || undefined,
       notes: notes.trim() || undefined,
+      visibility,
     });
     toast.success("Game scheduled");
     resetForm();
@@ -506,6 +513,21 @@ export default function Page() {
                   placeholder="Parking, special jerseys, etc."
                 />
               </div>
+              <div className="grid gap-1 text-sm">
+                <Label htmlFor="visibility">Visibility</Label>
+                <Select
+                  value={visibility}
+                  onValueChange={(v) => setVisibility(v as "public" | "private")}
+                >
+                  <SelectTrigger id="visibility" className="w-full">
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <DialogFooter>
                 <Button type="submit">Add game</Button>
                 <Button type="button" variant="outline" onClick={resetForm}>
@@ -690,6 +712,9 @@ export default function Page() {
                           )}
                           <ScorePill game={entry.game} />
                           <span className="text-lg font-semibold">vs. {entry.game.opponent}</span>
+                          {(entry.game as any).visibility === "private" && (
+                            <Badge variant="secondary">Private</Badge>
+                          )}
                         </span>
                         <span className="text-sm text-muted-foreground">
                           {dateFormatter.format(new Date(entry.game.startTime))}
@@ -832,6 +857,9 @@ export default function Page() {
                           )}
                           <ScorePill game={entry.game} />
                           <h3 className="text-lg font-semibold">vs. {entry.game.opponent}</h3>
+                          {(entry.game as any).visibility === "private" && (
+                            <Badge variant="secondary">Private</Badge>
+                          )}
                         </div>
                         {entry.game.location && (
                           <p className="text-sm text-muted-foreground">{entry.game.location}</p>
@@ -905,6 +933,21 @@ export default function Page() {
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                 />
+              </div>
+              <div className="grid gap-1 text-sm">
+                <Label htmlFor="edit-visibility">Visibility</Label>
+                <Select
+                  value={editVisibility}
+                  onValueChange={(v) => setEditVisibility(v as "public" | "private")}
+                >
+                  <SelectTrigger id="edit-visibility" className="w-full">
+                    <SelectValue placeholder="Select visibility" />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="grid gap-1">
