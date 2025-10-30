@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+/shopsense/
 
 # debug
 npm-debug.log*

@@ -27,13 +27,14 @@ export const upcomingGames = query({
   handler: async (ctx, { limit }) => {
     const now = Date.now();
 
-    // Single optimized query using the new composite index
-    // This fetches only scheduled games ordered by start time
+    // Use by_status_start_time index and filter visibility in memory
+    // This fetches scheduled games ordered by start time, then filters for public
     const results = await ctx.db
       .query("games")
       .withIndex("by_status_start_time", (q) =>
         q.eq("status", "scheduled").gte("startTime", now)
       )
+      .filter((q) => q.eq(q.field("visibility"), "public"))
       .take(limit ?? 100);
 
     return results; // Return full documents for hybrid pattern
