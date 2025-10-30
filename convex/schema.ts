@@ -1,9 +1,11 @@
 import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
+import { productsTable } from "./merch/model";
 
 export default defineSchema({
   ...authTables,
+  products: productsTable,
   opponents: defineTable({
     name: v.string(),
     nameLowercase: v.string(),

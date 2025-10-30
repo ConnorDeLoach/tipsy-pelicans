@@ -8,6 +8,7 @@ const isSignInPage = createRouteMatcher(["/signin"]);
 const isAuthApi = createRouteMatcher(["/api/auth(.*)"]);
 const isRsvpPage = createRouteMatcher(["/rsvp"]);
 const isHomePage = createRouteMatcher(["/"]);
+const isMerchRoute = createRouteMatcher(["/merch(.*)"]);
 
 export default convexAuthNextjsMiddleware(
   async (request, { convexAuth }) => {
@@ -23,7 +24,8 @@ export default convexAuthNextjsMiddleware(
       !isSignInPage(request) &&
       !isAuthApi(request) &&
       !isRsvpPage(request) &&
-      !isHomePage(request)
+      !isHomePage(request) &&
+      !isMerchRoute(request)
     ) {
       return nextjsMiddlewareRedirect(request, "/signin");
     }

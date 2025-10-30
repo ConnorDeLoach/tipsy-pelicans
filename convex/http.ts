@@ -2,10 +2,14 @@ import { httpRouter } from "convex/server";
 import { auth } from "./auth";
 import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
+import { registerHttpRoutes as registerMerch } from "./merch/http";
 
 const http = httpRouter();
 
 auth.addHttpRoutes(http);
+
+// Merch domain routes
+registerMerch(http);
 
 http.route({
   path: "/rsvp",
