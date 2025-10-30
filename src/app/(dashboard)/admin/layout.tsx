@@ -1,15 +1,10 @@
 import { ReactNode } from "react";
+import { AdminGuard } from "./AdminGuard";
 
-export default async function AdminLayout({
+export default function AdminLayout({
   children,
 }: {
   children: ReactNode;
 }) {
-  //   const me = await fetchQuery(api.me.get, {});
-
-  //   if (!me || me.role !== "admin") {
-  //     redirect("/games");
-  //   }
-
-  return children;
+  return <AdminGuard>{children}</AdminGuard>;
 }
