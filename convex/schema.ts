@@ -60,7 +60,8 @@ export default defineSchema({
   })
     .index("by_start_time", ["startTime"])
     .index("by_opponent", ["opponentId"]) 
-    .index("by_visibility_start_time", ["visibility", "startTime"]),
+    .index("by_visibility_start_time", ["visibility", "startTime"])
+    .index("by_status_start_time", ["status", "startTime"]),
   gameRsvps: defineTable({
     gameId: v.id("games"),
     playerId: v.id("players"),

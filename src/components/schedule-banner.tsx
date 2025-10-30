@@ -7,14 +7,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import type { Doc } from "@/convex/_generated/dataModel";
 
 type Props = {
   limit?: number;
   className?: string;
+  initialGames?: Doc<"games">[];
 };
 
-export function ScheduleBanner({ limit = 10, className }: Props) {
-  const games = useQuery(api.games.upcomingGames, { limit });
+export function ScheduleBanner({ limit = 10, className, initialGames }: Props) {
+  const liveGames = useQuery(api.games.upcomingGames, { limit });
+  
+  // Use live data when available, otherwise fall back to server data
+  const games = liveGames ?? initialGames;
 
   const dateFormatter = useMemo(
     () =>
@@ -36,7 +41,7 @@ export function ScheduleBanner({ limit = 10, className }: Props) {
     []
   );
 
-  const isLoading = games === undefined;
+  const isLoading = liveGames === undefined && !initialGames;
   const isEmpty = !isLoading && games && games.length === 0;
 
   return (

@@ -56,7 +56,10 @@ function ScorePill({ game }: { game: any }) {
   if (outcome === "win") variant = "default";
   else if (outcome === "loss") variant = "outline";
   const baseClass = "px-3 py-1 text-sm font-semibold";
-  const lossAccentClass = outcome === "loss" ? " bg-accent text-accent-foreground border-transparent" : "";
+  const lossAccentClass =
+    outcome === "loss"
+      ? " bg-accent text-accent-foreground border-transparent"
+      : "";
   return (
     <Badge variant={variant} className={baseClass + lossAccentClass}>
       {ts}-{os}
@@ -80,7 +83,9 @@ export default function Page() {
         if (idx >= 0) {
           const current = entry.rsvps[idx];
           if ((current as any).status === status) {
-            nextRsvps = entry.rsvps.slice(0, idx).concat(entry.rsvps.slice(idx + 1));
+            nextRsvps = entry.rsvps
+              .slice(0, idx)
+              .concat(entry.rsvps.slice(idx + 1));
           } else {
             nextRsvps = entry.rsvps.slice();
             nextRsvps[idx] = {
@@ -192,7 +197,9 @@ export default function Page() {
   const PAST_CUTOFF_MS = 12 * 60 * 60 * 1000;
 
   const isAdmin = me?.role === "admin";
-  const [selectedOpponentId, setSelectedOpponentId] = useState<Id<"opponents"> | "">("");
+  const [selectedOpponentId, setSelectedOpponentId] = useState<
+    Id<"opponents"> | ""
+  >("");
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState("");
   const [location, setLocation] = useState("");
@@ -203,14 +210,18 @@ export default function Page() {
 
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingGameId, setEditingGameId] = useState<Id<"games"> | null>(null);
-  const [editOpponentId, setEditOpponentId] = useState<Id<"opponents"> | "">("");
+  const [editOpponentId, setEditOpponentId] = useState<Id<"opponents"> | "">(
+    ""
+  );
   const [editDate, setEditDate] = useState<Date | undefined>(undefined);
   const [editTime, setEditTime] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [editTeamScore, setEditTeamScore] = useState<string>("");
   const [editOpponentScore, setEditOpponentScore] = useState<string>("");
-  const [editVisibility, setEditVisibility] = useState<"public" | "private">("public");
+  const [editVisibility, setEditVisibility] = useState<"public" | "private">(
+    "public"
+  );
 
   const openEdit = (entry: GameWithRsvps) => {
     setEditingGameId(entry.game._id);
@@ -232,7 +243,10 @@ export default function Page() {
         ? String((entry.game as any).opponentScore)
         : ""
     );
-    setEditVisibility(((entry.game as any).visibility as "public" | "private" | undefined) ?? "public");
+    setEditVisibility(
+      ((entry.game as any).visibility as "public" | "private" | undefined) ??
+        "public"
+    );
     setIsEditOpen(true);
   };
 
@@ -264,14 +278,21 @@ export default function Page() {
     when.setHours(Number(hh) || 0, Number(mm) || 0, 0, 0);
     const startTime = when.getTime();
 
-    const teamScoreNum = editTeamScore === "" ? undefined : Math.max(0, Math.floor(Number(editTeamScore)));
+    const teamScoreNum =
+      editTeamScore === ""
+        ? undefined
+        : Math.max(0, Math.floor(Number(editTeamScore)));
     const opponentScoreNum =
-      editOpponentScore === "" ? undefined : Math.max(0, Math.floor(Number(editOpponentScore)));
+      editOpponentScore === ""
+        ? undefined
+        : Math.max(0, Math.floor(Number(editOpponentScore)));
 
     try {
       await updateGameDetails({
         gameId: editingGameId,
-        opponentId: editOpponentId ? (editOpponentId as Id<"opponents">) : undefined,
+        opponentId: editOpponentId
+          ? (editOpponentId as Id<"opponents">)
+          : undefined,
         startTime,
         location: editLocation.trim(),
         notes: editNotes.trim(),
@@ -351,7 +372,9 @@ export default function Page() {
     game: GameWithRsvps,
     playerId: Id<"players">
   ): RsvpStatus | undefined => {
-    return game.rsvps.find((rsvp) => rsvp.playerId === playerId)?.status as RsvpStatus | undefined;
+    return game.rsvps.find((rsvp) => rsvp.playerId === playerId)?.status as
+      | RsvpStatus
+      | undefined;
   };
 
   const handleRsvp = async (
@@ -387,7 +410,11 @@ export default function Page() {
             role="tab"
             aria-selected={tab === "upcoming"}
             onClick={() => setTab("upcoming")}
-            className={`px-3 py-1 text-sm rounded-md ${tab === "upcoming" ? "bg-background shadow font-medium" : "text-muted-foreground hover:text-foreground"}`}
+            className={`px-3 py-1 text-sm rounded-md ${
+              tab === "upcoming"
+                ? "bg-background shadow font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             Upcoming
           </button>
@@ -396,7 +423,11 @@ export default function Page() {
             role="tab"
             aria-selected={tab === "past"}
             onClick={() => setTab("past")}
-            className={`px-3 py-1 text-sm rounded-md ${tab === "past" ? "bg-background shadow font-medium" : "text-muted-foreground hover:text-foreground"}`}
+            className={`px-3 py-1 text-sm rounded-md ${
+              tab === "past"
+                ? "bg-background shadow font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
             Past
           </button>
@@ -517,7 +548,9 @@ export default function Page() {
                 <Label htmlFor="visibility">Visibility</Label>
                 <Select
                   value={visibility}
-                  onValueChange={(v) => setVisibility(v as "public" | "private")}
+                  onValueChange={(v) =>
+                    setVisibility(v as "public" | "private")
+                  }
                 >
                   <SelectTrigger id="visibility" className="w-full">
                     <SelectValue placeholder="Select visibility" />
@@ -543,19 +576,25 @@ export default function Page() {
         {tab === "upcoming" ? (
           <>
             {hasLoadedGames && upcomingGames.length === 0 && (
-              <p className="text-muted-foreground">No upcoming games scheduled.</p>
+              <p className="text-muted-foreground">
+                No upcoming games scheduled.
+              </p>
             )}
 
             {hasLoadedGames && firstUpcomingGame && (
               <ul className="space-y-4">
                 {(() => {
                   const entry = firstUpcomingGame;
-                  const eligible = new Set((filteredPlayers ?? []).map((p) => p._id));
+                  const eligible = new Set(
+                    (filteredPlayers ?? []).map((p) => p._id)
+                  );
                   const inCount = entry.rsvps.filter(
-                    (rsvp) => rsvp.status === "in" && eligible.has(rsvp.playerId)
+                    (rsvp) =>
+                      rsvp.status === "in" && eligible.has(rsvp.playerId)
                   ).length;
                   const outCount = entry.rsvps.filter(
-                    (rsvp) => rsvp.status === "out" && eligible.has(rsvp.playerId)
+                    (rsvp) =>
+                      rsvp.status === "out" && eligible.has(rsvp.playerId)
                   ).length;
                   return (
                     <li
@@ -577,10 +616,14 @@ export default function Page() {
                               </Button>
                             )}
                             <ScorePill game={entry.game} />
-                            <h3 className="text-lg font-semibold">vs. {entry.game.opponent}</h3>
+                            <h3 className="text-lg font-semibold">
+                              vs. {entry.game.opponent}
+                            </h3>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            {dateFormatter.format(new Date(entry.game.startTime))}
+                            {dateFormatter.format(
+                              new Date(entry.game.startTime)
+                            )}
                           </p>
                           {entry.game.location && (
                             <p className="text-sm text-muted-foreground">
@@ -619,7 +662,8 @@ export default function Page() {
                         )}
                         <ul className="space-y-2">
                           {orderedPlayers?.map((player) => {
-                            const canEdit = isAdmin || me?.playerId === player._id;
+                            const canEdit =
+                              isAdmin || me?.playerId === player._id;
                             const status = getRsvpStatus(entry, player._id);
                             const inActive = status === "in";
                             const outActive = status === "out";
@@ -637,7 +681,9 @@ export default function Page() {
                                       {player.name}
                                     </p>
                                     {typeof player.number === "number" ? (
-                                      <Badge variant="secondary">#{player.number}</Badge>
+                                      <Badge variant="secondary">
+                                        #{player.number}
+                                      </Badge>
                                     ) : null}
                                   </div>
                                   <p className="text-xs text-muted-foreground">
@@ -651,7 +697,11 @@ export default function Page() {
                                     variant={inActive ? "default" : "outline"}
                                     className={disabledClass}
                                     onClick={() =>
-                                      handleRsvp(entry.game._id, player._id, "in")
+                                      handleRsvp(
+                                        entry.game._id,
+                                        player._id,
+                                        "in"
+                                      )
                                     }
                                   >
                                     In
@@ -662,7 +712,11 @@ export default function Page() {
                                     variant={outActive ? "accent" : "outline"}
                                     className={disabledClass}
                                     onClick={() =>
-                                      handleRsvp(entry.game._id, player._id, "out")
+                                      handleRsvp(
+                                        entry.game._id,
+                                        player._id,
+                                        "out"
+                                      )
                                     }
                                   >
                                     Out
@@ -682,12 +736,16 @@ export default function Page() {
             {hasLoadedGames && otherUpcomingGames.length > 0 && (
               <div className="space-y-2">
                 {otherUpcomingGames.map((entry) => {
-                  const eligible = new Set((filteredPlayers ?? []).map((p) => p._id));
+                  const eligible = new Set(
+                    (filteredPlayers ?? []).map((p) => p._id)
+                  );
                   const inCount = entry.rsvps.filter(
-                    (rsvp) => rsvp.status === "in" && eligible.has(rsvp.playerId)
+                    (rsvp) =>
+                      rsvp.status === "in" && eligible.has(rsvp.playerId)
                   ).length;
                   const outCount = entry.rsvps.filter(
-                    (rsvp) => rsvp.status === "out" && eligible.has(rsvp.playerId)
+                    (rsvp) =>
+                      rsvp.status === "out" && eligible.has(rsvp.playerId)
                   ).length;
                   return (
                     <details
@@ -711,7 +769,9 @@ export default function Page() {
                             </Button>
                           )}
                           <ScorePill game={entry.game} />
-                          <span className="text-lg font-semibold">vs. {entry.game.opponent}</span>
+                          <span className="text-lg font-semibold">
+                            vs. {entry.game.opponent}
+                          </span>
                         </span>
                         <span className="text-sm text-muted-foreground">
                           {dateFormatter.format(new Date(entry.game.startTime))}
@@ -778,7 +838,9 @@ export default function Page() {
                                         {player.name}
                                       </p>
                                       {typeof player.number === "number" ? (
-                                        <Badge variant="secondary">#{player.number}</Badge>
+                                        <Badge variant="secondary">
+                                          #{player.number}
+                                        </Badge>
                                       ) : null}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
@@ -807,7 +869,11 @@ export default function Page() {
                                       variant={outActive ? "accent" : "outline"}
                                       className={disabledClass}
                                       onClick={() =>
-                                        handleRsvp(entry.game._id, player._id, "out")
+                                        handleRsvp(
+                                          entry.game._id,
+                                          player._id,
+                                          "out"
+                                        )
                                       }
                                     >
                                       Out
@@ -853,10 +919,14 @@ export default function Page() {
                             </Button>
                           )}
                           <ScorePill game={entry.game} />
-                          <h3 className="text-lg font-semibold">vs. {entry.game.opponent}</h3>
+                          <h3 className="text-lg font-semibold">
+                            vs. {entry.game.opponent}
+                          </h3>
                         </div>
                         {entry.game.location && (
-                          <p className="text-sm text-muted-foreground">{entry.game.location}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {entry.game.location}
+                          </p>
                         )}
                       </div>
                       <p className="text-sm font-medium text-muted-foreground sm:text-right">
@@ -871,7 +941,10 @@ export default function Page() {
         )}
       </div>
       {isAdmin && (
-        <Dialog open={isEditOpen} onOpenChange={(o) => (o ? setIsEditOpen(true) : resetEdit())}>
+        <Dialog
+          open={isEditOpen}
+          onOpenChange={(o) => (o ? setIsEditOpen(true) : resetEdit())}
+        >
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Edit game</DialogTitle>
@@ -886,7 +959,9 @@ export default function Page() {
                 >
                   <SelectTrigger id="edit-opponent" className="w-full">
                     <SelectValue
-                      placeholder={opponents ? "Select an opponent" : "Loading opponents…"}
+                      placeholder={
+                        opponents ? "Select an opponent" : "Loading opponents…"
+                      }
                     />
                   </SelectTrigger>
                   <SelectContent align="start">
@@ -902,22 +977,46 @@ export default function Page() {
                 <Label>Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className="justify-start font-normal">
-                      {editDate ? dateFormatter.format(editDate) : "Pick a date"}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="justify-start font-normal"
+                    >
+                      {editDate
+                        ? dateFormatter.format(editDate)
+                        : "Pick a date"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent align="start" className="p-0 border border-border bg-card">
-                    <Calendar mode="single" selected={editDate} onSelect={setEditDate} initialFocus />
+                  <PopoverContent
+                    align="start"
+                    className="p-0 border border-border bg-card"
+                  >
+                    <Calendar
+                      mode="single"
+                      selected={editDate}
+                      onSelect={setEditDate}
+                      initialFocus
+                    />
                   </PopoverContent>
                 </Popover>
               </div>
               <div className="grid gap-1 text-sm">
                 <Label htmlFor="edit-time">Time</Label>
-                <Input id="edit-time" type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} required />
+                <Input
+                  id="edit-time"
+                  type="time"
+                  value={editTime}
+                  onChange={(e) => setEditTime(e.target.value)}
+                  required
+                />
               </div>
               <div className="grid gap-1 text-sm">
                 <Label htmlFor="edit-location">Location</Label>
-                <Input id="edit-location" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} />
+                <Input
+                  id="edit-location"
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                />
               </div>
               <div className="grid gap-1 text-sm">
                 <Label htmlFor="edit-notes">Notes</Label>
@@ -932,7 +1031,9 @@ export default function Page() {
                 <Label htmlFor="edit-visibility">Visibility</Label>
                 <Select
                   value={editVisibility}
-                  onValueChange={(v) => setEditVisibility(v as "public" | "private")}
+                  onValueChange={(v) =>
+                    setEditVisibility(v as "public" | "private")
+                  }
                 >
                   <SelectTrigger id="edit-visibility" className="w-full">
                     <SelectValue placeholder="Select visibility" />
@@ -946,24 +1047,39 @@ export default function Page() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="grid gap-1">
                   <Label htmlFor="edit-team-score">Our score</Label>
-                  <Input id="edit-team-score" type="number" min={0} value={editTeamScore} onChange={(e) => setEditTeamScore(e.target.value)} />
+                  <Input
+                    id="edit-team-score"
+                    type="number"
+                    min={0}
+                    value={editTeamScore}
+                    onChange={(e) => setEditTeamScore(e.target.value)}
+                  />
                 </div>
                 <div className="grid gap-1">
                   <Label htmlFor="edit-opp-score">Opponent score</Label>
-                  <Input id="edit-opp-score" type="number" min={0} value={editOpponentScore} onChange={(e) => setEditOpponentScore(e.target.value)} />
+                  <Input
+                    id="edit-opp-score"
+                    type="number"
+                    min={0}
+                    value={editOpponentScore}
+                    onChange={(e) => setEditOpponentScore(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
             <DialogFooter className="flex items-center justify-between">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button type="button" variant="destructive">Remove game</Button>
+                  <Button type="button" variant="destructive">
+                    Remove game
+                  </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Remove this game?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will delete the game and all RSVPs. This action cannot be undone.
+                      This will delete the game and all RSVPs. This action
+                      cannot be undone.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -982,8 +1098,12 @@ export default function Page() {
                 </AlertDialogContent>
               </AlertDialog>
               <div className="ml-auto flex gap-2">
-                <Button type="button" onClick={onSaveEdit}>Save</Button>
-                <Button type="button" variant="outline" onClick={resetEdit}>Cancel</Button>
+                <Button type="button" onClick={onSaveEdit}>
+                  Save
+                </Button>
+                <Button type="button" variant="outline" onClick={resetEdit}>
+                  Cancel
+                </Button>
               </div>
             </DialogFooter>
           </DialogContent>

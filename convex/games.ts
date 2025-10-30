@@ -5,7 +5,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 
 function deriveOutcomePoints(
   teamScore?: number,
-  opponentScore?: number,
+  opponentScore?: number
 ): { outcome?: "win" | "loss" | "tie"; points?: number } {
   if (typeof teamScore === "number" && typeof opponentScore === "number") {
     if (teamScore > opponentScore) return { outcome: "win", points: 2 };
@@ -26,36 +26,17 @@ export const upcomingGames = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit }) => {
     const now = Date.now();
-    // Pull public games using the visibility+startTime index
-    const publicResults = await ctx.db
+
+    // Single optimized query using the new composite index
+    // This fetches only scheduled games ordered by start time
+    const results = await ctx.db
       .query("games")
-      .withIndex("by_visibility_start_time", (q) =>
-        q.eq("visibility", "public").gte("startTime", now)
+      .withIndex("by_status_start_time", (q) =>
+        q.eq("status", "scheduled").gte("startTime", now)
       )
-      .collect();
+      .take(limit ?? 100);
 
-    // Include legacy games (no visibility set) that are upcoming
-    const legacyResults = await ctx.db
-      .query("games")
-      .withIndex("by_start_time", (q) => q.gte("startTime", now))
-      .collect();
-
-    const combined = [...publicResults, ...legacyResults.filter((g) => (g as any).visibility === undefined)];
-
-    const filtered = combined
-      .filter((g) => g.status === "scheduled")
-      .sort((a, b) => a.startTime - b.startTime);
-
-    const sliced =
-      typeof limit === "number" ? filtered.slice(0, Math.max(0, Math.floor(limit))) : filtered;
-
-    return sliced.map((g) => ({
-      _id: g._id,
-      _creationTime: g._creationTime,
-      opponent: g.opponent,
-      startTime: g.startTime,
-      location: g.location,
-    }));
+    return results; // Return full documents for hybrid pattern
   },
 });
 
@@ -199,7 +180,7 @@ export const setRsvpInternal = internalMutation({
     const existing = await ctx.db
       .query("gameRsvps")
       .withIndex("by_game_player", (q) =>
-        q.eq("gameId", args.gameId).eq("playerId", args.playerId),
+        q.eq("gameId", args.gameId).eq("playerId", args.playerId)
       )
       .unique();
 
@@ -210,7 +191,10 @@ export const setRsvpInternal = internalMutation({
         await ctx.db.delete(existing._id);
         return existing._id;
       } else {
-        await ctx.db.patch(existing._id, { status: args.status, updatedAt: now });
+        await ctx.db.patch(existing._id, {
+          status: args.status,
+          updatedAt: now,
+        });
         return existing._id;
       }
     }
@@ -227,7 +211,10 @@ export const setRsvpInternal = internalMutation({
 export const listGamesWithRsvps = query({
   args: {},
   handler: async (ctx) => {
-    const games = await ctx.db.query("games").withIndex("by_start_time").collect();
+    const games = await ctx.db
+      .query("games")
+      .withIndex("by_start_time")
+      .collect();
 
     return await Promise.all(
       games.map(async (game) => {
@@ -239,7 +226,7 @@ export const listGamesWithRsvps = query({
           game,
           rsvps,
         };
-      }),
+      })
     );
   },
 });
@@ -283,7 +270,9 @@ export const createGame = mutation({
       const normalized = inputName.toLowerCase();
       const existingOpponent = await ctx.db
         .query("opponents")
-        .withIndex("by_name_lowercase", (q) => q.eq("nameLowercase", normalized))
+        .withIndex("by_name_lowercase", (q) =>
+          q.eq("nameLowercase", normalized)
+        )
         .unique();
       if (existingOpponent) {
         opponentId = existingOpponent._id;
@@ -359,7 +348,7 @@ export const setRsvp = mutation({
     const existing = await ctx.db
       .query("gameRsvps")
       .withIndex("by_game_player", (q) =>
-        q.eq("gameId", args.gameId).eq("playerId", args.playerId),
+        q.eq("gameId", args.gameId).eq("playerId", args.playerId)
       )
       .unique();
 
@@ -370,7 +359,10 @@ export const setRsvp = mutation({
         await ctx.db.delete(existing._id);
         return existing._id;
       } else {
-        await ctx.db.patch(existing._id, { status: args.status, updatedAt: now });
+        await ctx.db.patch(existing._id, {
+          status: args.status,
+          updatedAt: now,
+        });
         return existing._id;
       }
     }
