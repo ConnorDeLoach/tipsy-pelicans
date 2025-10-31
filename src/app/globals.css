@@ -47,6 +47,15 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  :root::view-transition-group(root),
+  :root::view-transition-new(root),
+  :root::view-transition-old(root) {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 :root {
   --radius: 0.625rem;
   --background: #FFFFFF;

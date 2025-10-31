@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, LayoutGroup } from "motion/react";
+import { useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -10,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProductCard } from "@/app/merch/components/product-card";
+import { useMerchTransition } from "@/app/merch/components/merch-transition-provider";
 import { Product } from "@/app/merch/lib/data";
 
 interface MerchClientProps {
@@ -27,8 +29,16 @@ export function MerchClient({
 }: MerchClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { setListScrollTop, consumeListScrollTop } = useMerchTransition();
 
   const sorted = sortProducts(initialProducts, sortBy);
+
+  useEffect(() => {
+    const pendingScrollTop = consumeListScrollTop();
+    if (pendingScrollTop !== null) {
+      window.scrollTo({ top: pendingScrollTop, behavior: "instant" });
+    }
+  }, [consumeListScrollTop]);
 
   const updateParams = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams);
@@ -109,7 +119,12 @@ export function MerchClient({
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                   >
-                    <ProductCard product={product} />
+                    <ProductCard
+                      product={product}
+                      onNavigate={() => {
+                        setListScrollTop(window.scrollY);
+                      }}
+                    />
                   </motion.div>
                 ))}
               </AnimatePresence>

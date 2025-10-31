@@ -4,13 +4,14 @@ import { Minus, Plus } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, ViewTransition } from "react";
 import { motion, LayoutGroup } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useFlyToCart } from "@/app/merch/lib/useFlyToCart";
 import { useCart } from "@/app/merch/lib/cartContext";
 import { useProductById } from "@/app/merch/lib/hooks";
+import { useMerchNavigateWithTransition, useMerchTransition } from "@/app/merch/components/merch-transition-provider";
 
 export default function ProductPage() {
   const params = useParams();
@@ -25,12 +26,22 @@ export default function ProductPage() {
     setAnimatingElements,
     FlyingPlusOne,
   } = useFlyToCart();
+  const { pendingProduct, clearPendingProduct } = useMerchTransition();
+  const navigateWithTransition = useMerchNavigateWithTransition();
+
+  const displayProduct = product ?? (pendingProduct?.id === id ? pendingProduct : null);
+
+  useEffect(() => {
+    if (product) {
+      clearPendingProduct();
+    }
+  }, [product, clearPendingProduct]);
 
   useEffect(() => {
     document.documentElement.scrollTo({ top: 0 });
   }, []);
 
-  if (isLoading) {
+  if (isLoading && !displayProduct) {
     return (
       <main className="min-h-screen bg-background py-12">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -53,7 +64,7 @@ export default function ProductPage() {
     );
   }
 
-  if (error || !product) {
+  if (error && !displayProduct) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 py-12">
         <p className="text-lg text-muted-foreground">
@@ -66,13 +77,17 @@ export default function ProductPage() {
     );
   }
 
+  if (!displayProduct) {
+    return null;
+  }
+
   const handleAddToCart = () => {
     addItem(
       {
-        id: product!.id,
-        title: product!.title,
-        price: product!.price,
-        image: product!.image,
+        id: displayProduct.id,
+        title: displayProduct.title,
+        price: displayProduct.price,
+        image: displayProduct.image,
       },
       quantity
     );
@@ -88,43 +103,64 @@ export default function ProductPage() {
         <Link
           href="/merch"
           className="text-primary hover:text-primary-700 mb-6 inline-block"
+          onClick={(event) => {
+            if (
+              event.defaultPrevented ||
+              event.button !== 0 ||
+              event.metaKey ||
+              event.altKey ||
+              event.ctrlKey ||
+              event.shiftKey
+            ) {
+              return;
+            }
+
+            event.preventDefault();
+            navigateWithTransition("/merch");
+          }}
+          prefetch
         >
           ← Back to Shop
         </Link>
 
         <LayoutGroup>
           <div className="grid md:grid-cols-2 gap-8">
-            <motion.div layoutId={`product-image-${product.id}`}>
-              <div className="flex items-center justify-center bg-muted rounded-lg p-8">
-                <div className="relative w-full h-96">
-                  <Image
-                    src={product.image}
-                    alt={product.title}
-                    fill
-                    className="object-contain"
-                  />
+            <ViewTransition name={`product-image-${displayProduct.id}`}>
+              <motion.div layoutId={`product-image-${displayProduct.id}`}>
+                <div className="flex items-center justify-center bg-muted rounded-lg p-8">
+                  <div className="relative w-full h-96">
+                    <Image
+                      src={displayProduct.image}
+                      alt={displayProduct.title}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+            </ViewTransition>
 
-            <motion.div layoutId={`product-details-${product.id}`}>
+            <ViewTransition name={`product-details-${displayProduct.id}`}>
+              <motion.div layoutId={`product-details-${displayProduct.id}`}>
               <Card>
                 <CardContent className="pt-6">
-                  <motion.h1
-                    layoutId={`product-title-${product.id}`}
-                    className="text-3xl font-bold mb-4"
-                  >
-                    {product.title}
-                  </motion.h1>
+                  <ViewTransition name={`product-title-${displayProduct.id}`}>
+                    <motion.h1
+                      layoutId={`product-title-${displayProduct.id}`}
+                      className="text-3xl font-bold mb-4"
+                    >
+                      {displayProduct.title}
+                    </motion.h1>
+                  </ViewTransition>
 
-                  {product.rating && (
+                  {displayProduct.rating && (
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-2xl">⭐</span>
                       <span className="text-lg font-semibold">
-                        {product.rating.rate}
+                        {displayProduct.rating.rate}
                       </span>
                       <span className="text-muted-foreground">
-                        ({product.rating.count} reviews)
+                        ({displayProduct.rating.count} reviews)
                       </span>
                     </div>
                   )}
@@ -132,14 +168,14 @@ export default function ProductPage() {
                   <div className="mb-6">
                     <span className="text-muted-foreground">Category</span>
                     <p className="text-lg font-medium capitalize">
-                      {product.category}
+                      {displayProduct.category}
                     </p>
                   </div>
 
                   <div className="mb-6">
                     <span className="text-muted-foreground">Price</span>
                     <p className="text-4xl font-bold text-accent">
-                      ${product.price.toFixed(2)}
+                      ${displayProduct.price.toFixed(2)}
                     </p>
                   </div>
 
@@ -148,7 +184,7 @@ export default function ProductPage() {
                       Description
                     </span>
                     <p className="text-base leading-relaxed">
-                      {product.description}
+                      {displayProduct.description}
                     </p>
                   </div>
 
@@ -198,7 +234,8 @@ export default function ProductPage() {
                   )}
                 </CardContent>
               </Card>
-            </motion.div>
+              </motion.div>
+            </ViewTransition>
           </div>
         </LayoutGroup>
       </div>

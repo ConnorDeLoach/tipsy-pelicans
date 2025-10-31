@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ConvexClientProvider } from "./convex-provider";
@@ -20,7 +20,6 @@ export const metadata: Metadata = {
   title: "TIPSY",
   description: "We don't play sober",
   manifest: "/manifest.webmanifest",
-  themeColor: "#1d4ed8",
   appleWebApp: {
     capable: true,
     title: "Tipsy",
@@ -41,6 +40,10 @@ export const metadata: Metadata = {
     ],
     apple: "/pwa/apple-icon-180.png",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#1d4ed8",
 };
 
 export default function RootLayout({
