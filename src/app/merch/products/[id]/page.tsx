@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState, ViewTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useFlyToCart, FlyingPlusOne } from "@/app/merch/lib/useFlyToCart";
+import { useFlyToCart } from "@/app/merch/lib/useFlyToCart";
 import { useCart } from "@/app/merch/lib/cartContext";
 import { useProductById } from "@/app/merch/lib/hooks";
 
@@ -17,8 +17,13 @@ export default function ProductPage() {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const { data: product, isLoading, error } = useProductById(id);
-  const { buttonRef, animatingElements, triggerAnimation, setAnimatingElements } =
-    useFlyToCart();
+  const {
+    buttonRef,
+    animatingElements,
+    triggerAnimation,
+    setAnimatingElements,
+    FlyingPlusOne,
+  } = useFlyToCart();
 
   useEffect(() => {
     document.documentElement.scrollTo({ top: 0 });

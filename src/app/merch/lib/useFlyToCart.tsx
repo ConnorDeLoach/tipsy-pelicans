@@ -10,7 +10,7 @@ interface AnimatingElement {
   endY: number;
 }
 
-export function FlyingPlusOne({
+function FlyingPlusOne({
   startX,
   startY,
   endX,
@@ -48,7 +48,7 @@ export function FlyingPlusOne({
         },
       )
       .onfinish = onEnd;
-  }, [startX, startY, endX, endY, onEnd]);
+  }, [startX, startY, endX, endY]);
 
   return (
     <span
@@ -97,5 +97,11 @@ export function useFlyToCart() {
     }
   };
 
-  return { buttonRef, animatingElements, triggerAnimation, setAnimatingElements };
+  return {
+    buttonRef,
+    animatingElements,
+    triggerAnimation,
+    FlyingPlusOne,
+    setAnimatingElements,
+  };
 }

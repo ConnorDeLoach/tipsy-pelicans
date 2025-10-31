@@ -5,9 +5,9 @@ import Link from "next/link";
 import { ViewTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useFlyToCart, FlyingPlusOne } from "@/app/merch/lib/useFlyToCart";
+import { useFlyToCart } from "@/app/merch/lib/useFlyToCart";
 import { useCart } from "@/app/merch/lib/cartContext";
-import type { Product } from "@/app/merch/lib/hooks";
+import type { Product } from "@/app/merch/lib/data";
 
 interface ProductCardProps {
   product: Product;
@@ -15,8 +15,13 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addItem } = useCart();
-  const { buttonRef, animatingElements, triggerAnimation, setAnimatingElements } =
-    useFlyToCart();
+  const {
+    buttonRef,
+    animatingElements,
+    triggerAnimation,
+    setAnimatingElements,
+    FlyingPlusOne,
+  } = useFlyToCart();
 
   const handleAddToCart = () => {
     addItem(
@@ -26,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
         price: product.price,
         image: product.image,
       },
-      1,
+      1
     );
     triggerAnimation();
   };
@@ -52,7 +57,9 @@ export function ProductCard({ product }: ProductCardProps) {
             className="hover:text-accent transition-colors"
           >
             <ViewTransition name={`product-title-${product.id}`}>
-              <h3 className="font-semibold line-clamp-2 mb-2">{product.title}</h3>
+              <h3 className="font-semibold line-clamp-2 mb-2">
+                {product.title}
+              </h3>
             </ViewTransition>
           </Link>
           <p className="text-sm text-muted-foreground line-clamp-2 mb-3 flex-1">
@@ -64,12 +71,21 @@ export function ProductCard({ product }: ProductCardProps) {
               <p className="text-lg font-bold">${product.price.toFixed(2)}</p>
               {product.rating && (
                 <div className="flex items-center gap-1 mt-1">
-                  <span className="text-xs text-muted-foreground">⭐ {product.rating.rate}</span>
-                  <span className="text-xs text-muted-foreground">({product.rating.count})</span>
+                  <span className="text-xs text-muted-foreground">
+                    ⭐ {product.rating.rate}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    ({product.rating.count})
+                  </span>
                 </div>
               )}
             </div>
-            <Button size="sm" className="z-5" onClick={handleAddToCart} ref={buttonRef}>
+            <Button
+              size="sm"
+              className="z-5"
+              onClick={handleAddToCart}
+              ref={buttonRef}
+            >
               Add
             </Button>
             {animatingElements.map(({ id, startX, startY, endX, endY }) => (
@@ -80,7 +96,9 @@ export function ProductCard({ product }: ProductCardProps) {
                 endX={endX}
                 endY={endY}
                 onEnd={() =>
-                  setAnimatingElements((prev) => prev.filter((el) => el.id !== id))
+                  setAnimatingElements((prev) =>
+                    prev.filter((el) => el.id !== id)
+                  )
                 }
               />
             ))}
