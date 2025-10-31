@@ -2,16 +2,7 @@
 
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-
-export interface Product {
-  id: number;
-  title: string;
-  price: number;
-  description: string;
-  category: string;
-  image: string;
-  rating?: { rate: number; count: number };
-}
+import { Product } from "./data";
 
 function mapDocToProduct(doc: any): Product {
   return {
@@ -48,6 +39,24 @@ export function useCategories() {
   return {
     data,
     isLoading: data === undefined,
+    error: undefined as undefined | Error,
+  };
+}
+
+export function useHydratedProducts(initialProducts: Product[], category?: string) {
+  const { data: realtimeProducts } = useProducts(category);
+  return {
+    data: realtimeProducts || initialProducts,
+    isLoading: false,
+    error: undefined as undefined | Error,
+  };
+}
+
+export function useHydratedCategories(initialCategories: string[]) {
+  const { data: realtimeCategories } = useCategories();
+  return {
+    data: realtimeCategories || initialCategories,
+    isLoading: false,
     error: undefined as undefined | Error,
   };
 }
