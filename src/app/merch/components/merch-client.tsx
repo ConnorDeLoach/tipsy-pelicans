@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, LayoutGroup } from "motion/react";
 import {
   Select,
   SelectContent,
@@ -98,21 +98,23 @@ export function MerchClient({
             <p className="text-lg text-muted-foreground">No products found.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <AnimatePresence mode="popLayout">
-              {sorted.map((product) => (
-                <motion.div
-                  key={product.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                >
-                  <ProductCard product={product} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
+          <LayoutGroup>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <AnimatePresence mode="popLayout">
+                {sorted.map((product) => (
+                  <motion.div
+                    key={product.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                  >
+                    <ProductCard product={product} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </LayoutGroup>
         )}
       </div>
     </main>

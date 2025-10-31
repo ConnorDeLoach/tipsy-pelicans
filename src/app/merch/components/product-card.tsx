@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ViewTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useFlyToCart } from "@/app/merch/lib/useFlyToCart";
 import { useCart } from "@/app/merch/lib/cartContext";
+import { motion } from "motion/react";
 import type { Product } from "@/app/merch/lib/data";
 
 interface ProductCardProps {
@@ -39,7 +39,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Card className="flex flex-col h-full overflow-hidden hover:shadow-lg transition-shadow">
       <Link href={`/merch/products/${product.id}`} className="shrink-0">
-        <ViewTransition name={`product-image-${product.id}`}>
+        <motion.div layoutId={`product-image-${product.id}`}>
           <div className="relative h-56 w-full bg-muted overflow-hidden">
             <Image
               src={product.image}
@@ -48,19 +48,20 @@ export function ProductCard({ product }: ProductCardProps) {
               className="object-contain p-4 hover:scale-105 transition-transform"
             />
           </div>
-        </ViewTransition>
+        </motion.div>
       </Link>
-      <ViewTransition name={`product-details-${product.id}`}>
+      <motion.div layoutId={`product-details-${product.id}`}>
         <CardContent className="flex-1 flex flex-col p-4">
           <Link
             href={`/merch/products/${product.id}`}
             className="hover:text-accent transition-colors"
           >
-            <ViewTransition name={`product-title-${product.id}`}>
-              <h3 className="font-semibold line-clamp-2 mb-2">
-                {product.title}
-              </h3>
-            </ViewTransition>
+            <motion.h3
+              layoutId={`product-title-${product.id}`}
+              className="font-semibold line-clamp-2 mb-2"
+            >
+              {product.title}
+            </motion.h3>
           </Link>
           <p className="text-sm text-muted-foreground line-clamp-2 mb-3 flex-1">
             {product.description}
@@ -104,7 +105,7 @@ export function ProductCard({ product }: ProductCardProps) {
             ))}
           </div>
         </CardContent>
-      </ViewTransition>
+      </motion.div>
     </Card>
   );
 }
