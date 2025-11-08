@@ -5,6 +5,8 @@ import { v } from "convex/values";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 type ReminderContext = {
   upcomingGame: any;
   pendingPlayers: any[];
@@ -187,6 +189,8 @@ const sendEmailForPending = async (
         `Failed to send email to ${player.email}: ${response.status} ${errorText}`
       );
     }
+
+    await delay(500);
   }
 };
 
