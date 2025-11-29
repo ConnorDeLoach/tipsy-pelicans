@@ -7,3 +7,8 @@ export const messagesTable = defineTable({
   displayName: v.string(),
   role: v.string(),
 });
+
+export const chatReadStatusTable = defineTable({
+  userId: v.id("users"),
+  readAt: v.number(),
+}).index("by_user", ["userId"]);

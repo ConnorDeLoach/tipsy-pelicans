@@ -1,7 +1,7 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { type Icon } from "@tabler/icons-react"
+import Link from "next/link";
+import { type Icon } from "@tabler/icons-react";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -9,18 +9,19 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
 
 export function NavMain({
   items,
 }: {
   items: {
-    title: string
-    url: string
-    icon?: Icon
-  }[]
+    title: string;
+    url: string;
+    icon?: Icon;
+    badge?: boolean;
+  }[];
 }) {
-  const { isMobile, setOpenMobile } = useSidebar()
+  const { isMobile, setOpenMobile } = useSidebar();
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -31,10 +32,18 @@ export function NavMain({
                 <Link
                   href={item.url}
                   onClick={() => {
-                    if (isMobile) setOpenMobile(false)
+                    if (isMobile) setOpenMobile(false);
                   }}
                 >
-                  {item.icon && <item.icon />}
+                  {item.icon &&
+                    (item.badge ? (
+                      <span className="relative">
+                        <item.icon />
+                        <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-destructive" />
+                      </span>
+                    ) : (
+                      <item.icon />
+                    ))}
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>
@@ -43,5 +52,5 @@ export function NavMain({
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
+  );
 }

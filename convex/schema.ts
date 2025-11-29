@@ -2,7 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { productsTable } from "./merch/model";
-import { messagesTable } from "./chat/model";
+import { messagesTable, chatReadStatusTable } from "./chat/model";
 
 export default defineSchema({
   ...authTables,
@@ -83,6 +83,7 @@ export default defineSchema({
     usedAt: v.optional(v.number()),
   }).index("by_token", ["token"]),
   messages: messagesTable,
+  chatReadStatus: chatReadStatusTable,
   pushSubscriptions: defineTable({
     userId: v.id("users"),
     endpoint: v.string(),

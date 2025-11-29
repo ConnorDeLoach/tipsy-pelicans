@@ -57,6 +57,7 @@ export default function ChatPage() {
 
   const sendMessage = useMutation(api.chat.messages.send);
   const deleteMessage = useMutation(api.chat.messages.remove);
+  const markAsRead = useMutation(api.chat.unread.markAsRead);
 
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -77,6 +78,13 @@ export default function ChatPage() {
 
   // Combine real messages with optimistic ones
   const allMessages: AnyMessage[] = [...messages, ...optimisticMessages];
+
+  // Mark chat as read when page loads and when new messages arrive while viewing
+  useEffect(() => {
+    if (me && messages.length > 0) {
+      markAsRead();
+    }
+  }, [me, messages.length, markAsRead]);
 
   // Auto-scroll to bottom when new messages arrive (if user is near bottom)
   useEffect(() => {
