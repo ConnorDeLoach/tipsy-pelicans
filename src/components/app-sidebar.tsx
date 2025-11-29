@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { IconUsers } from "@tabler/icons-react";
+import { IconUsers, IconMessageCircle } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,7 +25,10 @@ import {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const me = useQuery(api.me.get);
   const navMain = React.useMemo(() => {
-    const items = [{ title: "Games", url: "/games", icon: HockeyStickIcon }];
+    const items = [
+      { title: "Games", url: "/games", icon: HockeyStickIcon },
+      { title: "Chat", url: "/chat", icon: IconMessageCircle },
+    ];
     if (me?.role === "admin") {
       items.unshift({ title: "Roster", url: "/admin/roster", icon: IconUsers });
     }
@@ -43,6 +46,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile, setOpenMobile } = useSidebar();
   React.useEffect(() => {
     router.prefetch("/games");
+    router.prefetch("/chat");
     if (me?.role === "admin") {
       router.prefetch("/admin/roster");
     }

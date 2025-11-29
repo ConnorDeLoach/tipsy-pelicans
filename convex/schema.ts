@@ -2,6 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { productsTable } from "./merch/model";
+import { messagesTable } from "./chat/model";
 
 export default defineSchema({
   ...authTables,
@@ -61,7 +62,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_start_time", ["startTime"])
-    .index("by_opponent", ["opponentId"]) 
+    .index("by_opponent", ["opponentId"])
     .index("by_visibility_start_time", ["visibility", "startTime"])
     .index("by_status_start_time", ["status", "startTime"]),
   gameRsvps: defineTable({
@@ -81,6 +82,7 @@ export default defineSchema({
     expiresAt: v.number(),
     usedAt: v.optional(v.number()),
   }).index("by_token", ["token"]),
+  messages: messagesTable,
   pushSubscriptions: defineTable({
     userId: v.id("users"),
     endpoint: v.string(),
