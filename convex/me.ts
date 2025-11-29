@@ -45,7 +45,9 @@ export const get = query({
     if (!player && email) {
       player = await ctx.db
         .query("players")
-        .withIndex("by_email", (q) => q.eq("emailLowercase", email.toLowerCase()))
+        .withIndex("by_email", (q) =>
+          q.eq("emailLowercase", email.toLowerCase())
+        )
         .unique();
     }
 
