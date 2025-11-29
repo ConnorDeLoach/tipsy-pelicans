@@ -58,6 +58,7 @@ export default function ChatPage() {
   const sendMessage = useMutation(api.chat.messages.send);
   const deleteMessage = useMutation(api.chat.messages.remove);
   const markAsRead = useMutation(api.chat.unread.markAsRead);
+  const heartbeat = useMutation(api.chat.presence.heartbeat);
 
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -85,6 +86,36 @@ export default function ChatPage() {
       markAsRead();
     }
   }, [me, messages.length, markAsRead]);
+
+  // Send presence heartbeat every 15 seconds while viewing chat
+  // This is used to suppress push notifications for active users
+  useEffect(() => {
+    if (!me) return;
+
+    // Send initial heartbeat
+    heartbeat();
+
+    // Set up interval for ongoing heartbeats
+    const interval = setInterval(() => {
+      // Only send heartbeat if document is visible
+      if (document.visibilityState === "visible") {
+        heartbeat();
+      }
+    }, 15_000); // Every 15 seconds
+
+    // Also send heartbeat when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        heartbeat();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [me, heartbeat]);
 
   // Auto-scroll to bottom when new messages arrive (if user is near bottom)
   useEffect(() => {

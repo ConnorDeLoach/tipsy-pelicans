@@ -2,6 +2,10 @@ import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
+import { internal } from "../_generated/api";
+
+// Debounce window for chat push notifications (5 seconds)
+const PUSH_DEBOUNCE_MS = 5_000;
 
 const MAX_BODY_LENGTH = 2000;
 const RATE_LIMIT_MS = 1000; // 1 message per second
@@ -81,6 +85,18 @@ export const send = mutation({
       displayName: player.name,
       role: player.role,
     });
+
+    // Schedule push notification after debounce window
+    await ctx.scheduler.runAfter(
+      PUSH_DEBOUNCE_MS,
+      internal.chat.push.sendChatNotifications,
+      {
+        messageId,
+        senderId: player._id,
+        senderName: player.name,
+        messagePreview: trimmedBody,
+      }
+    );
 
     return messageId;
   },

@@ -1,4 +1,6 @@
-/* Tipsy Service Worker v1 */
+/* Tipsy Service Worker v2 */
+
+const SW_VERSION = "2.0.0";
 
 self.addEventListener("install", (event) => {
   // Skip waiting only after careful testing; keeping default for safety
@@ -30,11 +32,17 @@ self.addEventListener("push", (event) => {
   const actions = Array.isArray(data.actions) ? data.actions : undefined;
   const payload = data.data || {};
 
+  const badge = data.badge || "/pwa/manifest-icon-192.maskable.png";
+  const requireInteraction = data.requireInteraction === true;
+
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
       icon,
+      badge,
       tag,
+      renotify: !!tag, // Alert user even when replacing existing notification with same tag
+      requireInteraction,
       data: payload,
       actions,
     })
@@ -53,11 +61,38 @@ self.addEventListener("notificationclick", (event) => {
         (async () => {
           try {
             await fetch(targetUrl, { method: "GET", mode: "no-cors" });
-          } catch (e) {}
+          } catch (e) {
+            console.error("[SW] RSVP action failed:", e);
+          }
         })()
       );
       return;
     }
+  }
+
+  // Handle chat notification click - navigate to chat
+  if (action === "open-chat" || data?.type === "chat") {
+    const chatUrl = data?.url || "/chat";
+    event.waitUntil(
+      (async () => {
+        const allClients = await self.clients.matchAll({
+          type: "window",
+          includeUncontrolled: true,
+        });
+        // Try to focus an existing chat window
+        for (const client of allClients) {
+          const clientUrl = new URL(client.url);
+          if (clientUrl.pathname === "/chat" && "focus" in client) {
+            return client.focus();
+          }
+        }
+        // Open new window if none found
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(chatUrl);
+        }
+      })()
+    );
+    return;
   }
   const url = (data && data.url) || "/";
   event.waitUntil(
@@ -66,11 +101,13 @@ self.addEventListener("notificationclick", (event) => {
         type: "window",
         includeUncontrolled: true,
       });
+      // Normalize URLs for comparison
+      const targetUrl = new URL(url, self.location.origin);
       for (const client of allClients) {
         if ("focus" in client) {
-          const clientUrl = (client.url || "").split("#")[0];
-          const targetUrl = new URL(url, self.location.origin).toString();
-          if (clientUrl === targetUrl) {
+          const clientUrl = new URL(client.url);
+          // Compare pathname only to handle query strings/fragments gracefully
+          if (clientUrl.pathname === targetUrl.pathname) {
             return client.focus();
           }
         }
