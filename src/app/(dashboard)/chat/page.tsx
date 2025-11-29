@@ -6,9 +6,32 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2, Send } from "lucide-react";
+import { Trash2, Loader2, Send, ChevronDown } from "lucide-react";
 
 const PAGE_SIZE = 50;
+
+// Optimistic message type
+type OptimisticMessage = {
+  _id: string;
+  _creationTime: number;
+  createdBy: Id<"players">;
+  body: string;
+  displayName: string;
+  role: string;
+  isOptimistic: true;
+};
+
+type Message = {
+  _id: Id<"messages">;
+  _creationTime: number;
+  createdBy: Id<"players">;
+  body: string;
+  displayName: string;
+  role: string;
+  isOptimistic?: false;
+};
+
+type AnyMessage = Message | OptimisticMessage;
 
 export default function ChatPage() {
   const me = useQuery(api.me.get);
@@ -27,16 +50,38 @@ export default function ChatPage() {
 
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [optimisticMessages, setOptimisticMessages] = useState<
+    OptimisticMessage[]
+  >([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const prevMessageCountRef = useRef(0);
+
+  // Combine real messages with optimistic ones
+  const allMessages: AnyMessage[] = [...messages, ...optimisticMessages];
 
   // Auto-scroll to bottom when new messages arrive (if user is near bottom)
   useEffect(() => {
     if (shouldAutoScroll && messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, shouldAutoScroll]);
+  }, [allMessages.length, shouldAutoScroll]);
+
+  // Track new messages when scrolled up
+  useEffect(() => {
+    const currentCount = messages.length;
+    if (currentCount > prevMessageCountRef.current && !shouldAutoScroll) {
+      setUnreadCount(
+        (prev) => prev + (currentCount - prevMessageCountRef.current)
+      );
+    }
+    if (shouldAutoScroll) {
+      setUnreadCount(0);
+    }
+    prevMessageCountRef.current = currentCount;
+  }, [messages.length, shouldAutoScroll]);
 
   // Track scroll position to determine if we should auto-scroll
   const handleScroll = () => {
@@ -49,20 +94,48 @@ export default function ChatPage() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = body.trim();
-    if (!trimmed || isSending) return;
+    if (!trimmed || isSending || !me?.playerId) return;
 
+    const optimisticId = `optimistic-${Date.now()}`;
+    const optimisticMsg: OptimisticMessage = {
+      _id: optimisticId,
+      _creationTime: Date.now(),
+      createdBy: me.playerId,
+      body: trimmed,
+      displayName: me.name ?? "You",
+      role: me.role ?? "player",
+      isOptimistic: true,
+    };
+
+    setOptimisticMessages((prev) => [...prev, optimisticMsg]);
+    setBody("");
+    setShouldAutoScroll(true);
     setIsSending(true);
+
     try {
       await sendMessage({ body: trimmed });
-      setBody("");
-      setShouldAutoScroll(true);
+      // Remove optimistic message after server confirms (real one will appear via subscription)
+      setOptimisticMessages((prev) =>
+        prev.filter((m) => m._id !== optimisticId)
+      );
     } catch (err) {
+      // Remove optimistic message and restore body on error
+      setOptimisticMessages((prev) =>
+        prev.filter((m) => m._id !== optimisticId)
+      );
+      setBody(trimmed);
       const message =
         err instanceof Error ? err.message : "Failed to send message.";
       toast.error(message);
     } finally {
       setIsSending(false);
     }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShouldAutoScroll(true);
+    setUnreadCount(0);
   };
 
   const handleDelete = async (messageId: Id<"messages">) => {
@@ -89,25 +162,31 @@ export default function ChatPage() {
 
   const formatTime = (timestamp: number) => {
     const date = new Date(timestamp);
+    return date.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDateSeparator = (timestamp: number) => {
+    const date = new Date(timestamp);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     const isYesterday = date.toDateString() === yesterday.toDateString();
 
-    const timeStr = date.toLocaleTimeString(undefined, {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-
-    if (isToday) return timeStr;
-    if (isYesterday) return `Yesterday ${timeStr}`;
+    if (isToday) return "Today";
+    if (isYesterday) return "Yesterday";
     return date.toLocaleDateString(undefined, {
+      weekday: "long",
       month: "short",
       day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
     });
+  };
+
+  const getDateKey = (timestamp: number) => {
+    return new Date(timestamp).toDateString();
   };
 
   const isLoading = status === "LoadingFirstPage";
@@ -120,7 +199,7 @@ export default function ChatPage() {
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto rounded-xl border border-border bg-tint-blue p-4"
+        className="relative flex-1 overflow-y-auto rounded-xl border border-border bg-tint-blue p-4"
       >
         {/* Load more button */}
         {status === "CanLoadMore" && (
@@ -148,57 +227,78 @@ export default function ChatPage() {
           </p>
         )}
 
-        {/* Message list */}
+        {/* Message list with date separators */}
         <ul className="space-y-3">
-          {messages.map((msg) => {
+          {allMessages.map((msg, index) => {
             const isMe = me?.playerId === msg.createdBy;
+            const isOptimistic = "isOptimistic" in msg && msg.isOptimistic;
+            const prevMsg = index > 0 ? allMessages[index - 1] : null;
+            const showDateSeparator =
+              !prevMsg ||
+              getDateKey(msg._creationTime) !==
+                getDateKey(prevMsg._creationTime);
+
             return (
-              <li
-                key={msg._id}
-                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`group relative max-w-[85%] rounded-lg px-3 py-2 ${
-                    isMe
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-foreground"
-                  }`}
-                >
-                  {!isMe && (
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className="text-xs font-semibold">
-                        {msg.displayName}
-                      </span>
-                      <span className="text-xs capitalize opacity-60">
-                        {msg.role}
-                      </span>
-                    </div>
-                  )}
-                  <p className="whitespace-pre-wrap break-words text-sm">
-                    {msg.body}
-                  </p>
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <span
-                      className={`text-xs ${
-                        isMe ? "opacity-70" : "text-muted-foreground"
-                      }`}
-                    >
-                      {formatTime(msg._creationTime)}
+              <li key={msg._id}>
+                {showDateSeparator && (
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-xs font-medium text-muted-foreground">
+                      {formatDateSeparator(msg._creationTime)}
                     </span>
-                    {canDelete(msg) && (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(msg._id)}
-                        className={`opacity-0 transition-opacity group-hover:opacity-100 ${
-                          isMe
-                            ? "text-primary-foreground/70 hover:text-primary-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                        }`}
-                        aria-label="Delete message"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                )}
+                <div
+                  className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`group relative max-w-[85%] rounded-lg px-3 py-2 ${
+                      isMe
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
+                    } ${isOptimistic ? "opacity-70" : ""}`}
+                  >
+                    {!isMe && (
+                      <div className="mb-1 flex items-center gap-2">
+                        <span className="text-xs font-semibold">
+                          {msg.displayName}
+                        </span>
+                        <span className="text-xs capitalize opacity-60">
+                          {msg.role}
+                        </span>
+                      </div>
                     )}
+                    <p className="whitespace-pre-wrap break-words text-sm">
+                      {msg.body}
+                    </p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span
+                        className={`text-xs ${
+                          isMe ? "opacity-70" : "text-muted-foreground"
+                        }`}
+                      >
+                        {isOptimistic
+                          ? "Sending..."
+                          : formatTime(msg._creationTime)}
+                      </span>
+                      {!isOptimistic && canDelete(msg) && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDelete(msg._id as Id<"messages">)
+                          }
+                          className={`opacity-0 transition-opacity group-hover:opacity-100 ${
+                            isMe
+                              ? "text-primary-foreground/70 hover:text-primary-foreground"
+                              : "text-muted-foreground hover:text-foreground"
+                          }`}
+                          aria-label="Delete message"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </li>
@@ -206,6 +306,18 @@ export default function ChatPage() {
           })}
         </ul>
         <div ref={messagesEndRef} />
+
+        {/* New message indicator */}
+        {!shouldAutoScroll && unreadCount > 0 && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:scale-105"
+          >
+            <ChevronDown className="size-4" />
+            {unreadCount} new {unreadCount === 1 ? "message" : "messages"}
+          </button>
+        )}
       </div>
 
       {/* Composer */}
