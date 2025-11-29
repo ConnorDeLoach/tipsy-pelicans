@@ -6,6 +6,16 @@ import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Trash2, Loader2, Send, ChevronDown } from "lucide-react";
 
 const PAGE_SIZE = 50;
@@ -58,6 +68,12 @@ export default function ChatPage() {
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const prevMessageCountRef = useRef(0);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
+    null
+  );
+  const [deleteConfirmId, setDeleteConfirmId] = useState<Id<"messages"> | null>(
+    null
+  );
 
   // Combine real messages with optimistic ones
   const allMessages: AnyMessage[] = [...messages, ...optimisticMessages];
@@ -146,7 +162,16 @@ export default function ChatPage() {
       const message =
         err instanceof Error ? err.message : "Failed to delete message.";
       toast.error(message);
+    } finally {
+      setDeleteConfirmId(null);
+      setSelectedMessageId(null);
     }
+  };
+
+  const handleMessageTap = (msgId: string, canDeleteMsg: boolean) => {
+    if (!canDeleteMsg) return;
+    // Toggle selection on tap
+    setSelectedMessageId((prev) => (prev === msgId ? null : msgId));
   };
 
   const canDelete = (msg: {
@@ -253,6 +278,9 @@ export default function ChatPage() {
                   className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                 >
                   <div
+                    onClick={() =>
+                      handleMessageTap(msg._id, !isOptimistic && canDelete(msg))
+                    }
                     className={`group relative max-w-[85%] rounded-lg px-3 py-2 ${
                       isMe
                         ? "bg-primary text-primary-foreground"
@@ -285,10 +313,15 @@ export default function ChatPage() {
                       {!isOptimistic && canDelete(msg) && (
                         <button
                           type="button"
-                          onClick={() =>
-                            handleDelete(msg._id as Id<"messages">)
-                          }
-                          className={`opacity-0 transition-opacity group-hover:opacity-100 ${
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteConfirmId(msg._id as Id<"messages">);
+                          }}
+                          className={`transition-opacity md:opacity-0 md:group-hover:opacity-100 ${
+                            selectedMessageId === msg._id
+                              ? "opacity-100"
+                              : "opacity-0"
+                          } ${
                             isMe
                               ? "text-primary-foreground/70 hover:text-primary-foreground"
                               : "text-muted-foreground hover:text-foreground"
@@ -353,6 +386,35 @@ export default function ChatPage() {
       <p className="mt-1 text-xs text-muted-foreground">
         {body.length}/2000 characters
       </p>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog
+        open={deleteConfirmId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteConfirmId(null);
+            setSelectedMessageId(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete message?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The message will be permanently
+              removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
