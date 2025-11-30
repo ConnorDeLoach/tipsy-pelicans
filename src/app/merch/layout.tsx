@@ -3,6 +3,7 @@ import "@/app/globals.css";
 import { CartProvider } from "@/app/merch/lib/cartContext";
 import { MerchNavbar } from "@/app/merch/components/navbar";
 import { MerchTransitionProvider } from "@/app/merch/components/merch-transition-provider";
+import { Footer } from "@/components/footer";
 
 export const metadata: Metadata = {
   title: "Merch Shop",
