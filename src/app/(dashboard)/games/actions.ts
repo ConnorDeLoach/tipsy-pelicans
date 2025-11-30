@@ -65,6 +65,28 @@ export type Me = {
   role: "admin" | "player";
 };
 
+export type Season = {
+  _id: Id<"seasons">;
+  _creationTime: number;
+  name: string;
+  type: "Winter" | "Summer" | "Fall";
+  year: number;
+  startDate: number;
+  endDate: number;
+  isActive: boolean;
+  createdAt: number;
+};
+
+export type SeasonStats = {
+  gamesPlayed: number;
+  totalGames: number;
+  wins: number;
+  losses: number;
+  ties: number;
+  points: number;
+  record: string;
+};
+
 export async function getGamesPageData() {
   const [games, players, opponents, me] = await Promise.all([
     convex.query(api.games.listGamesWithRsvps) as Promise<GameWithRsvps[]>,

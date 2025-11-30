@@ -16,6 +16,18 @@ export default defineSchema({
   })
     .index("by_name_lowercase", ["nameLowercase"])
     .index("by_active", ["isActive"]),
+  seasons: defineTable({
+    name: v.string(), // e.g., "Fall 2025"
+    type: v.union(v.literal("Winter"), v.literal("Summer"), v.literal("Fall")),
+    year: v.number(), // e.g., 2025
+    startDate: v.number(), // Unix timestamp for season start
+    endDate: v.number(), // Unix timestamp for season end
+    isActive: v.boolean(), // Current season flag (only one active at a time)
+    createdAt: v.number(),
+  })
+    .index("by_year_type", ["year", "type"])
+    .index("by_active", ["isActive"])
+    .index("by_start_date", ["startDate"]),
   players: defineTable({
     name: v.string(),
     email: v.string(),
@@ -50,7 +62,7 @@ export default defineSchema({
     location: v.optional(v.string()),
     notes: v.optional(v.string()),
     opponentId: v.optional(v.id("opponents")),
-    seasonId: v.optional(v.string()),
+    seasonId: v.optional(v.any()), // TEMPORARY - change to v.id("seasons") after running migrations
     status: v.union(v.literal("scheduled"), v.literal("final")),
     visibility: v.optional(v.union(v.literal("public"), v.literal("private"))),
     teamScore: v.optional(v.number()),
@@ -64,7 +76,8 @@ export default defineSchema({
     .index("by_start_time", ["startTime"])
     .index("by_opponent", ["opponentId"])
     .index("by_visibility_start_time", ["visibility", "startTime"])
-    .index("by_status_start_time", ["status", "startTime"]),
+    .index("by_status_start_time", ["status", "startTime"])
+    .index("by_season", ["seasonId"]),
   gameRsvps: defineTable({
     gameId: v.id("games"),
     playerId: v.id("players"),

@@ -2,6 +2,7 @@ import { mutation, query, internalMutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { getOrCreateSeasonForGame } from "./seasons";
 
 function deriveOutcomePoints(
   teamScore?: number,
@@ -293,12 +294,16 @@ export const createGame = mutation({
     const locationInput = (args.location ?? "").trim();
     const finalLocation = locationInput.length ? locationInput : "Hertz Arena";
 
+    // Auto-assign season based on game start time
+    const seasonId = await getOrCreateSeasonForGame(ctx, args.startTime);
+
     const id = await ctx.db.insert("games", {
       opponent: name!,
       startTime: args.startTime,
       location: finalLocation,
       notes: args.notes,
       opponentId,
+      seasonId,
       visibility: args.visibility ?? "public",
       status: "scheduled",
       createdAt: now,
@@ -374,5 +379,67 @@ export const setRsvp = mutation({
       status: args.status,
       updatedAt: now,
     });
+  },
+});
+
+// ============ Season-based queries ============
+
+export const listBySeason = query({
+  args: { seasonId: v.id("seasons") },
+  handler: async (ctx, { seasonId }) => {
+    return await ctx.db
+      .query("games")
+      .withIndex("by_season", (q) => q.eq("seasonId", seasonId))
+      .collect();
+  },
+});
+
+export const listBySeasonWithRsvps = query({
+  args: { seasonId: v.id("seasons") },
+  handler: async (ctx, { seasonId }) => {
+    const games = await ctx.db
+      .query("games")
+      .withIndex("by_season", (q) => q.eq("seasonId", seasonId))
+      .collect();
+
+    return await Promise.all(
+      games.map(async (game) => {
+        const rsvps = await ctx.db
+          .query("gameRsvps")
+          .withIndex("by_game", (q) => q.eq("gameId", game._id))
+          .collect();
+        return { game, rsvps };
+      })
+    );
+  },
+});
+
+export const getSeasonStats = query({
+  args: { seasonId: v.id("seasons") },
+  handler: async (ctx, { seasonId }) => {
+    // Get all games - filter manually since seasonId might be string during migration
+    const allGames = await ctx.db.query("games").collect();
+    const games = allGames.filter((g) => g.seasonId === seasonId);
+
+    // Count all games with outcomes (regardless of status)
+    const gamesWithOutcomes = games.filter((g) => g.outcome);
+
+    const wins = gamesWithOutcomes.filter((g) => g.outcome === "win").length;
+    const losses = gamesWithOutcomes.filter((g) => g.outcome === "loss").length;
+    const ties = gamesWithOutcomes.filter((g) => g.outcome === "tie").length;
+    const totalPoints = gamesWithOutcomes.reduce(
+      (sum, g) => sum + (g.points ?? 0),
+      0
+    );
+
+    return {
+      gamesPlayed: gamesWithOutcomes.length,
+      totalGames: games.length,
+      wins,
+      losses,
+      ties,
+      points: totalPoints,
+      record: `${wins}-${losses}-${ties}`,
+    };
   },
 });

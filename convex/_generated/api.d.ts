@@ -23,12 +23,14 @@ import type * as merch_http from "../merch/http.js";
 import type * as merch_model from "../merch/model.js";
 import type * as merch_mutations from "../merch/mutations.js";
 import type * as merch_queries from "../merch/queries.js";
+import type * as migrations from "../migrations.js";
 import type * as opponents from "../opponents.js";
 import type * as players from "../players.js";
 import type * as push from "../push.js";
 import type * as pushActions from "../pushActions.js";
 import type * as reminders from "../reminders.js";
 import type * as rsvpTokens from "../rsvpTokens.js";
+import type * as seasons from "../seasons.js";
 
 import type {
   ApiFromModules,
@@ -52,12 +54,14 @@ declare const fullApi: ApiFromModules<{
   "merch/model": typeof merch_model;
   "merch/mutations": typeof merch_mutations;
   "merch/queries": typeof merch_queries;
+  migrations: typeof migrations;
   opponents: typeof opponents;
   players: typeof players;
   push: typeof push;
   pushActions: typeof pushActions;
   reminders: typeof reminders;
   rsvpTokens: typeof rsvpTokens;
+  seasons: typeof seasons;
 }>;
 
 /**

@@ -5,7 +5,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GameWithRsvps, Player, Opponent, Me } from "./actions";
+import { GameWithRsvps, Player, Opponent, Me, Season } from "./actions";
 import { GamesView } from "@/components/games/games-view";
 import { GameFormData } from "@/components/games/create-game-dialog";
 
@@ -22,6 +22,10 @@ interface GamesClientProps {
 }
 
 export function GamesClient({ initialData }: GamesClientProps) {
+  // Season selection state - default to current/active season
+  const [selectedSeasonId, setSelectedSeasonId] =
+    useState<Id<"seasons"> | null>(null);
+
   // Live queries for real-time updates
   const liveGames = useQuery(api.games.listGamesWithRsvps);
   const livePlayers = useQuery(api.players.getPlayers);
@@ -29,6 +33,21 @@ export function GamesClient({ initialData }: GamesClientProps) {
     activeOnly: true,
   });
   const liveMe = useQuery(api.me.get);
+  const seasons = useQuery(api.seasons.list, {});
+  const currentSeason = useQuery(api.seasons.getCurrent);
+
+  // Get stats for selected season
+  const seasonStats = useQuery(
+    api.games.getSeasonStats,
+    selectedSeasonId ? { seasonId: selectedSeasonId } : "skip"
+  );
+
+  // Set initial selected season to current season when it loads
+  useEffect(() => {
+    if (currentSeason && !selectedSeasonId) {
+      setSelectedSeasonId(currentSeason._id);
+    }
+  }, [currentSeason, selectedSeasonId]);
 
   // Use live data if available, otherwise fall back to server data
   const games = liveGames ?? initialData.games;
@@ -153,19 +172,28 @@ export function GamesClient({ initialData }: GamesClientProps) {
 
   const isAdmin = me?.role === "admin";
 
-  const upcomingGames = useMemo(() => {
+  // Filter games by selected season
+  const seasonFilteredGames = useMemo(() => {
     if (!games) return [];
-    return games
+    if (!selectedSeasonId) return games;
+    return games.filter(
+      (entry) => (entry.game as any).seasonId === selectedSeasonId
+    );
+  }, [games, selectedSeasonId]);
+
+  const upcomingGames = useMemo(() => {
+    if (!seasonFilteredGames) return [];
+    return seasonFilteredGames
       .filter((entry) => entry.game.startTime + PAST_CUTOFF_MS > now)
       .sort((a, b) => a.game.startTime - b.game.startTime);
-  }, [games, now]);
+  }, [seasonFilteredGames, now]);
 
   const pastGames = useMemo(() => {
-    if (!games) return [];
-    return games
+    if (!seasonFilteredGames) return [];
+    return seasonFilteredGames
       .filter((entry) => entry.game.startTime + PAST_CUTOFF_MS <= now)
       .sort((a, b) => b.game.startTime - a.game.startTime);
-  }, [games, now]);
+  }, [seasonFilteredGames, now]);
 
   const handleRsvp = async (
     gameId: Id<"games">,
@@ -246,6 +274,10 @@ export function GamesClient({ initialData }: GamesClientProps) {
       onCreateGame={handleCreateGame}
       onUpdateGame={handleUpdateGame}
       onDeleteGame={handleDeleteGame}
+      seasons={seasons as Season[] | undefined}
+      selectedSeasonId={selectedSeasonId}
+      onSeasonChange={setSelectedSeasonId}
+      seasonStats={seasonStats}
     />
   );
 }
