@@ -36,9 +36,12 @@ export type Player = {
   _creationTime: number;
   name: string;
   email: string;
-  role: "admin" | "manager" | "player";
+  emailLowercase?: string;
+  role: "player" | "spare" | "spectator";
+  isAdmin: boolean;
   number?: number;
   position?: string;
+  flair?: string;
   userId?: Id<"users">;
 };
 
@@ -53,18 +56,22 @@ export type Opponent = {
 };
 
 export type Me = {
-  _id: Id<"users">;
-  _creationTime: number;
-  email: string;
-  role: "admin" | "manager" | "player";
+  userId: Id<"users">;
   playerId?: Id<"players">;
+  email?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  role: "admin" | "player";
 };
 
 export async function getGamesPageData() {
   const [games, players, opponents, me] = await Promise.all([
     convex.query(api.games.listGamesWithRsvps) as Promise<GameWithRsvps[]>,
     convex.query(api.players.getPlayers) as Promise<Player[]>,
-    convex.query(api.opponents.listOpponents, { activeOnly: true }) as Promise<Opponent[]>,
+    convex.query(api.opponents.listOpponents, { activeOnly: true }) as Promise<
+      Opponent[]
+    >,
     convex.query(api.me.get) as Promise<Me | null>,
   ]);
 
