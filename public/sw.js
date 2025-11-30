@@ -1,6 +1,6 @@
 /* Tipsy Service Worker v2 */
 
-const SW_VERSION = "2.0.0";
+const SW_VERSION = "2.0.1";
 
 self.addEventListener("install", (event) => {
   // Skip waiting only after careful testing; keeping default for safety
@@ -72,7 +72,9 @@ self.addEventListener("notificationclick", (event) => {
 
   // Handle chat notification click - navigate to chat
   if (action === "open-chat" || data?.type === "chat") {
-    const chatUrl = data?.url || "/chat";
+    const chatPath = data?.url || "/chat";
+    // Use full origin URL so Android opens in PWA, not browser
+    const chatUrl = new URL(chatPath, self.location.origin).href;
     event.waitUntil(
       (async () => {
         const allClients = await self.clients.matchAll({
@@ -94,15 +96,15 @@ self.addEventListener("notificationclick", (event) => {
     );
     return;
   }
-  const url = (data && data.url) || "/";
+  const urlPath = (data && data.url) || "/";
+  // Use full origin URL so Android opens in PWA, not browser
+  const targetUrl = new URL(urlPath, self.location.origin);
   event.waitUntil(
     (async () => {
       const allClients = await self.clients.matchAll({
         type: "window",
         includeUncontrolled: true,
       });
-      // Normalize URLs for comparison
-      const targetUrl = new URL(url, self.location.origin);
       for (const client of allClients) {
         if ("focus" in client) {
           const clientUrl = new URL(client.url);
@@ -113,7 +115,7 @@ self.addEventListener("notificationclick", (event) => {
         }
       }
       if (self.clients.openWindow) {
-        return self.clients.openWindow(url);
+        return self.clients.openWindow(targetUrl.href);
       }
     })()
   );
