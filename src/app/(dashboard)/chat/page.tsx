@@ -256,14 +256,20 @@ export default function ChatPage() {
   const isLoading = status === "LoadingFirstPage";
 
   return (
-    <div className="flex h-[calc(100vh-var(--header-height)-4rem)] flex-col px-4 lg:px-6">
-      <h1 className="mb-4 text-xl font-semibold">Team Chat</h1>
+    <div className="flex flex-col h-[calc(100dvh-var(--header-height)-2rem)] px-4 lg:px-6">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Team Chat</h1>
+          <p className="text-sm text-muted-foreground">General Channel</p>
+        </div>
+        {/* Future: Add online count here */}
+      </div>
 
       {/* Messages container */}
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="relative flex-1 overflow-y-auto rounded-xl border border-border bg-tint-blue p-4"
+        className="relative flex-1 min-h-0 overflow-y-auto rounded-xl p-4"
       >
         {/* Load more button */}
         {status === "CanLoadMore" && (

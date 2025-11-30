@@ -50,7 +50,7 @@ export function RosterClient({ initialPlayers }: RosterClientProps) {
   // Use server-fetched data as initial value, then subscribe to real-time updates
   const players = useQuery(api.players.getPlayers, {});
   const displayPlayers = players ?? initialPlayers;
-  
+
   const addPlayer = useMutation(api.players.addPlayer).withOptimisticUpdate(
     (localStore, { name, email, position, number, flair, isAdmin, role }) => {
       const list = localStore.getQuery(api.players.getPlayers);
@@ -75,7 +75,7 @@ export function RosterClient({ initialPlayers }: RosterClientProps) {
       localStore.setQuery(api.players.getPlayers, {}, updated);
     }
   );
-  
+
   const updatePlayer = useMutation(
     api.players.updatePlayer
   ).withOptimisticUpdate((localStore, { playerId, email, ...fields }) => {
@@ -94,7 +94,7 @@ export function RosterClient({ initialPlayers }: RosterClientProps) {
     updated.sort((a, b) => a.name.localeCompare(b.name));
     localStore.setQuery(api.players.getPlayers, {}, updated);
   });
-  
+
   const removePlayer = useMutation(
     api.players.removePlayer
   ).withOptimisticUpdate((localStore, { playerId }) => {
@@ -197,7 +197,12 @@ export function RosterClient({ initialPlayers }: RosterClientProps) {
   return (
     <div className="px-4 lg:px-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-semibold">Roster Management</h1>
+        <div>
+          <h1 className="text-2xl font-semibold">Roster Management</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage players and roles
+          </p>
+        </div>
         <Button
           type="button"
           onClick={() => {
