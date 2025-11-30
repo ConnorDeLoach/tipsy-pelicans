@@ -18,6 +18,7 @@ export default function MerchLayout({
         <MerchNavbar />
         <div className="h-[4.1rem] bg-background" />
         {children}
+        <Footer />
       </CartProvider>
     </MerchTransitionProvider>
   );
