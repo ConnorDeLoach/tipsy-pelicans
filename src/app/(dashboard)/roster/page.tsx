@@ -1,5 +1,5 @@
 import RosterServer from "./RosterServer";
 
-export default function AdminRosterPage() {
+export default function RosterPage() {
   return <RosterServer />;
 }

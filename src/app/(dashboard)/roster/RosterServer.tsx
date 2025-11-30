@@ -4,6 +4,6 @@ import { RosterClient } from "./RosterClient";
 
 export default async function RosterServer() {
   const players = await fetchQuery(api.players.getPlayers, {});
-  
+
   return <RosterClient initialPlayers={players} />;
 }

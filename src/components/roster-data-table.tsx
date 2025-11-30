@@ -10,7 +10,6 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { Id } from "@/convex/_generated/dataModel";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -19,17 +18,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 
 export type PlayerRow = {
   _id: Id<"players">;
@@ -44,12 +32,10 @@ export type PlayerRow = {
 
 export function RosterDataTable({
   data,
-  onEdit,
-  onDelete,
+  onRowClick,
 }: {
   data: PlayerRow[];
-  onEdit: (player: PlayerRow) => void;
-  onDelete: (playerId: Id<"players">) => void;
+  onRowClick?: (player: PlayerRow) => void;
 }) {
   const columns = React.useMemo<ColumnDef<PlayerRow>[]>(
     () => [
@@ -57,18 +43,16 @@ export function RosterDataTable({
         accessorKey: "name",
         header: () => <span>Name</span>,
         cell: ({ row }) => (
-          <span className="font-medium text-foreground">
-            {row.original.name}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "email",
-        header: () => <span>Email</span>,
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">
-            {row.original.email ?? "(no email)"}
-          </span>
+          <div className="flex flex-col">
+            <span className="font-medium text-foreground">
+              {row.original.name}
+            </span>
+            {row.original.flair && (
+              <span className="text-xs text-muted-foreground">
+                {row.original.flair}
+              </span>
+            )}
+          </div>
         ),
       },
       {
@@ -89,51 +73,8 @@ export function RosterDataTable({
           </span>
         ),
       },
-      {
-        accessorKey: "isAdmin",
-        header: () => <span>Admin</span>,
-        cell: ({ row }) => <span>{row.original.isAdmin ? "Yes" : "No"}</span>,
-      },
-      {
-        id: "actions",
-        header: () => <span className="sr-only">Actions</span>,
-        cell: ({ row }) => {
-          const p = row.original;
-          return (
-            <div className="text-right">
-              <div className="inline-flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => onEdit(p)}>
-                  Edit
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      Remove
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remove player?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will delete the player and their associations. This
-                        action cannot be undone.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDelete(p._id)}>
-                        Remove
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-          );
-        },
-      },
     ],
-    [onEdit, onDelete]
+    []
   );
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -187,7 +128,10 @@ export function RosterDataTable({
             <TableRow
               key={row.id}
               data-state={row.getIsSelected() && "selected"}
-              className="hover:bg-muted/50"
+              className={`hover:bg-muted/50 ${
+                onRowClick ? "cursor-pointer" : ""
+              }`}
+              onClick={() => onRowClick?.(row.original)}
             >
               {row.getVisibleCells().map((cell) => (
                 <TableCell key={cell.id} className="text-sm text-foreground">

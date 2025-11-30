@@ -35,6 +35,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const showBadge = isMounted && hasUnreadChat === true;
     const items = [
       { title: "Games", url: "/games", icon: HockeyStickIcon },
+      { title: "Roster", url: "/roster", icon: IconUsers },
       {
         title: "Chat",
         url: "/chat",
@@ -42,11 +43,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         badge: showBadge,
       },
     ];
-    if (me?.role === "admin") {
-      items.unshift({ title: "Roster", url: "/admin/roster", icon: IconUsers });
-    }
     return items;
-  }, [me, hasUnreadChat, isMounted]);
+  }, [hasUnreadChat, isMounted]);
   const userInfo = React.useMemo(
     () => ({
       name: me?.name ?? "Tipsy Pelican",
@@ -60,10 +58,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   React.useEffect(() => {
     router.prefetch("/games");
     router.prefetch("/chat");
-    if (me?.role === "admin") {
-      router.prefetch("/admin/roster");
-    }
-  }, [router, me?.role]);
+    router.prefetch("/roster");
+  }, [router]);
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
