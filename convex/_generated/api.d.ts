@@ -8,14 +8,17 @@
  * @module
  */
 
+import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as chat_messages from "../chat/messages.js";
 import type * as chat_model from "../chat/model.js";
 import type * as chat_presence from "../chat/presence.js";
 import type * as chat_push from "../chat/push.js";
 import type * as chat_unread from "../chat/unread.js";
+import type * as cronLogger from "../cronLogger.js";
 import type * as crons from "../crons.js";
 import type * as games from "../games.js";
+import type * as health from "../health.js";
 import type * as http from "../http.js";
 import type * as me from "../me.js";
 import type * as merch_actions from "../merch/actions.js";
@@ -39,14 +42,17 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auditLog: typeof auditLog;
   auth: typeof auth;
   "chat/messages": typeof chat_messages;
   "chat/model": typeof chat_model;
   "chat/presence": typeof chat_presence;
   "chat/push": typeof chat_push;
   "chat/unread": typeof chat_unread;
+  cronLogger: typeof cronLogger;
   crons: typeof crons;
   games: typeof games;
+  health: typeof health;
   http: typeof http;
   me: typeof me;
   "merch/actions": typeof merch_actions;

@@ -3,6 +3,7 @@ import { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { getOrCreateSeasonForGame } from "./seasons";
+import { logAuditEvent } from "./auditLog";
 
 function deriveOutcomePoints(
   teamScore?: number,
@@ -112,6 +113,18 @@ export const updateGameDetails = mutation({
     }
 
     if (Object.keys(patch).length === 0) return;
+
+    await logAuditEvent(ctx, {
+      userId,
+      playerId: callerPlayer._id,
+      action: "game.update",
+      targetType: "games",
+      targetId: args.gameId,
+      before: game,
+      after: { ...game, ...patch },
+      metadata: { fields: Object.keys(patch) },
+    });
+
     await ctx.db.patch(args.gameId, patch);
   },
 });
@@ -143,6 +156,16 @@ export const updateGameScore = mutation({
     const opponentScore = Math.floor(args.opponentScore);
     const { outcome, points } = deriveOutcomePoints(teamScore, opponentScore);
 
+    await logAuditEvent(ctx, {
+      userId,
+      playerId: callerPlayer._id,
+      action: "game.updateScore",
+      targetType: "games",
+      targetId: args.gameId,
+      before: game,
+      after: { ...game, teamScore, opponentScore, outcome, points },
+    });
+
     await ctx.db.patch(args.gameId, {
       teamScore,
       opponentScore,
@@ -167,6 +190,16 @@ export const finalizeGame = mutation({
 
     const game = await ctx.db.get(gameId);
     if (!game) throw new Error("Game not found");
+
+    await logAuditEvent(ctx, {
+      userId,
+      playerId: callerPlayer._id,
+      action: "game.finalize",
+      targetType: "games",
+      targetId: gameId,
+      before: game,
+      after: { ...game, status: "final" },
+    });
 
     await ctx.db.patch(gameId, { status: "final" });
   },
@@ -297,7 +330,7 @@ export const createGame = mutation({
     // Auto-assign season based on game start time
     const seasonId = await getOrCreateSeasonForGame(ctx, args.startTime);
 
-    const id = await ctx.db.insert("games", {
+    const gameData = {
       opponent: name!,
       startTime: args.startTime,
       location: finalLocation,
@@ -305,9 +338,21 @@ export const createGame = mutation({
       opponentId,
       seasonId,
       visibility: args.visibility ?? "public",
-      status: "scheduled",
+      status: "scheduled" as const,
       createdAt: now,
+    };
+
+    const id = await ctx.db.insert("games", gameData);
+
+    await logAuditEvent(ctx, {
+      userId,
+      playerId: callerPlayer._id,
+      action: "game.create",
+      targetType: "games",
+      targetId: id,
+      after: gameData,
     });
+
     return id;
   },
 });
@@ -315,10 +360,33 @@ export const createGame = mutation({
 export const removeGame = mutation({
   args: { gameId: v.id("games") },
   handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (userId === null) throw new Error("Not authenticated");
+
+    const callerPlayer = await ctx.db
+      .query("players")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique();
+    if (!callerPlayer || callerPlayer.isAdmin !== true)
+      throw new Error("Not authorized");
+
+    const game = await ctx.db.get(args.gameId);
+    if (!game) throw new Error("Game not found");
+
     const toDelete = await ctx.db
       .query("gameRsvps")
       .withIndex("by_game", (q) => q.eq("gameId", args.gameId))
       .collect();
+
+    await logAuditEvent(ctx, {
+      userId,
+      playerId: callerPlayer._id,
+      action: "game.delete",
+      targetType: "games",
+      targetId: args.gameId,
+      before: game,
+      metadata: { rsvpsDeleted: toDelete.length },
+    });
 
     await Promise.all(toDelete.map((rsvp) => ctx.db.delete(rsvp._id)));
     await ctx.db.delete(args.gameId);

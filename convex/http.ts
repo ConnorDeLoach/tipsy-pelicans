@@ -8,6 +8,24 @@ const http = httpRouter();
 
 auth.addHttpRoutes(http);
 
+// Health check endpoint
+http.route({
+  path: "/health",
+  method: "GET",
+  handler: httpAction(async (ctx) => {
+    const health = await ctx.runQuery(api.health.check, {});
+    const statusCode = health.status === "healthy" ? 200 : 503;
+
+    return new Response(JSON.stringify(health, null, 2), {
+      status: statusCode,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      },
+    });
+  }),
+});
+
 // Merch domain routes
 registerMerch(http);
 
@@ -38,9 +56,10 @@ http.route({
     await ctx.runMutation(api.rsvpTokens.markUsed, { token });
 
     const base = process.env.SITE_URL || "/";
-    const redirectTo = `${base.replace(/\/$/, "")}/rsvp?status=${encodeURIComponent(
-      record.choice,
-    )}`;
+    const redirectTo = `${base.replace(
+      /\/$/,
+      ""
+    )}/rsvp?status=${encodeURIComponent(record.choice)}`;
     return Response.redirect(redirectTo, 302);
   }),
 });

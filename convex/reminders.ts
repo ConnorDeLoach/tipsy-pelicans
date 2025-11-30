@@ -12,10 +12,31 @@ type ReminderContext = {
   pendingPlayers: any[];
   formattedStart: string;
   rsvpBase: string;
+  correlationId: string;
 };
 
+/**
+ * Structured logging helper with correlation ID
+ */
+function log(
+  level: "info" | "warn" | "error",
+  correlationId: string,
+  event: string,
+  data?: any
+) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    level,
+    correlationId,
+    event,
+    ...data,
+  };
+  console.log(JSON.stringify(logEntry));
+}
+
 const getReminderContext = async (
-  ctx: ActionCtx
+  ctx: ActionCtx,
+  correlationId: string
 ): Promise<ReminderContext | null> => {
   const now = Date.now();
   const windowEnd = now + ONE_DAY_MS * 7;
@@ -26,13 +47,17 @@ const getReminderContext = async (
     .find((entry: any) => entry.game.startTime <= windowEnd);
 
   if (!upcomingGame) {
+    log("info", correlationId, "reminder.no_upcoming_game", {
+      reason: "No games found within 7 day window",
+    });
     return null;
   }
 
   const allPlayers = await ctx.runQuery(api.players.getPlayers, {});
   const players = allPlayers.filter((p: any) => (p as any).role === "player");
   const pendingPlayers = players.filter(
-    (player: any) => !upcomingGame.rsvps.some((rsvp: any) => rsvp.playerId === player._id)
+    (player: any) =>
+      !upcomingGame.rsvps.some((rsvp: any) => rsvp.playerId === player._id)
   );
 
   const formatter = new Intl.DateTimeFormat("en-US", {
@@ -48,7 +73,21 @@ const getReminderContext = async (
   const rsvpBaseEnv = process.env.PUBLIC_RSVP_BASE_URL || "";
   const rsvpBase = rsvpBaseEnv.replace(/\/$/, "");
 
-  return { upcomingGame, pendingPlayers, formattedStart, rsvpBase };
+  log("info", correlationId, "reminder.context_built", {
+    gameId: upcomingGame.game._id,
+    opponent: upcomingGame.game.opponent,
+    startTime: upcomingGame.game.startTime,
+    totalPlayers: players.length,
+    pendingCount: pendingPlayers.length,
+  });
+
+  return {
+    upcomingGame,
+    pendingPlayers,
+    formattedStart,
+    rsvpBase,
+    correlationId,
+  };
 };
 
 const issueTokensForPending = async (
@@ -56,6 +95,10 @@ const issueTokensForPending = async (
   context: ReminderContext
 ) => {
   const tokensByPlayer: Record<string, { inUrl: string; outUrl: string }> = {};
+
+  log("info", context.correlationId, "reminder.issuing_tokens", {
+    playerCount: context.pendingPlayers.length,
+  });
 
   for (const player of context.pendingPlayers) {
     const inToken = crypto.randomUUID();
@@ -75,6 +118,10 @@ const issueTokensForPending = async (
     tokensByPlayer[player._id] = { inUrl, outUrl };
   }
 
+  log("info", context.correlationId, "reminder.tokens_issued", {
+    count: Object.keys(tokensByPlayer).length,
+  });
+
   return tokensByPlayer;
 };
 
@@ -83,6 +130,9 @@ const sendPushForPending = async (
   context: ReminderContext,
   tokensByPlayer: Record<string, { inUrl: string; outUrl: string }>
 ) => {
+  let sent = 0;
+  let skipped = 0;
+
   for (const player of context.pendingPlayers) {
     if (player.userId) {
       const { inUrl, outUrl } = tokensByPlayer[player._id];
@@ -105,8 +155,16 @@ const sendPushForPending = async (
         payload,
         options: { urgency: "high" },
       });
+      sent++;
+    } else {
+      skipped++;
     }
   }
+
+  log("info", context.correlationId, "reminder.push_sent", {
+    sent,
+    skipped,
+  });
 };
 
 const sendEmailForPending = async (
@@ -115,11 +173,14 @@ const sendEmailForPending = async (
 ) => {
   const apiKey = process.env.AUTH_RESEND_KEY;
   if (!apiKey) {
-    console.warn(
-      "AUTH_RESEND_KEY is not configured; skipping weekly reminder email"
-    );
+    log("warn", context.correlationId, "reminder.email_skipped", {
+      reason: "AUTH_RESEND_KEY not configured",
+    });
     return;
   }
+
+  let sent = 0;
+  let failed = 0;
 
   const subject = `RSVP needed: vs ${context.upcomingGame.game.opponent} on ${context.formattedStart}`;
   const locationLine = context.upcomingGame.game.location
@@ -140,9 +201,11 @@ const sendEmailForPending = async (
       ? `<p style=\"margin:0 0 12px;\"><strong>Notes:</strong> ${context.upcomingGame.game.notes}</p>`
       : "";
 
-    const personalizedText = `Hey ${player.name || "Pelican"},\n\nWe have a game vs ${
-      context.upcomingGame.game.opponent
-    } on ${context.formattedStart}.\n${locationLine}${notesLine}Please respond with your RSVP below.\n\nI'm in: ${inUrl}\nI'm out: ${outUrl}\n\nThanks!\nTipsy`;
+    const personalizedText = `Hey ${
+      player.name || "Pelican"
+    },\n\nWe have a game vs ${context.upcomingGame.game.opponent} on ${
+      context.formattedStart
+    }.\n${locationLine}${notesLine}Please respond with your RSVP below.\n\nI'm in: ${inUrl}\nI'm out: ${outUrl}\n\nThanks!\nTipsy`;
 
     const html = `
         <div style="font-family:'Segoe UI',Arial,sans-serif;background-color:#f8fafc;padding:24px;border-radius:12px;border:1px solid #e2e8f0;color:#0f172a;max-width:540px;margin:0 auto;">
@@ -185,48 +248,108 @@ const sendEmailForPending = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(
-        `Failed to send email to ${player.email}: ${response.status} ${errorText}`
-      );
+      log("error", context.correlationId, "reminder.email_failed", {
+        email: player.email,
+        status: response.status,
+        error: errorText,
+      });
+      failed++;
+    } else {
+      sent++;
     }
 
     await delay(500);
   }
+
+  log("info", context.correlationId, "reminder.emails_sent", {
+    sent,
+    failed,
+  });
 };
 
 export const weeklyGameReminder = internalAction({
   args: {},
   handler: async (ctx) => {
     "use node";
-    const apiKey = process.env.AUTH_RESEND_KEY;
-    if (!apiKey) {
-      console.warn(
-        "AUTH_RESEND_KEY is not configured; skipping weekly reminder email"
-      );
-      return;
-    }
-    const rsvpBaseEnv = process.env.PUBLIC_RSVP_BASE_URL;
-    if (!rsvpBaseEnv) {
-      console.warn(
-        "PUBLIC_RSVP_BASE_URL is not configured; skipping weekly reminder email"
-      );
-      return;
-    }
+    const correlationId = crypto.randomUUID();
+    const cronName = "weeklyGameReminder";
 
-    const context = await getReminderContext(ctx);
-    if (!context) {
-      return;
+    await ctx.runMutation(internal.cronLogger.logStart, {
+      cronName,
+      correlationId,
+    });
+
+    log("info", correlationId, "reminder.started", {
+      type: cronName,
+    });
+
+    try {
+      const apiKey = process.env.AUTH_RESEND_KEY;
+      if (!apiKey) {
+        log("warn", correlationId, "reminder.aborted", {
+          reason: "AUTH_RESEND_KEY not configured",
+        });
+        await ctx.runMutation(internal.cronLogger.logComplete, {
+          correlationId,
+          result: { skipped: true, reason: "AUTH_RESEND_KEY not configured" },
+        });
+        return;
+      }
+      const rsvpBaseEnv = process.env.PUBLIC_RSVP_BASE_URL;
+      if (!rsvpBaseEnv) {
+        log("warn", correlationId, "reminder.aborted", {
+          reason: "PUBLIC_RSVP_BASE_URL not configured",
+        });
+        await ctx.runMutation(internal.cronLogger.logComplete, {
+          correlationId,
+          result: {
+            skipped: true,
+            reason: "PUBLIC_RSVP_BASE_URL not configured",
+          },
+        });
+        return;
+      }
+
+      const context = await getReminderContext(ctx, correlationId);
+      if (!context) {
+        await ctx.runMutation(internal.cronLogger.logComplete, {
+          correlationId,
+          result: { skipped: true, reason: "No upcoming game" },
+        });
+        return;
+      }
+      if (context.pendingPlayers.length === 0) {
+        log("info", correlationId, "reminder.no_pending_players", {});
+        await ctx.runMutation(internal.cronLogger.logComplete, {
+          correlationId,
+          result: { skipped: true, reason: "No pending players" },
+        });
+        return;
+      }
+
+      const tokensByPlayer = await issueTokensForPending(ctx, context);
+
+      await sendPushForPending(ctx, context, tokensByPlayer);
+      await sendEmailForPending(context, tokensByPlayer);
+
+      log("info", correlationId, "reminder.completed", {
+        playerCount: context.pendingPlayers.length,
+      });
+
+      await ctx.runMutation(internal.cronLogger.logComplete, {
+        correlationId,
+        result: { playerCount: context.pendingPlayers.length },
+      });
+    } catch (error: any) {
+      log("error", correlationId, "reminder.failed", {
+        error: error.message,
+      });
+      await ctx.runMutation(internal.cronLogger.logFailure, {
+        correlationId,
+        error: error.message || String(error),
+      });
+      throw error;
     }
-    if (context.pendingPlayers.length === 0) {
-      return;
-    }
-
-    const tokensByPlayer = await issueTokensForPending(ctx, context);
-
-    await sendPushForPending(ctx, context, tokensByPlayer);
-    await sendEmailForPending(context, tokensByPlayer);
-
-    console.log(`Sent ${context.pendingPlayers.length} reminder emails.`);
   },
 });
 
@@ -234,16 +357,21 @@ export const sendWeeklyPushReminders = internalAction({
   args: { playerId: v.id("players") },
   handler: async (ctx, { playerId }) => {
     "use node";
+    const correlationId = crypto.randomUUID();
+
+    log("info", correlationId, "reminder.push_started", {
+      playerId,
+    });
 
     const rsvpBaseEnv = process.env.PUBLIC_RSVP_BASE_URL;
     if (!rsvpBaseEnv) {
-      console.warn(
-        "PUBLIC_RSVP_BASE_URL is not configured; skipping weekly reminder push"
-      );
+      log("warn", correlationId, "reminder.push_aborted", {
+        reason: "PUBLIC_RSVP_BASE_URL not configured",
+      });
       return;
     }
 
-    const context = await getReminderContext(ctx);
+    const context = await getReminderContext(ctx, correlationId);
     if (!context) {
       return;
     }
@@ -253,9 +381,9 @@ export const sendWeeklyPushReminders = internalAction({
 
     const target = context.pendingPlayers.find((p: any) => p._id === playerId);
     if (!target) {
-      console.log(
-        `sendWeeklyPushReminders: player ${playerId} not pending or not found; no-op`
-      );
+      log("info", correlationId, "reminder.player_not_pending", {
+        playerId,
+      });
       return;
     }
 
@@ -267,7 +395,9 @@ export const sendWeeklyPushReminders = internalAction({
     const tokensByPlayer = await issueTokensForPending(ctx, singleContext);
     await sendPushForPending(ctx, singleContext, tokensByPlayer);
 
-    console.log(`Sent 1 reminder push notification to player ${playerId}.`);
+    log("info", correlationId, "reminder.push_completed", {
+      playerId,
+    });
   },
 });
 
@@ -275,23 +405,28 @@ export const sendWeeklyEmailReminders = internalAction({
   args: { playerId: v.id("players") },
   handler: async (ctx, { playerId }) => {
     "use node";
+    const correlationId = crypto.randomUUID();
+
+    log("info", correlationId, "reminder.email_started", {
+      playerId,
+    });
 
     const apiKey = process.env.AUTH_RESEND_KEY;
     if (!apiKey) {
-      console.warn(
-        "AUTH_RESEND_KEY is not configured; skipping weekly reminder email"
-      );
+      log("warn", correlationId, "reminder.email_aborted", {
+        reason: "AUTH_RESEND_KEY not configured",
+      });
       return;
     }
     const rsvpBaseEnv = process.env.PUBLIC_RSVP_BASE_URL;
     if (!rsvpBaseEnv) {
-      console.warn(
-        "PUBLIC_RSVP_BASE_URL is not configured; skipping weekly reminder email"
-      );
+      log("warn", correlationId, "reminder.email_aborted", {
+        reason: "PUBLIC_RSVP_BASE_URL not configured",
+      });
       return;
     }
 
-    const context = await getReminderContext(ctx);
+    const context = await getReminderContext(ctx, correlationId);
     if (!context) {
       return;
     }
@@ -301,9 +436,9 @@ export const sendWeeklyEmailReminders = internalAction({
 
     const target = context.pendingPlayers.find((p: any) => p._id === playerId);
     if (!target) {
-      console.log(
-        `sendWeeklyEmailReminders: player ${playerId} not pending or not found; no-op`
-      );
+      log("info", correlationId, "reminder.player_not_pending", {
+        playerId,
+      });
       return;
     }
 
@@ -315,7 +450,8 @@ export const sendWeeklyEmailReminders = internalAction({
     const tokensByPlayer = await issueTokensForPending(ctx, singleContext);
     await sendEmailForPending(singleContext, tokensByPlayer);
 
-    console.log(`Sent 1 reminder email to player ${playerId}.`);
+    log("info", correlationId, "reminder.email_completed", {
+      playerId,
+    });
   },
 });
-

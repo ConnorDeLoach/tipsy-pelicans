@@ -122,4 +122,35 @@ export default defineSchema({
     .index("byUser", ["userId"])
     .index("byEndpoint", ["endpoint"])
     .index("byStatus", ["lastStatus"]),
+  auditLog: defineTable({
+    userId: v.optional(v.id("users")),
+    playerId: v.optional(v.id("players")),
+    action: v.string(),
+    targetType: v.string(),
+    targetId: v.optional(v.string()),
+    before: v.optional(v.any()),
+    after: v.optional(v.any()),
+    metadata: v.optional(v.any()),
+    timestamp: v.number(),
+  })
+    .index("by_user_time", ["userId", "timestamp"])
+    .index("by_action_time", ["action", "timestamp"])
+    .index("by_target", ["targetType", "targetId"]),
+  cronExecutions: defineTable({
+    cronName: v.string(),
+    correlationId: v.string(),
+    status: v.union(
+      v.literal("started"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+    startTime: v.number(),
+    endTime: v.optional(v.number()),
+    duration: v.optional(v.number()),
+    result: v.optional(v.any()),
+    error: v.optional(v.string()),
+  })
+    .index("by_cron_time", ["cronName", "startTime"])
+    .index("by_correlation", ["correlationId"])
+    .index("by_status", ["status"]),
 });

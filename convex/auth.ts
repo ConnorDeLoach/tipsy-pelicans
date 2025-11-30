@@ -30,6 +30,10 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       from: "no-reply@tipsypelicans.com",
     }),
   ],
+  session: {
+    totalDurationMs: 365 * 24 * 60 * 60 * 1000, // 1 year
+    inactiveDurationMs: 365 * 24 * 60 * 60 * 1000, // 1 year
+  },
   callbacks: {
     async afterUserCreatedOrUpdated(ctx: MutationCtx, { userId, profile }) {
       const raw = extractProfileEmail(profile);
