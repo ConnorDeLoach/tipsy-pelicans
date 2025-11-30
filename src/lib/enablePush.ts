@@ -53,6 +53,7 @@ type EnablePushResult =
 
 export function useEnablePush() {
   const upsert = useMutation(api.push.upsertSubscription);
+  const remove = useMutation(api.push.removeSubscription);
 
   const enablePush = async (): Promise<EnablePushResult> => {
     try {
@@ -137,7 +138,10 @@ export function useEnablePush() {
     if (!reg) return { ok: true, cleared: false };
     const sub = await reg.pushManager.getSubscription();
     if (sub) {
+      const endpoint = sub.endpoint;
       await sub.unsubscribe();
+      // Also remove from Convex
+      await remove({ endpoint });
       return { ok: true, cleared: true };
     }
     return { ok: true, cleared: false };

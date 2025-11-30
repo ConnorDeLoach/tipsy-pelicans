@@ -1,4 +1,9 @@
-import { mutation, internalQuery, internalMutation } from "./_generated/server";
+import {
+  mutation,
+  query,
+  internalQuery,
+  internalMutation,
+} from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 
@@ -132,6 +137,22 @@ export const removeSubscription = mutation({
 });
 
 // Node actions moved to convex/pushActions.ts
+
+// Public query: get subscription status for the current user
+export const getMySubscriptionStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { subscribed: false, count: 0 };
+
+    const subs = await ctx.db
+      .query("pushSubscriptions")
+      .withIndex("byUser", (q) => q.eq("userId", userId))
+      .collect();
+
+    return { subscribed: subs.length > 0, count: subs.length };
+  },
+});
 
 // Helper query (internal): list all subscriptions for a user
 export const listUserSubs = internalQuery({
