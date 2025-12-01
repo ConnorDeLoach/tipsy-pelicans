@@ -14,28 +14,16 @@ import {
   AlertCircle,
   MoreVertical,
   Share2,
-  Map,
+  Check,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Drawer,
   DrawerClose,
@@ -59,7 +47,6 @@ const MOCK_STATS = {
   record: "8-2-1",
   points: 17,
   streak: "W3",
-  position: "1st",
   goalsFor: 42,
   goalsAgainst: 28,
 };
@@ -154,7 +141,7 @@ const itemVariants = {
 
 function GameDateBadge({ date }: { date: Date }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl bg-secondary/50 p-2 min-w-[60px] text-center border border-border/50">
+    <div className="flex flex-col items-center justify-center rounded-xl bg-secondary/50 p-2 min-w-[60px] w-16 text-center border border-border/50">
       <span className="text-xs font-bold uppercase text-muted-foreground">
         {date.toLocaleDateString("en-US", { month: "short" })}
       </span>
@@ -165,40 +152,6 @@ function GameDateBadge({ date }: { date: Date }) {
         {date.toLocaleDateString("en-US", { weekday: "short" })}
       </span>
     </div>
-  );
-}
-
-function RsvpBadge({ status }: { status: string }) {
-  if (status === "in") {
-    return (
-      <Badge
-        variant="outline"
-        className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100 gap-1 pl-1 pr-2"
-      >
-        <CheckCircle2 className="h-3 w-3" />
-        Going
-      </Badge>
-    );
-  }
-  if (status === "out") {
-    return (
-      <Badge
-        variant="outline"
-        className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100 gap-1 pl-1 pr-2"
-      >
-        <XCircle className="h-3 w-3" />
-        Out
-      </Badge>
-    );
-  }
-  return (
-    <Badge
-      variant="outline"
-      className="bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 gap-1 pl-1 pr-2"
-    >
-      <AlertCircle className="h-3 w-3" />
-      Pending
-    </Badge>
   );
 }
 
@@ -357,12 +310,12 @@ function GameCard({ game }: { game: (typeof MOCK_GAMES)[0] }) {
     <motion.div variants={itemVariants} layout>
       <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group">
         <CardContent className="p-0">
-          <div className="flex flex-col sm:flex-row">
-            {/* Time & Date Strip */}
-            <div className="flex sm:flex-col justify-between sm:justify-center items-center bg-secondary/30 p-4 sm:w-24 border-b sm:border-b-0 sm:border-r border-border/40 gap-3">
+          <div className="flex flex-row h-full">
+            {/* Time & Date Strip - Fixed Column */}
+            <div className="flex flex-col justify-center items-center bg-secondary/30 p-3 w-20 sm:w-24 border-r border-border/40 gap-2 shrink-0">
               <GameDateBadge date={game.date} />
-              <div className="text-xs font-medium text-muted-foreground flex items-center gap-1 bg-background px-2 py-1 rounded-full border border-border/50 shadow-sm">
-                <Clock className="h-3 w-3" />
+              <div className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center justify-center gap-1 bg-background px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full border border-border/50 shadow-sm whitespace-nowrap w-full">
+                <Clock className="h-3 w-3 hidden sm:block" />
                 {game.date.toLocaleTimeString("en-US", {
                   hour: "numeric",
                   minute: "2-digit",
@@ -371,67 +324,61 @@ function GameCard({ game }: { game: (typeof MOCK_GAMES)[0] }) {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 p-4 sm:p-5 flex flex-col justify-center gap-3">
-              <div className="flex justify-between items-start gap-4">
+            <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center gap-2 sm:gap-3">
+              <div className="flex justify-between items-start gap-2">
                 <div>
-                  <div className="text-xs font-semibold text-primary tracking-wider uppercase mb-1">
+                  <div className="text-[10px] sm:text-xs font-semibold text-primary tracking-wider uppercase mb-0.5 sm:mb-1">
                     Opponent
                   </div>
-                  <h3 className="font-bold text-lg sm:text-xl text-foreground flex items-center gap-2">
-                    <span className="text-muted-foreground font-normal text-base">
+                  <h3 className="font-bold text-base sm:text-xl text-foreground flex flex-wrap items-center gap-x-2 leading-tight">
+                    <span className="text-muted-foreground font-normal text-sm sm:text-base">
                       vs
                     </span>
                     {game.opponent}
                   </h3>
                 </div>
                 <div className="shrink-0">
-                  {game.status === "upcoming" ? (
-                    <RsvpBadge status={game.rsvp!} />
-                  ) : (
+                  {game.status === "past" && (
                     <ResultBadge result={game.result!} score={game.score!} />
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center justify-between mt-1">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <MapPin className="h-3.5 w-3.5 text-orange-600" />
-                  {game.location}
+              <div className="flex items-center justify-between mt-1 sm:mt-2">
+                {/* Roster on Left */}
+                <div className="flex items-center gap-3">
+                  {game.status === "upcoming" && <RosterDrawer game={game} />}
                 </div>
 
-                {game.status === "upcoming" && <RosterDrawer game={game} />}
+                {/* Actions on Right (Desktop) or Bottom Right (Mobile) */}
+                {game.status === "upcoming" && (
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={game.rsvp === "in" ? "default" : "outline"}
+                      className={`h-8 px-3 ${
+                        game.rsvp === "in"
+                          ? "bg-green-600 hover:bg-green-700"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      <Check className="h-4 w-4 sm:mr-1.5" />
+                      <span className="hidden sm:inline">In</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={game.rsvp === "out" ? "destructive" : "outline"}
+                      className={`h-8 px-3 ${
+                        game.rsvp === "out" ? "" : "text-muted-foreground"
+                      }`}
+                    >
+                      <X className="h-4 w-4 sm:mr-1.5" />
+                      <span className="hidden sm:inline">Out</span>
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
-
-            {/* Action Area - Only for upcoming */}
-            {game.status === "upcoming" && (
-              <div className="p-4 sm:border-l border-t sm:border-t-0 border-border/40 flex sm:flex-col justify-center items-center gap-2 bg-secondary/5">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Share2 className="mr-2 h-4 w-4" /> Share
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Map className="mr-2 h-4 w-4" /> Directions
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Button
-                  size="sm"
-                  variant={game.rsvp === "in" ? "outline" : "default"}
-                  className={
-                    game.rsvp === "in" ? "" : "bg-primary hover:bg-primary/90"
-                  }
-                >
-                  {game.rsvp === "pending" ? "RSVP" : "Edit"}
-                </Button>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -486,15 +433,6 @@ export default function MockupGamesView() {
                   Points
                 </div>
               </div>
-              <div className="w-px bg-white/20"></div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-300">
-                  {MOCK_STATS.position}
-                </div>
-                <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
-                  Rank
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -527,8 +465,15 @@ export default function MockupGamesView() {
               variant="ghost"
               size="sm"
               className="text-muted-foreground hover:text-primary hidden sm:flex"
+              asChild
             >
-              View Standings <ChevronRight className="ml-1 h-4 w-4" />
+              <a
+                href="https://skateeverblades.com/hockey/adult-hockey/adult-intermediate-c-2-league/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View Standings <ChevronRight className="ml-1 h-4 w-4" />
+              </a>
             </Button>
           </div>
 
