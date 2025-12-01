@@ -36,6 +36,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 // --- Mock Data ---
 
@@ -100,6 +110,21 @@ const MOCK_GAMES = [
     score: { us: 3, them: 4 },
     result: "loss",
   },
+];
+
+const MOCK_PLAYERS = [
+  { id: "p1", name: "Connor DeLoach", status: "in", avatar: "CD" },
+  { id: "p2", name: "Wayne Gretzky", status: "in", avatar: "WG" },
+  { id: "p3", name: "Bobby Orr", status: "in", avatar: "BO" },
+  { id: "p4", name: "Mario Lemieux", status: "out", avatar: "ML" },
+  { id: "p5", name: "Gordie Howe", status: "pending", avatar: "GH" },
+  { id: "p6", name: "Sidney Crosby", status: "in", avatar: "SC" },
+  { id: "p7", name: "Alex Ovechkin", status: "in", avatar: "AO" },
+  { id: "p8", name: "Connor McDavid", status: "in", avatar: "CM" },
+  { id: "p9", name: "Auston Matthews", status: "out", avatar: "AM" },
+  { id: "p10", name: "Nathan MacKinnon", status: "in", avatar: "NM" },
+  { id: "p11", name: "Cale Makar", status: "in", avatar: "CM" },
+  { id: "p12", name: "Leon Draisaitl", status: "pending", avatar: "LD" },
 ];
 
 // --- Components ---
@@ -204,6 +229,129 @@ function ResultBadge({
   );
 }
 
+function RosterDrawer({ game }: { game: (typeof MOCK_GAMES)[0] }) {
+  const inPlayers = MOCK_PLAYERS.filter((p) => p.status === "in");
+  const outPlayers = MOCK_PLAYERS.filter((p) => p.status === "out");
+  const pendingPlayers = MOCK_PLAYERS.filter((p) => p.status === "pending");
+
+  return (
+    <Drawer>
+      <DrawerTrigger asChild>
+        <div className="flex items-center -space-x-2 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
+          {inPlayers.slice(0, 3).map((p, i) => (
+            <Avatar
+              key={i}
+              className="inline-block border-2 border-background h-6 w-6"
+            >
+              <AvatarFallback className="text-[10px] bg-secondary">
+                {p.avatar}
+              </AvatarFallback>
+            </Avatar>
+          ))}
+          <div className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-background bg-secondary text-[10px] font-medium text-muted-foreground z-10">
+            +{inPlayers.length - 3}
+          </div>
+        </div>
+      </DrawerTrigger>
+      <DrawerContent>
+        <div className="mx-auto w-full max-w-sm">
+          <DrawerHeader>
+            <DrawerTitle className="flex items-center gap-2 text-xl">
+              <Users className="h-5 w-5 text-primary" />
+              Roster
+            </DrawerTitle>
+            <DrawerDescription>
+              {game.opponent} · {game.date.toLocaleDateString()}
+            </DrawerDescription>
+          </DrawerHeader>
+          <ScrollArea className="h-[50vh] px-4">
+            <div className="flex flex-col gap-6 pb-6">
+              {/* Going */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-green-600 bg-green-50 w-fit px-2 py-1 rounded-lg">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Going ({inPlayers.length})
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {inPlayers.map((player) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                          {player.avatar}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium">{player.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pending */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-orange-600 bg-orange-50 w-fit px-2 py-1 rounded-lg">
+                  <AlertCircle className="h-4 w-4" />
+                  Pending ({pendingPlayers.length})
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {pendingPlayers.map((player) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors"
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-orange-100 text-orange-600 text-xs font-bold">
+                          {player.avatar}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {player.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Out */}
+              <div>
+                <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-red-600 bg-red-50 w-fit px-2 py-1 rounded-lg">
+                  <XCircle className="h-4 w-4" />
+                  Out ({outPlayers.length})
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {outPlayers.map((player) => (
+                    <div
+                      key={player.id}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors opacity-60"
+                    >
+                      <Avatar className="h-8 w-8 grayscale">
+                        <AvatarFallback className="bg-secondary text-muted-foreground text-xs font-bold">
+                          {player.avatar}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-medium text-muted-foreground line-through decoration-border">
+                        {player.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+          <DrawerFooter>
+            <Button variant="outline">Manage Roster</Button>
+            <DrawerClose asChild>
+              <Button variant="ghost">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
 function GameCard({ game }: { game: (typeof MOCK_GAMES)[0] }) {
   return (
     <motion.div variants={itemVariants} layout>
@@ -251,23 +399,7 @@ function GameCard({ game }: { game: (typeof MOCK_GAMES)[0] }) {
                   {game.location}
                 </div>
 
-                {game.status === "upcoming" && (
-                  <div className="flex items-center -space-x-2 overflow-hidden">
-                    {[...Array(3)].map((_, i) => (
-                      <Avatar
-                        key={i}
-                        className="inline-block border-2 border-background h-6 w-6"
-                      >
-                        <AvatarFallback className="text-[10px] bg-secondary">
-                          P{i}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                    <div className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-background bg-secondary text-[10px] font-medium text-muted-foreground z-10">
-                      +{(game.attending || 0) - 3}
-                    </div>
-                  </div>
-                )}
+                {game.status === "upcoming" && <RosterDrawer game={game} />}
               </div>
             </div>
 
