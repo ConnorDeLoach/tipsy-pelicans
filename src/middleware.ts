@@ -9,6 +9,7 @@ const isAuthApi = createRouteMatcher(["/api/auth(.*)"]);
 const isRsvpPage = createRouteMatcher(["/rsvp"]);
 const isHomePage = createRouteMatcher(["/"]);
 const isMerchRoute = createRouteMatcher(["/merch(.*)"]);
+const isUiMarkupRoute = createRouteMatcher(["/ui-markup(.*)"]);
 const isMetaReviewPage = createRouteMatcher(["/meta-review"]);
 const isPrivacyPolicyPage = createRouteMatcher(["/privacy-policy"]);
 const isDataDeletionPage = createRouteMatcher(["/data-deletion"]);
@@ -29,6 +30,7 @@ export default convexAuthNextjsMiddleware(
       !isRsvpPage(request) &&
       !isHomePage(request) &&
       !isMerchRoute(request) &&
+      !isUiMarkupRoute(request) &&
       !isMetaReviewPage(request) &&
       !isPrivacyPolicyPage(request) &&
       !isDataDeletionPage(request)
