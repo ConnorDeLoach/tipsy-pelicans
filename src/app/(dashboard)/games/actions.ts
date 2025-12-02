@@ -1,10 +1,9 @@
 "use server";
 
-import { ConvexHttpClient } from "convex/browser";
+import { preloadQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+import { convexAuthNextjsToken } from "@convex-dev/auth/nextjs/server";
 
 export type GameWithRsvps = {
   game: {
@@ -87,21 +86,11 @@ export type SeasonStats = {
   record: string;
 };
 
-export async function getGamesPageData() {
-  const [games, players, opponents, me] = await Promise.all([
-    convex.query(api.games.listGamesWithRsvps) as Promise<GameWithRsvps[]>,
-    convex.query(api.players.getPlayers) as Promise<Player[]>,
-    convex.query(api.opponents.listOpponents, { activeOnly: true }) as Promise<
-      Opponent[]
-    >,
-    convex.query(api.me.get) as Promise<Me | null>,
-  ]);
-
-  return {
-    games,
-    players,
-    opponents,
-    me,
-    now: Date.now(),
-  };
+/**
+ * Preloads all games page data using the bundled query.
+ * Returns a preloaded query that can be used with usePreloadedQuery for zero-flash hydration.
+ */
+export async function preloadGamesPageData() {
+  const token = await convexAuthNextjsToken();
+  return preloadQuery(api.games.getGamesPageBundle, {}, { token });
 }

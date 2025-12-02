@@ -2,42 +2,33 @@
 
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import {
+  useMutation,
+  useQuery,
+  usePreloadedQuery,
+  Preloaded,
+} from "convex/react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { GameWithRsvps, Player, Opponent, Me, Season } from "./actions";
+import { Player, Opponent, Me, Season } from "./actions";
 import { GamesView } from "@/components/games/games-view";
 import { GameFormData } from "@/components/games/create-game-dialog";
 
 type RsvpStatus = "in" | "out";
 
 interface GamesClientProps {
-  initialData: {
-    games: GameWithRsvps[];
-    players: Player[];
-    opponents: Opponent[];
-    me: Me | null;
-    now: number;
-  };
+  preloadedData: Preloaded<typeof api.games.getGamesPageBundle>;
 }
 
-export function GamesClient({ initialData }: GamesClientProps) {
+export function GamesClient({ preloadedData }: GamesClientProps) {
+  // Use preloaded query for zero-flash hydration - seamlessly transitions to live updates
+  const bundleData = usePreloadedQuery(preloadedData);
+
   // Season selection state - default to current/active season
   const [selectedSeasonId, setSelectedSeasonId] =
     useState<Id<"seasons"> | null>(null);
 
-  // Live queries for real-time updates
-  // Must pass {} explicitly to match optimistic update cache key
-  const liveGames = useQuery(api.games.listGamesWithRsvps, {});
-  const livePlayers = useQuery(api.players.getPlayers);
-  const liveOpponents = useQuery(api.opponents.listOpponents, {
-    activeOnly: true,
-  });
-  const liveMe = useQuery(api.me.get);
-  const seasons = useQuery(api.seasons.list, {});
-  const currentSeason = useQuery(api.seasons.getCurrent);
-
-  // Get stats for selected season
+  // Get stats for selected season (separate query since it depends on selection)
   const seasonStats = useQuery(
     api.games.getSeasonStats,
     selectedSeasonId ? { seasonId: selectedSeasonId } : "skip"
@@ -45,26 +36,29 @@ export function GamesClient({ initialData }: GamesClientProps) {
 
   // Set initial selected season to current season when it loads
   useEffect(() => {
-    if (currentSeason && !selectedSeasonId) {
-      setSelectedSeasonId(currentSeason._id);
+    if (bundleData.currentSeason && !selectedSeasonId) {
+      setSelectedSeasonId(bundleData.currentSeason._id);
     }
-  }, [currentSeason, selectedSeasonId]);
+  }, [bundleData.currentSeason, selectedSeasonId]);
 
-  // Use live data if available, otherwise fall back to server data
-  const games = liveGames ?? initialData.games;
-  const players = livePlayers ?? initialData.players;
-  const opponents = liveOpponents ?? initialData.opponents;
-  const me = liveMe ?? initialData.me;
+  // Extract data from bundle
+  const games = bundleData.games;
+  const players = bundleData.players;
+  const opponents = bundleData.opponents;
+  const seasons = bundleData.seasons;
+  const currentSeason = bundleData.currentSeason;
+
+  // me.get is still needed for auth context - use separate query
+  const me = useQuery(api.me.get);
 
   const updateGameDetails = useMutation(api.games.updateGameDetails);
 
   const setRsvp = useMutation(api.games.setRsvp).withOptimisticUpdate(
     (localStore, { gameId, playerId, status }) => {
-      // Must use same args format as useQuery for cache key matching
-      const queryArgs = {};
-      const list = localStore.getQuery(api.games.listGamesWithRsvps, queryArgs);
-      if (!list) return;
-      const updated = list.map((entry) => {
+      // Update the bundled query cache
+      const bundle = localStore.getQuery(api.games.getGamesPageBundle, {});
+      if (!bundle) return;
+      const updatedGames = bundle.games.map((entry) => {
         if (entry.game._id !== gameId) return entry;
         const idx = entry.rsvps.findIndex((r) => r.playerId === playerId);
         let nextRsvps;
@@ -100,19 +94,25 @@ export function GamesClient({ initialData }: GamesClientProps) {
         }
         return { ...entry, rsvps: nextRsvps };
       });
-      localStore.setQuery(api.games.listGamesWithRsvps, queryArgs, updated);
+      localStore.setQuery(
+        api.games.getGamesPageBundle,
+        {},
+        { ...bundle, games: updatedGames }
+      );
     }
   );
 
   const deleteGame = useMutation(api.games.removeGame).withOptimisticUpdate(
     (localStore, { gameId }) => {
-      const queryArgs = {};
-      const list = localStore.getQuery(api.games.listGamesWithRsvps, queryArgs);
-      if (!list) return;
+      const bundle = localStore.getQuery(api.games.getGamesPageBundle, {});
+      if (!bundle) return;
       localStore.setQuery(
-        api.games.listGamesWithRsvps,
-        queryArgs,
-        list.filter((entry) => entry.game._id !== gameId)
+        api.games.getGamesPageBundle,
+        {},
+        {
+          ...bundle,
+          games: bundle.games.filter((entry) => entry.game._id !== gameId),
+        }
       );
     }
   );
@@ -126,12 +126,11 @@ export function GamesClient({ initialData }: GamesClientProps) {
         location?: string;
         notes?: string;
       };
-      const queryArgs = {};
-      const list = localStore.getQuery(api.games.listGamesWithRsvps, queryArgs);
-      if (!list) return;
+      const bundle = localStore.getQuery(api.games.getGamesPageBundle, {});
+      if (!bundle) return;
       const opponentName =
         opponent ??
-        opponents?.find((o) => o._id === opponentId)?.name ??
+        bundle.opponents?.find((o) => o._id === opponentId)?.name ??
         "Opponent";
       const optimistic = {
         game: {
@@ -146,10 +145,14 @@ export function GamesClient({ initialData }: GamesClientProps) {
         },
         rsvps: [],
       } as any;
-      const updated = [...list, optimistic].sort(
+      const updatedGames = [...bundle.games, optimistic].sort(
         (a, b) => a.game.startTime - b.game.startTime
       );
-      localStore.setQuery(api.games.listGamesWithRsvps, queryArgs, updated);
+      localStore.setQuery(
+        api.games.getGamesPageBundle,
+        {},
+        { ...bundle, games: updatedGames }
+      );
     }
   );
 
@@ -171,7 +174,7 @@ export function GamesClient({ initialData }: GamesClientProps) {
     return arr;
   }, [filteredPlayers, me?.playerId]);
 
-  const [now, setNow] = useState(() => initialData.now);
+  const [now, setNow] = useState(() => bundleData.now);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(id);
@@ -274,7 +277,7 @@ export function GamesClient({ initialData }: GamesClientProps) {
       pastGames={pastGames}
       players={players}
       opponents={opponents}
-      me={me}
+      me={me ?? null}
       isAdmin={isAdmin}
       filteredPlayers={filteredPlayers}
       orderedPlayers={orderedPlayers}

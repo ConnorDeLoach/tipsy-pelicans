@@ -2,21 +2,23 @@ import { ScheduleBanner } from "@/components/schedule-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { fetchQuery } from "convex/nextjs";
+import { preloadQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 
 export default async function Home() {
-  // Fetch data on server for instant render
-  const initialGames = await fetchQuery(api.games.upcomingGames, { limit: 12 });
+  // Preload data on server for zero-flash hydration
+  const preloadedGames = await preloadQuery(api.games.upcomingGames, {
+    limit: 12,
+  });
 
   return (
     <>
       {/* Top banner, flush against the top of the viewport */}
       <div className="w-full">
-        <ScheduleBanner 
-          initialGames={initialGames} 
-          limit={12} 
-          className="rounded-none border-0" 
+        <ScheduleBanner
+          preloadedGames={preloadedGames}
+          limit={12}
+          className="rounded-none border-0"
         />
       </div>
 

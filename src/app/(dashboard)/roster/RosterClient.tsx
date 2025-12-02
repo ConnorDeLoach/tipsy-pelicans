@@ -2,7 +2,12 @@
 
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useMutation, useQuery } from "convex/react";
+import {
+  useMutation,
+  useQuery,
+  usePreloadedQuery,
+  Preloaded,
+} from "convex/react";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { Player } from "@/app/(dashboard)/games/actions";
@@ -55,7 +60,7 @@ type PlayerFormState = {
 };
 
 interface RosterClientProps {
-  initialPlayers: Player[];
+  preloadedPlayers: Preloaded<typeof api.players.getPlayers>;
 }
 
 const containerVariants = {
@@ -68,13 +73,13 @@ const containerVariants = {
   },
 };
 
-export function RosterClient({ initialPlayers }: RosterClientProps) {
+export function RosterClient({ preloadedPlayers }: RosterClientProps) {
+  // Use preloaded query for zero-flash hydration - seamlessly transitions to live updates
+  const players = usePreloadedQuery(preloadedPlayers);
+  const displayPlayers = players as Player[];
+
   const me = useQuery(api.me.get);
   const isAdmin = me?.role === "admin";
-
-  // Use server-fetched data as initial value, then subscribe to real-time updates
-  const players = useQuery(api.players.getPlayers, {});
-  const displayPlayers = (players ?? initialPlayers) as Player[];
 
   const addPlayer = useMutation(api.players.addPlayer).withOptimisticUpdate(
     (localStore, { name, email, position, number, flair, isAdmin, role }) => {

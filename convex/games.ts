@@ -482,12 +482,92 @@ export const listBySeasonWithRsvps = query({
   },
 });
 
+// ============ Bundled query for games page ============
+
+/**
+ * Fetches all data needed for the games page in a single query.
+ * This reduces network round-trips and provides atomic data consistency.
+ */
+export const getGamesPageBundle = query({
+  args: {},
+  handler: async (ctx) => {
+    // Parallel fetch all required data
+    const [gamesWithRsvps, allPlayers, allOpponents, allSeasons] =
+      await Promise.all([
+        // Games with RSVPs
+        (async () => {
+          const games = await ctx.db
+            .query("games")
+            .withIndex("by_start_time")
+            .collect();
+
+          return await Promise.all(
+            games.map(async (game) => {
+              const rsvps = await ctx.db
+                .query("gameRsvps")
+                .withIndex("by_game", (q) => q.eq("gameId", game._id))
+                .collect();
+              return { game, rsvps };
+            })
+          );
+        })(),
+
+        // Active players only
+        (async () => {
+          const players = await ctx.db
+            .query("players")
+            .withIndex("by_name")
+            .collect();
+          return players.filter((p) => !p.deletedAt);
+        })(),
+
+        // Active opponents only
+        (async () => {
+          const rows = await ctx.db
+            .query("opponents")
+            .withIndex("by_active", (q) => q.eq("isActive", true))
+            .collect();
+          return rows.sort((a, b) =>
+            a.nameLowercase.localeCompare(b.nameLowercase)
+          );
+        })(),
+
+        // All seasons
+        ctx.db
+          .query("seasons")
+          .withIndex("by_start_date")
+          .order("desc")
+          .collect(),
+      ]);
+
+    // Get current season
+    const currentSeason =
+      allSeasons.find((s) => s.isActive) ??
+      allSeasons.find((s) => {
+        const now = Date.now();
+        return now >= s.startDate && now <= s.endDate;
+      }) ??
+      null;
+
+    return {
+      games: gamesWithRsvps,
+      players: allPlayers,
+      opponents: allOpponents,
+      seasons: allSeasons,
+      currentSeason,
+      now: Date.now(),
+    };
+  },
+});
+
 export const getSeasonStats = query({
   args: { seasonId: v.id("seasons") },
   handler: async (ctx, { seasonId }) => {
-    // Get all games - filter manually since seasonId might be string during migration
-    const allGames = await ctx.db.query("games").collect();
-    const games = allGames.filter((g) => g.seasonId === seasonId);
+    // Use the by_season index for efficient filtering
+    const games = await ctx.db
+      .query("games")
+      .withIndex("by_season", (q) => q.eq("seasonId", seasonId))
+      .collect();
 
     // Count all games with outcomes (regardless of status)
     const gamesWithOutcomes = games.filter((g) => g.outcome);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, usePreloadedQuery, Preloaded } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -12,14 +12,27 @@ import type { Doc } from "@/convex/_generated/dataModel";
 type Props = {
   limit?: number;
   className?: string;
-  initialGames?: Doc<"games">[];
+  preloadedGames?: Preloaded<typeof api.games.upcomingGames>;
 };
 
-export function ScheduleBanner({ limit = 10, className, initialGames }: Props) {
-  const liveGames = useQuery(api.games.upcomingGames, { limit });
-  
-  // Use live data when available, otherwise fall back to server data
-  const games = liveGames ?? initialGames;
+export function ScheduleBanner({
+  limit = 10,
+  className,
+  preloadedGames,
+}: Props) {
+  // Use preloaded query for zero-flash hydration when available
+  const preloadedData = preloadedGames
+    ? usePreloadedQuery(preloadedGames)
+    : undefined;
+
+  // Fall back to regular query if no preloaded data (for client-only usage)
+  const liveGames = useQuery(
+    api.games.upcomingGames,
+    preloadedGames ? "skip" : { limit }
+  );
+
+  // Use preloaded data or live query
+  const games = preloadedData ?? liveGames;
 
   const dateFormatter = useMemo(
     () =>
@@ -41,7 +54,7 @@ export function ScheduleBanner({ limit = 10, className, initialGames }: Props) {
     []
   );
 
-  const isLoading = liveGames === undefined && !initialGames;
+  const isLoading = games === undefined;
   const isEmpty = !isLoading && games && games.length === 0;
 
   return (
@@ -86,10 +99,16 @@ export function ScheduleBanner({ limit = 10, className, initialGames }: Props) {
                     <p className="text-[11px] text-muted-foreground tracking-wide">
                       {dateFormatter.format(dt)}
                     </p>
-                    <p className="text-sm text-foreground">{timeFormatter.format(dt)}</p>
-                    <p className="text-sm font-medium text-blue-800">{g.opponent}</p>
+                    <p className="text-sm text-foreground">
+                      {timeFormatter.format(dt)}
+                    </p>
+                    <p className="text-sm font-medium text-blue-800">
+                      {g.opponent}
+                    </p>
                     {g.location ? (
-                      <p className="text-[11px] text-muted-foreground">{g.location}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {g.location}
+                      </p>
                     ) : null}
                   </CardContent>
                 </Card>

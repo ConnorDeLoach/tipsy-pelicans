@@ -1,8 +1,8 @@
-import { getGamesPageData } from "./actions";
+import { preloadGamesPageData } from "./actions";
 import { GamesClient } from "./GamesClient";
 
 export default async function GamesPage() {
-  const initialData = await getGamesPageData();
+  const preloadedData = await preloadGamesPageData();
 
-  return <GamesClient initialData={initialData} />;
+  return <GamesClient preloadedData={preloadedData} />;
 }
