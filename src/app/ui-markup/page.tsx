@@ -1,127 +1,111 @@
 "use client";
 
-import * as React from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useState } from "react";
+import { motion } from "motion/react";
 import {
-  CalendarDays,
-  MapPin,
-  Trophy,
-  Clock,
-  ChevronRight,
   Users,
-  CheckCircle2,
-  XCircle,
-  AlertCircle,
+  Shield,
+  Swords,
+  Goal,
   MoreVertical,
-  Share2,
-  Check,
-  X,
+  Pencil,
+  Trash2,
+  Plus,
+  Search,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-// --- Mock Data ---
-
-const MOCK_SEASONS = [
-  { id: "s1", name: "Winter 2025", current: true },
-  { id: "s2", name: "Fall 2024", current: false },
-  { id: "s3", name: "Summer 2024", current: false },
-];
-
-const MOCK_STATS = {
-  record: "8-2-1",
-  points: 17,
-  streak: "W3",
-  goalsFor: 42,
-  goalsAgainst: 28,
-};
-
-const MOCK_GAMES = [
-  {
-    id: "g1",
-    date: new Date(2025, 11, 5, 20, 30),
-    opponent: "Puck Hogs",
-    location: "Hertz Arena - Rec Rink",
-    status: "upcoming",
-    rsvp: "in", // in, out, pending
-    attending: 12,
-  },
-  {
-    id: "g2",
-    date: new Date(2025, 11, 12, 21, 45),
-    opponent: "Zamboni Drivers",
-    location: "Hertz Arena - USA Rink",
-    status: "upcoming",
-    rsvp: "pending",
-    attending: 8,
-  },
-  {
-    id: "g3",
-    date: new Date(2025, 11, 19, 19, 15),
-    opponent: "Ice Breakers",
-    location: "Hertz Arena - Rec Rink",
-    status: "upcoming",
-    rsvp: "out",
-    attending: 14,
-  },
-  {
-    id: "g4",
-    date: new Date(2025, 10, 28, 20, 0),
-    opponent: "Net Rippers",
-    location: "Hertz Arena - USA Rink",
-    status: "past",
-    score: { us: 5, them: 2 },
-    result: "win",
-  },
-  {
-    id: "g5",
-    date: new Date(2025, 10, 21, 21, 15),
-    opponent: "Blade Runners",
-    location: "Hertz Arena - Rec Rink",
-    status: "past",
-    score: { us: 3, them: 4 },
-    result: "loss",
-  },
-];
-
+// Mock Data
 const MOCK_PLAYERS = [
-  { id: "p1", name: "Connor DeLoach", status: "in", avatar: "CD" },
-  { id: "p2", name: "Wayne Gretzky", status: "in", avatar: "WG" },
-  { id: "p3", name: "Bobby Orr", status: "in", avatar: "BO" },
-  { id: "p4", name: "Mario Lemieux", status: "out", avatar: "ML" },
-  { id: "p5", name: "Gordie Howe", status: "pending", avatar: "GH" },
-  { id: "p6", name: "Sidney Crosby", status: "in", avatar: "SC" },
-  { id: "p7", name: "Alex Ovechkin", status: "in", avatar: "AO" },
-  { id: "p8", name: "Connor McDavid", status: "in", avatar: "CM" },
-  { id: "p9", name: "Auston Matthews", status: "out", avatar: "AM" },
-  { id: "p10", name: "Nathan MacKinnon", status: "in", avatar: "NM" },
-  { id: "p11", name: "Cale Makar", status: "in", avatar: "CM" },
-  { id: "p12", name: "Leon Draisaitl", status: "pending", avatar: "LD" },
+  {
+    _id: "1",
+    name: "Connor DeLoach",
+    number: "88",
+    position: "C",
+    role: "player",
+    flair: "Captain",
+    email: "connor@example.com",
+    isAdmin: true,
+  },
+  {
+    _id: "2",
+    name: "Wayne Gretzky",
+    number: "99",
+    position: "C",
+    role: "player",
+    flair: "The Great One",
+    email: "wayne@example.com",
+    isAdmin: false,
+  },
+  {
+    _id: "3",
+    name: "Mario Lemieux",
+    number: "66",
+    position: "C",
+    role: "player",
+    flair: "Super Mario",
+    email: "mario@example.com",
+    isAdmin: false,
+  },
+  {
+    _id: "4",
+    name: "Patrick Roy",
+    number: "33",
+    position: "G",
+    role: "player",
+    flair: "Wall",
+    email: "patrick@example.com",
+    isAdmin: false,
+  },
+  {
+    _id: "5",
+    name: "Bobby Orr",
+    number: "4",
+    position: "LD",
+    role: "player",
+    flair: "Legend",
+    email: "bobby@example.com",
+    isAdmin: false,
+  },
+  {
+    _id: "6",
+    name: "Doug Glatt",
+    number: "69",
+    position: "LW",
+    role: "spare",
+    flair: "Enforcer",
+    email: "doug@example.com",
+    isAdmin: false,
+  },
+  {
+    _id: "7",
+    name: "Happy Gilmore",
+    number: "18",
+    position: "RD",
+    role: "spectator",
+    flair: "Shooter",
+    email: "happy@example.com",
+    isAdmin: false,
+  },
 ];
-
-// --- Components ---
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.05,
     },
   },
 };
@@ -139,298 +123,181 @@ const itemVariants = {
   },
 };
 
-function GameDateBadge({ date }: { date: Date }) {
-  return (
-    <div className="flex flex-col items-center justify-center rounded-xl bg-secondary/50 p-2 min-w-[60px] w-16 text-center border border-border/50">
-      <span className="text-xs font-bold uppercase text-muted-foreground">
-        {date.toLocaleDateString("en-US", { month: "short" })}
-      </span>
-      <span className="text-xl font-black text-foreground tracking-tight">
-        {date.getDate()}
-      </span>
-      <span className="text-[10px] font-medium text-muted-foreground uppercase">
-        {date.toLocaleDateString("en-US", { weekday: "short" })}
-      </span>
-    </div>
-  );
-}
+function PlayerCard({ player, isAdmin }: { player: any; isAdmin: boolean }) {
+  // Get initials for avatar
+  const initials = player.name
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
-function ResultBadge({
-  result,
-  score,
-}: {
-  result: string;
-  score: { us: number; them: number };
-}) {
-  const isWin = result === "win";
-  return (
-    <div className="flex items-center gap-2">
-      <span
-        className={`text-sm font-bold ${
-          isWin ? "text-primary" : "text-muted-foreground"
-        }`}
-      >
-        {score.us} - {score.them}
-      </span>
-      <Badge
-        variant={isWin ? "default" : "secondary"}
-        className={isWin ? "bg-primary hover:bg-primary/90" : ""}
-      >
-        {isWin ? "W" : "L"}
-      </Badge>
-    </div>
-  );
-}
+  // Determine role icon/color
+  let RoleIcon = Users;
+  let roleColor =
+    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
 
-function RosterDrawer({ game }: { game: (typeof MOCK_GAMES)[0] }) {
-  const inPlayers = MOCK_PLAYERS.filter((p) => p.status === "in");
-  const outPlayers = MOCK_PLAYERS.filter((p) => p.status === "out");
-  const pendingPlayers = MOCK_PLAYERS.filter((p) => p.status === "pending");
+  if (player.position === "G") {
+    RoleIcon = Shield;
+    roleColor =
+      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
+  } else if (["LD", "RD"].includes(player.position)) {
+    RoleIcon = Shield;
+    roleColor =
+      "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300";
+  } else if (["LW", "RW", "C"].includes(player.position)) {
+    RoleIcon = Swords;
+    roleColor =
+      "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300";
+  }
+
+  const isSpare = player.role === "spare";
+  const isSpectator = player.role === "spectator";
 
   return (
-    <Drawer>
-      <DrawerTrigger asChild>
-        <div className="flex items-center -space-x-2 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-          {inPlayers.slice(0, 3).map((p, i) => (
-            <Avatar
-              key={i}
-              className="inline-block border-2 border-background h-6 w-6"
-            >
-              <AvatarFallback className="text-[10px] bg-secondary">
-                {p.avatar}
-              </AvatarFallback>
-            </Avatar>
-          ))}
-          <div className="flex items-center justify-center h-6 w-6 rounded-full border-2 border-background bg-secondary text-[10px] font-medium text-muted-foreground z-10">
-            +{inPlayers.length - 3}
-          </div>
-        </div>
-      </DrawerTrigger>
-      <DrawerContent>
-        <div className="mx-auto w-full max-w-sm">
-          <DrawerHeader>
-            <DrawerTitle className="flex items-center gap-2 text-xl">
-              <Users className="h-5 w-5 text-primary" />
-              Roster
-            </DrawerTitle>
-            <DrawerDescription>
-              {game.opponent} · {game.date.toLocaleDateString()}
-            </DrawerDescription>
-          </DrawerHeader>
-          <ScrollArea className="h-[50vh] px-4">
-            <div className="flex flex-col gap-6 pb-6">
-              {/* Going */}
-              <div>
-                <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-green-600 bg-green-50 w-fit px-2 py-1 rounded-lg">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Going ({inPlayers.length})
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {inPlayers.map((player) => (
-                    <div
-                      key={player.id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors"
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                          {player.avatar}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium">{player.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Pending */}
-              <div>
-                <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-orange-600 bg-orange-50 w-fit px-2 py-1 rounded-lg">
-                  <AlertCircle className="h-4 w-4" />
-                  Pending ({pendingPlayers.length})
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {pendingPlayers.map((player) => (
-                    <div
-                      key={player.id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors"
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-orange-100 text-orange-600 text-xs font-bold">
-                          {player.avatar}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {player.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Out */}
-              <div>
-                <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-red-600 bg-red-50 w-fit px-2 py-1 rounded-lg">
-                  <XCircle className="h-4 w-4" />
-                  Out ({outPlayers.length})
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {outPlayers.map((player) => (
-                    <div
-                      key={player.id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors opacity-60"
-                    >
-                      <Avatar className="h-8 w-8 grayscale">
-                        <AvatarFallback className="bg-secondary text-muted-foreground text-xs font-bold">
-                          {player.avatar}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium text-muted-foreground line-through decoration-border">
-                        {player.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </ScrollArea>
-          <DrawerFooter>
-            <Button variant="outline">Manage Roster</Button>
-            <DrawerClose asChild>
-              <Button variant="ghost">Close</Button>
-            </DrawerClose>
-          </DrawerFooter>
-        </div>
-      </DrawerContent>
-    </Drawer>
-  );
-}
-
-function GameCard({ game }: { game: (typeof MOCK_GAMES)[0] }) {
-  return (
-    <motion.div variants={itemVariants} layout>
-      <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group">
+    <motion.div variants={itemVariants}>
+      <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group relative">
         <CardContent className="p-0">
           <div className="flex flex-row h-full">
-            {/* Time & Date Strip - Fixed Column */}
-            <div className="flex flex-col justify-center items-center bg-secondary/30 p-3 w-20 sm:w-24 border-r border-border/40 gap-2 shrink-0">
-              <GameDateBadge date={game.date} />
-              <div className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center justify-center gap-1 bg-background px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full border border-border/50 shadow-sm whitespace-nowrap w-full">
-                <Clock className="h-3 w-3 hidden sm:block" />
-                {game.date.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
+            {/* Number Strip - Fixed Column */}
+            <div className="flex flex-col justify-center items-center bg-secondary/30 p-3 w-16 sm:w-20 border-r border-border/40 gap-2 shrink-0">
+              <div className="text-2xl font-black text-foreground/20 group-hover:text-primary/20 transition-colors">
+                {player.number || "—"}
               </div>
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center gap-2 sm:gap-3">
+            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center gap-1">
               <div className="flex justify-between items-start gap-2">
-                <div>
-                  <div className="text-[10px] sm:text-xs font-semibold text-primary tracking-wider uppercase mb-0.5 sm:mb-1">
-                    Opponent
-                  </div>
-                  <h3 className="font-bold text-base sm:text-xl text-foreground flex flex-wrap items-center gap-x-2 leading-tight">
-                    <span className="text-muted-foreground font-normal text-sm sm:text-base">
-                      vs
-                    </span>
-                    {game.opponent}
-                  </h3>
-                </div>
-                <div className="shrink-0">
-                  {game.status === "past" && (
-                    <ResultBadge result={game.result!} score={game.score!} />
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mt-1 sm:mt-2">
-                {/* Roster on Left */}
                 <div className="flex items-center gap-3">
-                  {game.status === "upcoming" && <RosterDrawer game={game} />}
+                  <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                    <AvatarFallback className={`font-bold ${roleColor}`}>
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-bold text-base sm:text-lg text-foreground leading-none">
+                      {player.name}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] px-1.5 py-0 h-5 font-medium uppercase tracking-wide"
+                      >
+                        {player.position || "N/A"}
+                      </Badge>
+                      {player.flair && (
+                        <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                          {player.flair}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Actions on Right (Desktop) or Bottom Right (Mobile) */}
-                {game.status === "upcoming" && (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={game.rsvp === "in" ? "default" : "outline"}
-                      className={`h-8 px-3 ${
-                        game.rsvp === "in"
-                          ? "bg-green-600 hover:bg-green-700"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      <Check className="h-4 w-4 sm:mr-1.5" />
-                      <span className="hidden sm:inline">In</span>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={game.rsvp === "out" ? "destructive" : "outline"}
-                      className={`h-8 px-3 ${
-                        game.rsvp === "out" ? "" : "text-muted-foreground"
-                      }`}
-                    >
-                      <X className="h-4 w-4 sm:mr-1.5" />
-                      <span className="hidden sm:inline">Out</span>
-                    </Button>
-                  </div>
+                {isAdmin && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 -mr-2 -mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem>
+                        <Pencil className="mr-2 h-4 w-4" /> Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive">
+                        <Trash2 className="mr-2 h-4 w-4" /> Remove
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Status indicators for non-regular players */}
+          {(isSpare || isSpectator) && (
+            <div className="absolute top-0 right-0 px-2 py-1 bg-muted/80 text-[10px] font-bold uppercase text-muted-foreground rounded-bl-lg backdrop-blur-sm">
+              {player.role}
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
   );
 }
 
-export default function MockupGamesView() {
-  const [activeSeason, setActiveSeason] = React.useState(MOCK_SEASONS[0]);
+export default function RosterMockPage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const isAdmin = true; // Toggle to test admin view
+
+  // Stats
+  const totalPlayers = MOCK_PLAYERS.filter((p) => p.role === "player").length;
+  const spares = MOCK_PLAYERS.filter((p) => p.role === "spare").length;
+  const goalies = MOCK_PLAYERS.filter((p) => p.position === "G").length;
+
+  // Filter
+  const filteredPlayers = MOCK_PLAYERS.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.number.includes(searchTerm) ||
+      (p.flair && p.flair.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const activeRoster = filteredPlayers.filter((p) => p.role === "player");
+  const otherPlayers = filteredPlayers.filter((p) => p.role !== "player");
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans">
+    <div className="min-h-screen bg-background text-foreground font-sans pb-20">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-hero-gradient text-primary-foreground pb-16 pt-12 px-4 sm:px-6 lg:px-8 rounded-b-[2.5rem] shadow-xl">
+      <div className="relative overflow-hidden bg-hero-gradient text-primary-foreground pb-20 pt-8 px-4 sm:px-6 lg:px-8 rounded-b-[3rem] shadow-xl mb-8">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
         <div className="relative max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-inner">
-                  {/* Icon placeholder */}
-                  <Trophy className="h-6 w-6 text-white" />
+                  <Users className="h-6 w-6 text-white" />
                 </div>
                 <span className="text-sm font-medium text-blue-100 tracking-wide uppercase">
-                  Official Schedule
+                  Team Roster
                 </span>
               </div>
               <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-2">
                 Tipsy Pelicans
               </h1>
               <p className="text-blue-100 text-lg max-w-md">
-                Winter 2025 Season · Hertz Arena
+                2024-2025 Season · Intermediate C
               </p>
             </div>
 
             {/* Stats Summary Card */}
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex gap-6 shadow-lg">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex gap-6 shadow-lg min-w-[280px] justify-between">
               <div className="text-center">
                 <div className="text-2xl font-bold text-white">
-                  {MOCK_STATS.record}
+                  {totalPlayers}
                 </div>
                 <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
-                  Record
+                  Active
                 </div>
               </div>
               <div className="w-px bg-white/20"></div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-white">
-                  {MOCK_STATS.points}
-                </div>
+                <div className="text-2xl font-bold text-white">{goalies}</div>
                 <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
-                  Points
+                  Goalies
+                </div>
+              </div>
+              <div className="w-px bg-white/20"></div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">{spares}</div>
+                <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
+                  Spares
                 </div>
               </div>
             </div>
@@ -439,98 +306,89 @@ export default function MockupGamesView() {
       </div>
 
       {/* Content Area */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-8 relative z-10">
-        <div className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl p-6 mb-10">
-          {/* Season Selector */}
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {MOCK_SEASONS.map((season) => (
-                <button
-                  key={season.id}
-                  onClick={() => setActiveSeason(season)}
-                  className={`
-                    px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
-                    ${
-                      activeSeason.id === season.id
-                        ? "bg-primary text-primary-foreground shadow-md shadow-blue-500/20 scale-105"
-                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
-                    }
-                  `}
-                >
-                  {season.name}
-                </button>
-              ))}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-12 relative z-10">
+        <div className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl p-4 sm:p-6 mb-10">
+          {/* Controls */}
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search players..."
+                className="pl-9 bg-secondary/50 border-border/50 focus:bg-background transition-all"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-muted-foreground hover:text-primary hidden sm:flex"
-              asChild
-            >
-              <a
-                href="https://skateeverblades.com/hockey/adult-hockey/adult-intermediate-c-2-league/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View Standings <ChevronRight className="ml-1 h-4 w-4" />
-              </a>
-            </Button>
+
+            {isAdmin && (
+              <Button className="w-full sm:w-auto shadow-md shadow-primary/20">
+                <Plus className="h-4 w-4 mr-2" /> Add Player
+              </Button>
+            )}
           </div>
 
-          <Tabs defaultValue="upcoming" className="space-y-6">
+          <Tabs defaultValue="active" className="space-y-6">
             <TabsList className="grid w-full max-w-md grid-cols-2 p-1 bg-secondary/50 rounded-xl">
               <TabsTrigger
-                value="upcoming"
+                value="active"
                 className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
               >
-                Upcoming
+                Active Roster
               </TabsTrigger>
               <TabsTrigger
-                value="past"
+                value="other"
                 className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
               >
-                Past Games
+                Subs & Spares
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="upcoming" className="mt-0">
+            <TabsContent value="active" className="mt-0">
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="flex flex-col gap-4"
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
-                <div className="text-sm text-muted-foreground font-medium px-1">
-                  Next up
-                </div>
-                {MOCK_GAMES.filter((g) => g.status === "upcoming").map(
-                  (game) => (
-                    <GameCard key={game.id} game={game} />
-                  )
+                {activeRoster.length > 0 ? (
+                  activeRoster.map((player) => (
+                    <PlayerCard
+                      key={player._id}
+                      player={player}
+                      isAdmin={isAdmin}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12 text-muted-foreground">
+                    No active players found matching your search.
+                  </div>
                 )}
               </motion.div>
             </TabsContent>
 
-            <TabsContent value="past" className="mt-0">
+            <TabsContent value="other" className="mt-0">
               <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="flex flex-col gap-4"
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
-                <div className="text-sm text-muted-foreground font-medium px-1">
-                  Season History
-                </div>
-                {MOCK_GAMES.filter((g) => g.status === "past").map((game) => (
-                  <GameCard key={game.id} game={game} />
-                ))}
+                {otherPlayers.length > 0 ? (
+                  otherPlayers.map((player) => (
+                    <PlayerCard
+                      key={player._id}
+                      player={player}
+                      isAdmin={isAdmin}
+                    />
+                  ))
+                ) : (
+                  <div className="col-span-full text-center py-12 text-muted-foreground">
+                    No spare players found.
+                  </div>
+                )}
               </motion.div>
             </TabsContent>
           </Tabs>
-        </div>
-
-        <div className="text-center text-sm text-muted-foreground pb-10">
-          <p>© 2025 Tipsy Pelicans Hockey Club</p>
         </div>
       </div>
     </div>
