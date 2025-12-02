@@ -16,14 +16,12 @@ async function getCurrentPlayer(ctx: { db: any; auth: any }) {
   const userId = await getAuthUserId(ctx);
   if (!userId) return null;
 
-  // Try by userId first
   let player = await ctx.db
     .query("players")
     .withIndex("by_user", (q: any) => q.eq("userId", userId))
     .unique();
 
   if (!player) {
-    // Fallback to email lookup
     const user = await ctx.db.get(userId);
     if (user?.email) {
       player = await ctx.db
@@ -38,26 +36,88 @@ async function getCurrentPlayer(ctx: { db: any; auth: any }) {
   return player;
 }
 
-// List messages with pagination (oldest first for chat UX)
-export const list = query({
-  args: { paginationOpts: paginationOptsValidator },
-  handler: async (ctx, { paginationOpts }) => {
+/**
+ * List messages for a specific conversation with pagination.
+ * Messages are ordered oldest first for chat UX.
+ */
+export const listByConversation = query({
+  args: {
+    conversationId: v.id("conversations"),
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: v.object({
+    page: v.array(
+      v.object({
+        _id: v.id("messages"),
+        _creationTime: v.number(),
+        conversationId: v.id("conversations"),
+        createdBy: v.id("players"),
+        body: v.string(),
+        displayName: v.string(),
+        role: v.string(),
+      })
+    ),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+  }),
+  handler: async (ctx, { conversationId, paginationOpts }) => {
     const player = await getCurrentPlayer(ctx);
     if (!player) {
       return { page: [], isDone: true, continueCursor: "" };
     }
 
-    return await ctx.db.query("messages").order("asc").paginate(paginationOpts);
+    // Verify player has access to this conversation
+    const conversation = await ctx.db.get(conversationId);
+    if (!conversation || !conversation.participantIds.includes(player._id)) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+
+    const result = await ctx.db
+      .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId)
+      )
+      .order("asc")
+      .paginate(paginationOpts);
+
+    return {
+      page: result.page.map((m) => ({
+        _id: m._id,
+        _creationTime: m._creationTime,
+        conversationId: m.conversationId,
+        createdBy: m.createdBy,
+        body: m.body,
+        displayName: m.displayName,
+        role: m.role,
+      })),
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+    };
   },
 });
 
-// Send a new message
+/**
+ * Send a new message to a conversation.
+ */
 export const send = mutation({
-  args: { body: v.string() },
-  handler: async (ctx, { body }) => {
+  args: {
+    conversationId: v.id("conversations"),
+    body: v.string(),
+  },
+  returns: v.id("messages"),
+  handler: async (ctx, { conversationId, body }) => {
     const player = await getCurrentPlayer(ctx);
     if (!player) {
       throw new Error("You must be a rostered player to send messages.");
+    }
+
+    // Verify player has access to this conversation
+    const conversation = await ctx.db.get(conversationId);
+    if (!conversation) {
+      throw new Error("Conversation not found.");
+    }
+    if (!conversation.participantIds.includes(player._id)) {
+      throw new Error("You are not a participant in this conversation.");
     }
 
     const trimmedBody = body.trim();
@@ -68,22 +128,36 @@ export const send = mutation({
       throw new Error(`Message cannot exceed ${MAX_BODY_LENGTH} characters.`);
     }
 
-    // Rate limiting: check last message from this player
+    // Rate limiting: check last message from this player in this conversation
     const lastMessage = await ctx.db
       .query("messages")
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", conversationId)
+      )
       .order("desc")
-      .filter((q: any) => q.eq(q.field("createdBy"), player._id))
       .first();
 
-    if (lastMessage && Date.now() - lastMessage._creationTime < RATE_LIMIT_MS) {
+    if (
+      lastMessage &&
+      lastMessage.createdBy === player._id &&
+      Date.now() - lastMessage._creationTime < RATE_LIMIT_MS
+    ) {
       throw new Error("Please wait a moment before sending another message.");
     }
 
     const messageId = await ctx.db.insert("messages", {
+      conversationId,
       createdBy: player._id,
       body: trimmedBody,
       displayName: player.name,
       role: player.role,
+    });
+
+    // Update conversation's last message metadata
+    await ctx.runMutation(internal.chat.conversations.updateLastMessage, {
+      conversationId,
+      preview: trimmedBody,
+      senderId: player._id,
     });
 
     // Schedule push notification after debounce window
@@ -91,6 +165,7 @@ export const send = mutation({
       PUSH_DEBOUNCE_MS,
       internal.chat.push.sendChatNotifications,
       {
+        conversationId,
         messageId,
         senderId: player._id,
         senderName: player.name,
@@ -102,9 +177,12 @@ export const send = mutation({
   },
 });
 
-// Delete a message (own within 10 min, or admin anytime)
+/**
+ * Delete a message (own within 10 min, or admin anytime).
+ */
 export const remove = mutation({
   args: { messageId: v.id("messages") },
+  returns: v.null(),
   handler: async (ctx, { messageId }) => {
     const player = await getCurrentPlayer(ctx);
     if (!player) {
@@ -116,20 +194,25 @@ export const remove = mutation({
       throw new Error("Message not found.");
     }
 
+    // Verify player has access to this conversation
+    const conversation = await ctx.db.get(message.conversationId);
+    if (!conversation || !conversation.participantIds.includes(player._id)) {
+      throw new Error("You do not have access to this message.");
+    }
+
     const isOwner = message.createdBy === player._id;
     const isAdmin = player.isAdmin === true;
     const withinWindow =
       Date.now() - message._creationTime < SELF_DELETE_WINDOW_MS;
 
     if (isAdmin) {
-      // Admins can delete any message
       await ctx.db.delete(messageId);
-      return;
+      return null;
     }
 
     if (isOwner && withinWindow) {
       await ctx.db.delete(messageId);
-      return;
+      return null;
     }
 
     if (isOwner && !withinWindow) {

@@ -11,6 +11,7 @@
 import type * as admin_deleteUser from "../admin/deleteUser.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
+import type * as chat_conversations from "../chat/conversations.js";
 import type * as chat_messages from "../chat/messages.js";
 import type * as chat_model from "../chat/model.js";
 import type * as chat_presence from "../chat/presence.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   "admin/deleteUser": typeof admin_deleteUser;
   auditLog: typeof auditLog;
   auth: typeof auth;
+  "chat/conversations": typeof chat_conversations;
   "chat/messages": typeof chat_messages;
   "chat/model": typeof chat_model;
   "chat/presence": typeof chat_presence;

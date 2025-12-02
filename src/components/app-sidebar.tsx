@@ -28,27 +28,12 @@ import {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const me = useQuery(api.me.get);
-  const hasUnreadChat = useQuery(api.chat.unread.hasUnread);
-  // Track if we're mounted to avoid hydration mismatch with dynamic badge
-  const [isMounted, setIsMounted] = React.useState(false);
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
-  const navMain = React.useMemo(() => {
-    // Only show badge after mount to avoid SSR/client mismatch
-    const showBadge = isMounted && hasUnreadChat === true;
-    const items = [
-      { title: "Games", url: "/games", icon: HockeyStickIcon },
-      { title: "Roster", url: "/roster", icon: IconUsers },
-      {
-        title: "Chat",
-        url: "/chat",
-        icon: IconMessageCircle,
-        badge: showBadge,
-      },
-    ];
-    return items;
-  }, [hasUnreadChat, isMounted]);
+  // TODO: Re-implement unread badge using api.chat.unread.hasAnyUnread
+  const navMain = [
+    { title: "Games", url: "/games", icon: HockeyStickIcon },
+    { title: "Roster", url: "/roster", icon: IconUsers },
+    { title: "Chat", url: "/chat", icon: IconMessageCircle },
+  ];
   const userInfo = React.useMemo(
     () => ({
       name: me?.name ?? "Tipsy Pelican",

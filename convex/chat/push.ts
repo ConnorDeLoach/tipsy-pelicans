@@ -9,27 +9,43 @@ const PRESENCE_THRESHOLD_MS = 30_000; // User is "active" if seen in last 30 sec
 const DEBOUNCE_WINDOW_MS = 5_000; // Wait 5 seconds before sending notification
 
 /**
- * Send chat push notifications to all eligible users.
+ * Send chat push notifications to all eligible users in a conversation.
  * Called after a debounce window from the message send mutation.
  *
  * Suppression logic:
  * 1. Exclude the sender
- * 2. Exclude users who have been active in chat recently (presence)
- * 3. Collapse notifications using tag
+ * 2. Exclude users who have been active in this conversation recently (presence)
+ * 3. Collapse notifications using conversation-specific tag
  */
 export const sendChatNotifications = internalAction({
   args: {
+    conversationId: v.id("conversations"),
     messageId: v.id("messages"),
     senderId: v.id("players"),
     senderName: v.string(),
     messagePreview: v.string(),
   },
-  handler: async (ctx, { messageId, senderId, senderName, messagePreview }) => {
+  returns: v.object({ sent: v.number() }),
+  handler: async (
+    ctx,
+    { conversationId, messageId, senderId, senderName, messagePreview }
+  ) => {
     const i = internal as any;
 
-    // Get all players with push subscriptions
+    // Get conversation details
+    const conversation = await ctx.runQuery(i.chat.conversations.getInternal, {
+      conversationId,
+    });
+
+    if (!conversation) {
+      console.log("chat.push: conversation not found");
+      return { sent: 0 };
+    }
+
+    // Get all players with push subscriptions and their presence for this conversation
     const playersWithPush = await ctx.runQuery(
-      i.chat.presence.getPlayersWithPushEnabled
+      i.chat.presence.getPlayersWithPushEnabled,
+      { conversationId }
     );
 
     const now = Date.now();
@@ -42,7 +58,10 @@ export const sendChatNotifications = internalAction({
       // 2. Exclude users who don't have a linked user account
       if (!player.userId) continue;
 
-      // 3. Exclude users who are currently active in chat (presence check)
+      // 3. Only notify participants of this conversation
+      if (!conversation.participantIds.includes(player._id)) continue;
+
+      // 4. Exclude users who are currently active in this conversation (presence check)
       if (
         player.lastChatPresence &&
         now - player.lastChatPresence < PRESENCE_THRESHOLD_MS
@@ -64,14 +83,21 @@ export const sendChatNotifications = internalAction({
         ? messagePreview.slice(0, 97) + "..."
         : messagePreview;
 
+    // Use conversation name for group chats, sender name for DMs
+    const title =
+      conversation.type === "group" && conversation.name
+        ? `${conversation.name}: ${senderName}`
+        : senderName;
+
     const payload = {
-      title: `${senderName}`,
+      title,
       body: truncatedBody,
       icon: "/pwa/manifest-icon-192.maskable.png",
-      tag: "chat", // Collapse all chat notifications into one
+      tag: `chat-${conversationId}`, // Collapse per-conversation
       data: {
         type: "chat",
-        url: "/chat",
+        url: `/chat/${conversationId}`,
+        conversationId,
         messageId,
       },
     };
@@ -84,6 +110,7 @@ export const sendChatNotifications = internalAction({
     });
 
     console.log("chat.push: sent notifications", {
+      conversationId,
       eligible: eligibleUserIds.length,
       ...result,
     });

@@ -2,12 +2,17 @@ import { defineSchema, defineTable } from "convex/server";
 import { authTables } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { productsTable } from "./merch/model";
-import { messagesTable, chatReadStatusTable } from "./chat/model";
+import {
+  conversationsTable,
+  messagesTable,
+  chatReadStatusTable,
+} from "./chat/model";
 import { oembedCacheTable } from "./oembed/model";
 
 export default defineSchema({
   ...authTables,
   products: productsTable,
+  conversations: conversationsTable,
   opponents: defineTable({
     name: v.string(),
     nameLowercase: v.string(),
