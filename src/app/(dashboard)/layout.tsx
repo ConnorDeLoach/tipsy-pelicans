@@ -1,13 +1,23 @@
+"use client";
+
 import * as React from "react";
+import { usePathname } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
+import { BottomNav } from "@/components/bottom-nav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  // Check if we are in a chat conversation (e.g. /chat/123) but not the main chat list
+  const isChatConversation =
+    pathname.startsWith("/chat/") && pathname !== "/chat";
+
   return (
     <SidebarProvider
       style={
@@ -22,12 +32,19 @@ export default function DashboardLayout({
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+            <div
+              className={cn(
+                "flex flex-1 flex-col gap-4 pt-4 md:py-6 md:gap-6",
+                // Only add bottom padding if NOT in a chat conversation
+                !isChatConversation && "pb-20"
+              )}
+            >
               {children}
             </div>
           </div>
         </div>
       </SidebarInset>
+      <BottomNav />
     </SidebarProvider>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { type Icon } from "@tabler/icons-react";
 import {
   SidebarGroup,
@@ -21,6 +22,7 @@ export function NavMain({
     badge?: boolean;
   }[];
 }) {
+  const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   return (
     <SidebarGroup>
@@ -28,7 +30,11 @@ export function NavMain({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton tooltip={item.title} asChild>
+              <SidebarMenuButton
+                tooltip={item.title}
+                isActive={pathname === item.url}
+                asChild
+              >
                 <Link
                   href={item.url}
                   onClick={() => {

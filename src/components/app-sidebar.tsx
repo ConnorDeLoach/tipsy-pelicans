@@ -1,11 +1,6 @@
 "use client";
 
 import * as React from "react";
-import {
-  IconUsers,
-  IconMessageCircle,
-  IconCalendar,
-} from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,7 +9,7 @@ import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
 import { api } from "@/convex/_generated/api";
 import { useQuery } from "convex/react";
-import { HockeyStickIcon } from "@/components/icons/HockeyStickIcon";
+import { navItems } from "@/lib/nav-config";
 import {
   Sidebar,
   SidebarContent,
@@ -29,11 +24,7 @@ import {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const me = useQuery(api.me.get);
   // TODO: Re-implement unread badge using api.chat.unread.hasAnyUnread
-  const navMain = [
-    { title: "Games", url: "/games", icon: HockeyStickIcon },
-    { title: "Roster", url: "/roster", icon: IconUsers },
-    { title: "Chat", url: "/chat", icon: IconMessageCircle },
-  ];
+
   const userInfo = React.useMemo(
     () => ({
       name: me?.name ?? "Tipsy Pelican",
@@ -79,7 +70,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMain} />
+        <NavMain items={navItems} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={userInfo} />

@@ -33,6 +33,8 @@ export function NavUser({
   const { signOut } = useAuthActions();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
+  if (isMobile) return null;
+
   return (
     <>
       <NotificationSettingsModal
