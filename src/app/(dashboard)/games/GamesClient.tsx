@@ -27,7 +27,8 @@ export function GamesClient({ initialData }: GamesClientProps) {
     useState<Id<"seasons"> | null>(null);
 
   // Live queries for real-time updates
-  const liveGames = useQuery(api.games.listGamesWithRsvps);
+  // Must pass {} explicitly to match optimistic update cache key
+  const liveGames = useQuery(api.games.listGamesWithRsvps, {});
   const livePlayers = useQuery(api.players.getPlayers);
   const liveOpponents = useQuery(api.opponents.listOpponents, {
     activeOnly: true,
@@ -59,7 +60,9 @@ export function GamesClient({ initialData }: GamesClientProps) {
 
   const setRsvp = useMutation(api.games.setRsvp).withOptimisticUpdate(
     (localStore, { gameId, playerId, status }) => {
-      const list = localStore.getQuery(api.games.listGamesWithRsvps);
+      // Must use same args format as useQuery for cache key matching
+      const queryArgs = {};
+      const list = localStore.getQuery(api.games.listGamesWithRsvps, queryArgs);
       if (!list) return;
       const updated = list.map((entry) => {
         if (entry.game._id !== gameId) return entry;
@@ -68,10 +71,12 @@ export function GamesClient({ initialData }: GamesClientProps) {
         if (idx >= 0) {
           const current = entry.rsvps[idx];
           if ((current as any).status === status) {
+            // Toggle off - remove the RSVP
             nextRsvps = entry.rsvps
               .slice(0, idx)
               .concat(entry.rsvps.slice(idx + 1));
           } else {
+            // Change status
             nextRsvps = entry.rsvps.slice();
             nextRsvps[idx] = {
               ...nextRsvps[idx],
@@ -80,6 +85,7 @@ export function GamesClient({ initialData }: GamesClientProps) {
             } as any;
           }
         } else {
+          // New RSVP
           nextRsvps = [
             ...entry.rsvps,
             {
@@ -94,17 +100,18 @@ export function GamesClient({ initialData }: GamesClientProps) {
         }
         return { ...entry, rsvps: nextRsvps };
       });
-      localStore.setQuery(api.games.listGamesWithRsvps, {}, updated);
+      localStore.setQuery(api.games.listGamesWithRsvps, queryArgs, updated);
     }
   );
 
   const deleteGame = useMutation(api.games.removeGame).withOptimisticUpdate(
     (localStore, { gameId }) => {
-      const list = localStore.getQuery(api.games.listGamesWithRsvps);
+      const queryArgs = {};
+      const list = localStore.getQuery(api.games.listGamesWithRsvps, queryArgs);
       if (!list) return;
       localStore.setQuery(
         api.games.listGamesWithRsvps,
-        {},
+        queryArgs,
         list.filter((entry) => entry.game._id !== gameId)
       );
     }
@@ -119,7 +126,8 @@ export function GamesClient({ initialData }: GamesClientProps) {
         location?: string;
         notes?: string;
       };
-      const list = localStore.getQuery(api.games.listGamesWithRsvps);
+      const queryArgs = {};
+      const list = localStore.getQuery(api.games.listGamesWithRsvps, queryArgs);
       if (!list) return;
       const opponentName =
         opponent ??
@@ -141,7 +149,7 @@ export function GamesClient({ initialData }: GamesClientProps) {
       const updated = [...list, optimistic].sort(
         (a, b) => a.game.startTime - b.game.startTime
       );
-      localStore.setQuery(api.games.listGamesWithRsvps, {}, updated);
+      localStore.setQuery(api.games.listGamesWithRsvps, queryArgs, updated);
     }
   );
 
@@ -173,27 +181,27 @@ export function GamesClient({ initialData }: GamesClientProps) {
   const isAdmin = me?.role === "admin";
 
   // Filter games by selected season
+  // When no season is selected, return empty array to avoid showing all games
   const seasonFilteredGames = useMemo(() => {
     if (!games) return [];
-    if (!selectedSeasonId) return games;
+    if (!selectedSeasonId) return []; // Don't show games until a season is selected
     return games.filter(
       (entry) => (entry.game as any).seasonId === selectedSeasonId
     );
   }, [games, selectedSeasonId]);
 
+  // Split games into upcoming and past based on current time
   const upcomingGames = useMemo(() => {
-    if (!seasonFilteredGames) return [];
     return seasonFilteredGames
       .filter((entry) => entry.game.startTime + PAST_CUTOFF_MS > now)
       .sort((a, b) => a.game.startTime - b.game.startTime);
-  }, [seasonFilteredGames, now]);
+  }, [seasonFilteredGames, now, PAST_CUTOFF_MS]);
 
   const pastGames = useMemo(() => {
-    if (!seasonFilteredGames) return [];
     return seasonFilteredGames
       .filter((entry) => entry.game.startTime + PAST_CUTOFF_MS <= now)
       .sort((a, b) => b.game.startTime - a.game.startTime);
-  }, [seasonFilteredGames, now]);
+  }, [seasonFilteredGames, now, PAST_CUTOFF_MS]);
 
   const handleRsvp = async (
     gameId: Id<"games">,

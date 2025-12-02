@@ -1,18 +1,22 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+"use client";
+
+import { useState } from "react";
+import { motion } from "motion/react";
+import { Trophy, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { EnablePushButton } from "@/components/EnablePushButton";
-import { GameList } from "./game-list";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateGameDialog, GameFormData } from "./create-game-dialog";
-import { SeasonSelector, Season } from "@/components/season-selector";
+import { GameCardModern } from "./game-card-modern";
 import {
   GameWithRsvps,
   Player,
   Me,
   Opponent,
   SeasonStats,
+  Season,
 } from "@/app/(dashboard)/games/actions";
 import { Id } from "@/convex/_generated/dataModel";
-import { useState } from "react";
+import { EnablePushButton } from "@/components/EnablePushButton";
 
 type RsvpStatus = "in" | "out";
 
@@ -40,6 +44,16 @@ interface GamesViewProps {
   seasonStats?: SeasonStats;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
 export function GamesView({
   upcomingGames,
   pastGames,
@@ -48,7 +62,6 @@ export function GamesView({
   me,
   isAdmin,
   filteredPlayers,
-  orderedPlayers,
   onRsvp,
   onCreateGame,
   onUpdateGame,
@@ -69,79 +82,222 @@ export function GamesView({
     setEditingGame(null);
   };
 
-  return (
-    <div className="px-4 lg:px-6">
-      {/* Season header with selector and stats */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <SeasonSelector
-            seasons={seasons}
-            selectedSeasonId={selectedSeasonId}
-            onSeasonChange={onSeasonChange}
-            showAllOption={false}
-          />
-          {seasonStats && (
-            <div className="text-sm text-muted-foreground">
-              {seasonStats.gamesPlayed > 0 ? (
-                <>
-                  <span className="font-medium text-foreground">
-                    {seasonStats.record}
-                  </span>
-                  <span className="mx-2">·</span>
-                  <span>{seasonStats.points} pts</span>
-                </>
-              ) : (
-                <span>{seasonStats.totalGames} games scheduled</span>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+  // Get active season name
+  const currentSeason = seasons?.find((s) => s._id === selectedSeasonId);
+  const seasonName = currentSeason ? currentSeason.name : "All Seasons";
 
-      <Tabs defaultValue="upcoming" className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
-            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-            <TabsTrigger value="past">Past</TabsTrigger>
-          </TabsList>
-          <div className="flex items-center gap-2">
-            <EnablePushButton />
-            {isAdmin && (
-              <Button onClick={() => setIsCreateDialogOpen(true)}>
-                Add game
-              </Button>
+  return (
+    <div className="bg-background text-foreground font-sans">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-hero-gradient text-primary-foreground pb-16 pt-8 px-4 sm:px-6 lg:px-8 rounded-3xl shadow-xl mb-8">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+        <div className="relative max-w-5xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-inner">
+                  <Trophy className="h-6 w-6 text-white" />
+                </div>
+                <span className="text-sm font-medium text-blue-100 tracking-wide uppercase">
+                  Official Schedule
+                </span>
+              </div>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-2">
+                Tipsy Pelicans
+              </h1>
+              <p className="text-blue-100 text-lg max-w-md">
+                {seasonName} · Hertz Arena
+              </p>
+            </div>
+
+            {/* Stats Summary Card */}
+            {seasonStats && (
+              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex gap-6 shadow-lg">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">
+                    {seasonStats.record || "0-0-0"}
+                  </div>
+                  <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
+                    Record
+                  </div>
+                </div>
+                <div className="w-px bg-white/20"></div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">
+                    {seasonStats.points || 0}
+                  </div>
+                  <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
+                    Points
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
+      </div>
 
-        <TabsContent value="upcoming" className="space-y-4">
-          <GameList
-            games={upcomingGames}
-            isAdmin={isAdmin}
-            me={me}
-            onEdit={handleEdit}
-            onRsvp={onRsvp}
-            filteredPlayers={filteredPlayers}
-            orderedPlayers={orderedPlayers}
-            emptyMessage="No upcoming games scheduled."
-            expanded={true}
-          />
-        </TabsContent>
+      {/* Content Area */}
+      <div className="max-w-4xl mx-auto px-0 sm:px-6 -mt-8 relative z-10">
+        <div className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl p-4 sm:p-6 mb-10">
+          {/* Season Selector */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex gap-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+              {seasons?.map((season) => (
+                <button
+                  key={season._id}
+                  onClick={() => onSeasonChange(season._id)}
+                  className={`
+                    px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap
+                    ${
+                      selectedSeasonId === season._id
+                        ? "bg-primary text-primary-foreground shadow-md shadow-blue-500/20 scale-105"
+                        : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                    }
+                  `}
+                >
+                  {season.name}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="hidden sm:flex"
+                  onClick={() => setIsCreateDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Add Game
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-primary hidden sm:flex"
+                asChild
+              >
+                <a
+                  href="https://skateeverblades.com/hockey/adult-hockey/adult-intermediate-c-2-league/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Standings <ChevronRight className="ml-1 h-4 w-4" />
+                </a>
+              </Button>
+            </div>
+          </div>
 
-        <TabsContent value="past" className="space-y-4">
-          <GameList
-            games={pastGames}
-            isAdmin={isAdmin}
-            me={me}
-            onEdit={handleEdit}
-            onRsvp={onRsvp}
-            filteredPlayers={filteredPlayers}
-            orderedPlayers={orderedPlayers}
-            emptyMessage="No past games."
-            expanded={false}
-          />
-        </TabsContent>
-      </Tabs>
+          {/* Mobile only stats link */}
+          <div className="flex sm:hidden justify-between items-center mb-6 px-1">
+            <a
+              href="https://skateeverblades.com/hockey/adult-hockey/adult-intermediate-c-2-league/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-muted-foreground hover:text-primary flex items-center"
+            >
+              View Standings <ChevronRight className="ml-1 h-4 w-4" />
+            </a>
+            {isAdmin && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-1" /> Add Game
+              </Button>
+            )}
+          </div>
+
+          <Tabs defaultValue="upcoming" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <TabsList className="grid w-full max-w-md grid-cols-2 p-1 bg-secondary/50 rounded-xl">
+                <TabsTrigger
+                  value="upcoming"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
+                >
+                  Upcoming
+                </TabsTrigger>
+                <TabsTrigger
+                  value="past"
+                  className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
+                >
+                  Past Games
+                </TabsTrigger>
+              </TabsList>
+              <div className="hidden sm:block ml-4">
+                <EnablePushButton />
+              </div>
+            </div>
+
+            <TabsContent value="upcoming" className="mt-0">
+              <motion.div
+                key={`upcoming-${selectedSeasonId}`}
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="flex flex-col gap-4"
+              >
+                <div className="text-sm text-muted-foreground font-medium px-1 flex justify-between items-center">
+                  <span>Next up</span>
+                  <span className="sm:hidden">
+                    <EnablePushButton />
+                  </span>
+                </div>
+                {upcomingGames.length > 0 ? (
+                  upcomingGames.map((entry) => (
+                    <GameCardModern
+                      key={entry.game._id}
+                      entry={entry}
+                      players={filteredPlayers || players || []}
+                      me={me}
+                      isAdmin={isAdmin}
+                      onRsvp={onRsvp}
+                      onEdit={handleEdit}
+                      isPast={false}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">
+                    No upcoming games scheduled.
+                  </div>
+                )}
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="past" className="mt-0">
+              <motion.div
+                key={`past-${selectedSeasonId}`}
+                variants={containerVariants}
+                initial="hidden"
+                animate="visible"
+                className="flex flex-col gap-4"
+              >
+                <div className="text-sm text-muted-foreground font-medium px-1">
+                  Season History
+                </div>
+                {pastGames.length > 0 ? (
+                  pastGames.map((entry) => (
+                    <GameCardModern
+                      key={entry.game._id}
+                      entry={entry}
+                      players={filteredPlayers || players || []}
+                      me={me}
+                      isAdmin={isAdmin}
+                      onRsvp={onRsvp}
+                      onEdit={handleEdit}
+                      isPast={true}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center py-10 text-muted-foreground">
+                    No past games recorded.
+                  </div>
+                )}
+              </motion.div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
 
       <CreateGameDialog
         open={isCreateDialogOpen}

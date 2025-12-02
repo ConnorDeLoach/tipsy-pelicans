@@ -18,7 +18,7 @@ export default function DashboardLayout({
       }
     >
       <AppSidebar variant="inset" />
-      <SidebarInset className="bg-tint-orange">
+      <SidebarInset className="bg-background">
         <SiteHeader />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
