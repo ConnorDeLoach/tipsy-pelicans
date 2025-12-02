@@ -41,14 +41,11 @@ interface GameCardModernProps {
 }
 
 const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
+  hidden: { opacity: 0.6 },
   visible: {
-    y: 0,
     opacity: 1,
     transition: {
-      type: "spring" as const,
-      stiffness: 100,
-      damping: 15,
+      duration: 0.15,
     },
   },
 };

@@ -45,11 +45,11 @@ interface GamesViewProps {
 }
 
 const containerVariants = {
-  hidden: { opacity: 0 },
+  hidden: { opacity: 1 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1,
+      staggerChildren: 0.05,
     },
   },
 };
@@ -110,28 +110,26 @@ export function GamesView({
               </p>
             </div>
 
-            {/* Stats Summary Card */}
-            {seasonStats && (
-              <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex gap-6 shadow-lg">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">
-                    {seasonStats.record || "0-0-0"}
-                  </div>
-                  <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
-                    Record
-                  </div>
+            {/* Stats Summary Card - always render to prevent CLS */}
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex gap-6 shadow-lg min-h-[72px]">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">
+                  {seasonStats?.record || "0-0-0"}
                 </div>
-                <div className="w-px bg-white/20"></div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-white">
-                    {seasonStats.points || 0}
-                  </div>
-                  <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
-                    Points
-                  </div>
+                <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
+                  Record
                 </div>
               </div>
-            )}
+              <div className="w-px bg-white/20" />
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">
+                  {seasonStats?.points ?? 0}
+                </div>
+                <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
+                  Points
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -229,11 +227,11 @@ export function GamesView({
               </div>
             </div>
 
-            <TabsContent value="upcoming" className="mt-0">
+            <TabsContent value="upcoming" className="mt-0 min-h-[200px]">
               <motion.div
                 key={`upcoming-${selectedSeasonId}`}
                 variants={containerVariants}
-                initial="hidden"
+                initial={false}
                 animate="visible"
                 className="flex flex-col gap-4"
               >
@@ -264,11 +262,11 @@ export function GamesView({
               </motion.div>
             </TabsContent>
 
-            <TabsContent value="past" className="mt-0">
+            <TabsContent value="past" className="mt-0 min-h-[200px]">
               <motion.div
                 key={`past-${selectedSeasonId}`}
                 variants={containerVariants}
-                initial="hidden"
+                initial={false}
                 animate="visible"
                 className="flex flex-col gap-4"
               >
