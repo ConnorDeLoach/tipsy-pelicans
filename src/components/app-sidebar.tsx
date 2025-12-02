@@ -3,7 +3,6 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 import { NavMain } from "@/components/nav-main";
 import { NavUser } from "@/components/nav-user";
@@ -33,13 +32,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }),
     [me]
   );
-  const router = useRouter();
   const { isMobile, setOpenMobile } = useSidebar();
-  React.useEffect(() => {
-    router.prefetch("/games");
-    router.prefetch("/chat");
-    router.prefetch("/roster");
-  }, [router]);
+  // Route prefetching is handled by DashboardShell
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>

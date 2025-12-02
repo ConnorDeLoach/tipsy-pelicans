@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { navItems } from "@/lib/nav-config";
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -18,6 +19,16 @@ interface DashboardShellProps {
  */
 export function DashboardShell({ children }: DashboardShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  // Eagerly prefetch all navigation routes for instant transitions
+  React.useEffect(() => {
+    navItems.forEach((item) => {
+      router.prefetch(item.url);
+    });
+    // Also prefetch seasons (admin page)
+    router.prefetch("/seasons");
+  }, [router]);
   // Check if we are in a chat conversation (e.g. /chat/123) but not the main chat list
   const isChatConversation =
     pathname.startsWith("/chat/") && pathname !== "/chat";
