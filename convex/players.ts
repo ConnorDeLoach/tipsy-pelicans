@@ -4,6 +4,19 @@ import { v } from "convex/values";
 export const getPlayers = query({
   args: {},
   handler: async (ctx) => {
+    const players = await ctx.db
+      .query("players")
+      .withIndex("by_name")
+      .collect();
+    // Filter out soft-deleted players
+    return players.filter((p) => !p.deletedAt);
+  },
+});
+
+// Include deleted players (for admin/historical views)
+export const getAllPlayers = query({
+  args: {},
+  handler: async (ctx) => {
     return await ctx.db.query("players").withIndex("by_name").collect();
   },
 });
@@ -16,7 +29,8 @@ export const isEmailAllowed = query({
       .query("players")
       .withIndex("by_email", (q) => q.eq("emailLowercase", normalized))
       .unique();
-    return player !== null;
+    // Only allow login for active (non-deleted) players
+    return player !== null && !player.deletedAt;
   },
 });
 
@@ -37,11 +51,7 @@ export const addPlayer = mutation({
     number: v.optional(v.number()),
     flair: v.optional(v.string()),
     role: v.optional(
-      v.union(
-        v.literal("player"),
-        v.literal("spare"),
-        v.literal("spectator")
-      )
+      v.union(v.literal("player"), v.literal("spare"), v.literal("spectator"))
     ),
     isAdmin: v.optional(v.boolean()),
   },
@@ -79,11 +89,7 @@ export const updatePlayer = mutation({
     number: v.optional(v.number()),
     flair: v.optional(v.string()),
     role: v.optional(
-      v.union(
-        v.literal("player"),
-        v.literal("spare"),
-        v.literal("spectator")
-      )
+      v.union(v.literal("player"), v.literal("spare"), v.literal("spectator"))
     ),
     isAdmin: v.optional(v.boolean()),
   },
@@ -109,6 +115,27 @@ export const removePlayer = mutation({
     playerId: v.id("players"),
   },
   handler: async (ctx, args) => {
+    // Soft-delete: set deletedAt timestamp instead of hard delete
+    await ctx.db.patch(args.playerId, { deletedAt: Date.now() });
+  },
+});
+
+// Hard delete for admin cleanup (use with caution)
+export const permanentlyDeletePlayer = mutation({
+  args: {
+    playerId: v.id("players"),
+  },
+  handler: async (ctx, args) => {
     await ctx.db.delete(args.playerId);
+  },
+});
+
+// Restore a soft-deleted player
+export const restorePlayer = mutation({
+  args: {
+    playerId: v.id("players"),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.playerId, { deletedAt: undefined });
   },
 });

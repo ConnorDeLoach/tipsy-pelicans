@@ -34,10 +34,15 @@ export const heartbeat = mutation({
 export const getPlayersWithPushEnabled = internalQuery({
   args: {},
   handler: async (ctx) => {
-    // Get all players with linked user accounts
+    // Get all active players with linked user accounts (exclude soft-deleted)
     const players = await ctx.db
       .query("players")
-      .filter((q) => q.neq(q.field("userId"), undefined))
+      .filter((q) =>
+        q.and(
+          q.neq(q.field("userId"), undefined),
+          q.eq(q.field("deletedAt"), undefined)
+        )
+      )
       .collect();
 
     // For each player, check if they have push subscriptions and get presence

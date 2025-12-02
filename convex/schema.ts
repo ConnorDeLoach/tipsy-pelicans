@@ -53,10 +53,13 @@ export default defineSchema({
     ),
     isAdmin: v.boolean(),
     createdAt: v.number(),
+    // Soft-delete: null/undefined = active, timestamp = deleted
+    deletedAt: v.optional(v.number()),
   })
     .index("by_name", ["name"])
     .index("by_email", ["emailLowercase"])
-    .index("by_user", ["userId"]),
+    .index("by_user", ["userId"])
+    .index("by_deleted", ["deletedAt"]),
   games: defineTable({
     opponent: v.string(),
     startTime: v.number(),

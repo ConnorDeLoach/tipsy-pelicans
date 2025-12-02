@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as admin_deleteUser from "../admin/deleteUser.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
 import type * as chat_messages from "../chat/messages.js";
@@ -27,6 +28,7 @@ import type * as merch_model from "../merch/model.js";
 import type * as merch_mutations from "../merch/mutations.js";
 import type * as merch_queries from "../merch/queries.js";
 import type * as migrations from "../migrations.js";
+import type * as migrations_cleanupOrphans from "../migrations/cleanupOrphans.js";
 import type * as oembed_index from "../oembed/index.js";
 import type * as oembed_instagram from "../oembed/instagram.js";
 import type * as oembed_model from "../oembed/model.js";
@@ -47,6 +49,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "admin/deleteUser": typeof admin_deleteUser;
   auditLog: typeof auditLog;
   auth: typeof auth;
   "chat/messages": typeof chat_messages;
@@ -66,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "merch/mutations": typeof merch_mutations;
   "merch/queries": typeof merch_queries;
   migrations: typeof migrations;
+  "migrations/cleanupOrphans": typeof migrations_cleanupOrphans;
   "oembed/index": typeof oembed_index;
   "oembed/instagram": typeof oembed_instagram;
   "oembed/model": typeof oembed_model;
