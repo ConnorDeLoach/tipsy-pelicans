@@ -20,6 +20,7 @@ import { Trash2, Loader2, Send, ChevronDown, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ImagePicker, useImagePicker } from "@/components/chat/ImagePicker";
 import { MessageImages } from "@/components/chat/MessageImages";
+import { MessageContent } from "@/components/chat/MessageContent";
 
 const PAGE_SIZE = 50;
 
@@ -453,11 +454,7 @@ export default function ChatDetailPage({
                         </span>
                       </div>
                     )}
-                    {msg.body && (
-                      <p className="whitespace-pre-wrap break-words text-sm">
-                        {msg.body}
-                      </p>
-                    )}
+                    {msg.body && <MessageContent body={msg.body} isMe={isMe} />}
                     {msg.images && msg.images.length > 0 && (
                       <MessageImages images={msg.images} isMe={isMe} />
                     )}
@@ -556,9 +553,11 @@ export default function ChatDetailPage({
           </Button>
         </div>
       </form>
-      <p className="mt-1 text-xs text-muted-foreground">
-        {body.length}/2000 characters
-      </p>
+      {body.length >= 1500 && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          {body.length}/2000 characters
+        </p>
+      )}
 
       {/* Delete confirmation dialog */}
       <AlertDialog

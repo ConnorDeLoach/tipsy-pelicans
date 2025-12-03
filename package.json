@@ -39,6 +39,7 @@
     "convex": "^1.27.3",
     "date-fns": "^4.1.0",
     "jose": "^6.1.0",
+    "linkify-it": "^5.0.0",
     "lucide-react": "^0.544.0",
     "motion": "^12.23.24",
     "next": "16.0.2-canary.2",
@@ -56,6 +57,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/linkify-it": "^5.0.0",
     "@types/node": "^20",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
