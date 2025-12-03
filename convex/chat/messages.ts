@@ -55,6 +55,16 @@ export const listByConversation = query({
         body: v.string(),
         displayName: v.string(),
         role: v.string(),
+        images: v.optional(
+          v.array(
+            v.object({
+              fullUrl: v.union(v.string(), v.null()),
+              thumbUrl: v.union(v.string(), v.null()),
+              width: v.number(),
+              height: v.number(),
+            })
+          )
+        ),
       })
     ),
     isDone: v.boolean(),
@@ -80,16 +90,35 @@ export const listByConversation = query({
       .order("asc")
       .paginate(paginationOpts);
 
+    // Process messages with image URLs
+    const pageWithUrls = await Promise.all(
+      result.page.map(async (m) => {
+        let images = undefined;
+        if (m.images && m.images.length > 0) {
+          images = await Promise.all(
+            m.images.map(async (img) => ({
+              fullUrl: await ctx.storage.getUrl(img.fullId),
+              thumbUrl: await ctx.storage.getUrl(img.thumbId),
+              width: img.width,
+              height: img.height,
+            }))
+          );
+        }
+        return {
+          _id: m._id,
+          _creationTime: m._creationTime,
+          conversationId: m.conversationId,
+          createdBy: m.createdBy,
+          body: m.body,
+          displayName: m.displayName,
+          role: m.role,
+          images,
+        };
+      })
+    );
+
     return {
-      page: result.page.map((m) => ({
-        _id: m._id,
-        _creationTime: m._creationTime,
-        conversationId: m.conversationId,
-        createdBy: m.createdBy,
-        body: m.body,
-        displayName: m.displayName,
-        role: m.role,
-      })),
+      page: pageWithUrls,
       isDone: result.isDone,
       continueCursor: result.continueCursor,
     };
@@ -205,12 +234,24 @@ export const remove = mutation({
     const withinWindow =
       Date.now() - message._creationTime < SELF_DELETE_WINDOW_MS;
 
+    // Helper to delete storage blobs for message images
+    const deleteMessageImages = async () => {
+      if (message.images && message.images.length > 0) {
+        for (const img of message.images) {
+          await ctx.storage.delete(img.fullId);
+          await ctx.storage.delete(img.thumbId);
+        }
+      }
+    };
+
     if (isAdmin) {
+      await deleteMessageImages();
       await ctx.db.delete(messageId);
       return null;
     }
 
     if (isOwner && withinWindow) {
+      await deleteMessageImages();
       await ctx.db.delete(messageId);
       return null;
     }

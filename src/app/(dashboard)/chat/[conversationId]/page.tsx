@@ -18,8 +18,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trash2, Loader2, Send, ChevronDown, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ImagePicker, useImagePicker } from "@/components/chat/ImagePicker";
+import { MessageImages } from "@/components/chat/MessageImages";
 
 const PAGE_SIZE = 50;
+
+// Image type from API
+type MessageImage = {
+  fullUrl: string | null;
+  thumbUrl: string | null;
+  width: number;
+  height: number;
+};
 
 // Optimistic message type
 type OptimisticMessage = {
@@ -29,6 +39,7 @@ type OptimisticMessage = {
   body: string;
   displayName: string;
   role: string;
+  images?: MessageImage[];
   isOptimistic: true;
 };
 
@@ -39,6 +50,7 @@ type Message = {
   body: string;
   displayName: string;
   role: string;
+  images?: MessageImage[];
   isOptimistic?: false;
 };
 
@@ -65,9 +77,19 @@ export default function ChatDetailPage({
   );
 
   const sendMessage = useMutation(api.chat.messages.send);
+  const sendWithImages = useMutation(api.chat.images.sendWithImages);
+  const generateUploadUrl = useMutation(api.chat.images.generateUploadUrl);
   const deleteMessage = useMutation(api.chat.messages.remove);
   const markAsRead = useMutation(api.chat.unread.markAsRead);
   const heartbeat = useMutation(api.chat.presence.heartbeat);
+
+  const {
+    images: pendingImages,
+    setImages: setPendingImages,
+    clearImages,
+    hasImages,
+    allReady,
+  } = useImagePicker();
 
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -158,9 +180,24 @@ export default function ChatDetailPage({
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = body.trim();
-    if (!trimmed || isSending || !me?.playerId) return;
+    const hasText = trimmed.length > 0;
+    const hasImagesReady = hasImages && allReady;
+
+    // Must have text or images
+    if ((!hasText && !hasImagesReady) || isSending || !me?.playerId) return;
 
     const optimisticId = `optimistic-${Date.now()}`;
+
+    // Create optimistic images from pending images (use preview URLs as placeholders)
+    const optimisticImages: MessageImage[] | undefined = hasImagesReady
+      ? pendingImages.map((img) => ({
+          fullUrl: img.previewUrl,
+          thumbUrl: img.previewUrl,
+          width: img.compressed?.width ?? 100,
+          height: img.compressed?.height ?? 100,
+        }))
+      : undefined;
+
     const optimisticMsg: OptimisticMessage = {
       _id: optimisticId,
       _creationTime: Date.now(),
@@ -168,17 +205,67 @@ export default function ChatDetailPage({
       body: trimmed,
       displayName: me.name ?? "You",
       role: me.role ?? "player",
+      images: optimisticImages,
       isOptimistic: true,
     };
 
     setOptimisticMessages((prev) => [...prev, optimisticMsg]);
     setBody("");
+    const imagesToUpload = [...pendingImages];
+    clearImages();
     setShouldAutoScroll(true);
     setIsSending(true);
 
     try {
-      await sendMessage({ conversationId, body: trimmed });
-      // Remove optimistic message after server confirms (real one will appear via subscription)
+      if (hasImagesReady) {
+        // Upload all images first
+        const uploadedImages = await Promise.all(
+          imagesToUpload.map(async (img) => {
+            if (!img.compressed) throw new Error("Image not compressed");
+
+            // Upload full image
+            const fullUploadUrl = await generateUploadUrl();
+            const fullResponse = await fetch(fullUploadUrl, {
+              method: "POST",
+              headers: { "Content-Type": "image/webp" },
+              body: img.compressed.full,
+            });
+            if (!fullResponse.ok)
+              throw new Error("Failed to upload full image");
+            const { storageId: fullId } = await fullResponse.json();
+
+            // Upload thumbnail
+            const thumbUploadUrl = await generateUploadUrl();
+            const thumbResponse = await fetch(thumbUploadUrl, {
+              method: "POST",
+              headers: { "Content-Type": "image/webp" },
+              body: img.compressed.thumb,
+            });
+            if (!thumbResponse.ok)
+              throw new Error("Failed to upload thumbnail");
+            const { storageId: thumbId } = await thumbResponse.json();
+
+            return {
+              fullId,
+              thumbId,
+              width: img.compressed.width,
+              height: img.compressed.height,
+            };
+          })
+        );
+
+        // Send message with images
+        await sendWithImages({
+          conversationId,
+          body: hasText ? trimmed : undefined,
+          images: uploadedImages,
+        });
+      } else {
+        // Text-only message
+        await sendMessage({ conversationId, body: trimmed });
+      }
+
+      // Remove optimistic message after server confirms
       setOptimisticMessages((prev) =>
         prev.filter((m) => m._id !== optimisticId)
       );
@@ -188,6 +275,7 @@ export default function ChatDetailPage({
         prev.filter((m) => m._id !== optimisticId)
       );
       setBody(trimmed);
+      // Note: images are cleared and lost on error (could be improved)
       const message =
         err instanceof Error ? err.message : "Failed to send message.";
       toast.error(message);
@@ -365,9 +453,14 @@ export default function ChatDetailPage({
                         </span>
                       </div>
                     )}
-                    <p className="whitespace-pre-wrap break-words text-sm">
-                      {msg.body}
-                    </p>
+                    {msg.body && (
+                      <p className="whitespace-pre-wrap break-words text-sm">
+                        {msg.body}
+                      </p>
+                    )}
+                    {msg.images && msg.images.length > 0 && (
+                      <MessageImages images={msg.images} isMe={isMe} />
+                    )}
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span
                         className={`text-xs ${
@@ -422,34 +515,46 @@ export default function ChatDetailPage({
       </div>
 
       {/* Composer */}
-      <form onSubmit={handleSend} className="mt-4 flex gap-2">
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend(e);
+      <form onSubmit={handleSend} className="mt-4 space-y-2">
+        <div className="flex gap-2 items-end">
+          <ImagePicker
+            images={pendingImages}
+            onImagesChange={setPendingImages}
+            disabled={isSending || !me}
+          />
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend(e);
+              }
+            }}
+            placeholder="Type a message..."
+            rows={1}
+            className="flex-1 resize-none rounded-lg border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40"
+            disabled={isSending || !me}
+            maxLength={2000}
+          />
+          <Button
+            type="submit"
+            disabled={
+              isSending ||
+              (!body.trim() && !hasImages) ||
+              (hasImages && !allReady) ||
+              !me
             }
-          }}
-          placeholder="Type a message..."
-          rows={1}
-          className="flex-1 resize-none rounded-lg border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40"
-          disabled={isSending || !me}
-          maxLength={2000}
-        />
-        <Button
-          type="submit"
-          disabled={isSending || !body.trim() || !me}
-          className="shrink-0"
-        >
-          {isSending ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <Send className="size-4" />
-          )}
-          <span className="sr-only">Send</span>
-        </Button>
+            className="shrink-0"
+          >
+            {isSending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Send className="size-4" />
+            )}
+            <span className="sr-only">Send</span>
+          </Button>
+        </div>
       </form>
       <p className="mt-1 text-xs text-muted-foreground">
         {body.length}/2000 characters

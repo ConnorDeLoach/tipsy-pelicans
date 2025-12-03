@@ -3,6 +3,7 @@ import { auth } from "./auth";
 import { httpAction } from "./_generated/server";
 import { api, internal } from "./_generated/api";
 import { registerHttpRoutes as registerMerch } from "./merch/http";
+import { registerImageRoutes } from "./chat/imageHttp";
 
 const http = httpRouter();
 
@@ -28,6 +29,9 @@ http.route({
 
 // Merch domain routes
 registerMerch(http);
+
+// Chat image routes
+registerImageRoutes(http);
 
 http.route({
   path: "/rsvp",
