@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { internal } from "../_generated/api";
+import { getReactionsForMessages } from "./reactions";
 
 // Debounce window for chat push notifications (5 seconds)
 const PUSH_DEBOUNCE_MS = 5_000;
@@ -65,6 +66,13 @@ export const listByConversation = query({
             })
           )
         ),
+        reactions: v.array(
+          v.object({
+            emoji: v.string(),
+            count: v.number(),
+            reactedByMe: v.boolean(),
+          })
+        ),
       })
     ),
     isDone: v.boolean(),
@@ -90,7 +98,15 @@ export const listByConversation = query({
       .order("asc")
       .paginate(paginationOpts);
 
-    // Process messages with image URLs
+    // Get reactions for all messages in this page
+    const messageIds = result.page.map((m) => m._id);
+    const reactionsMap = await getReactionsForMessages(
+      ctx,
+      messageIds,
+      player._id
+    );
+
+    // Process messages with image URLs and reactions
     const pageWithUrls = await Promise.all(
       result.page.map(async (m) => {
         let images = undefined;
@@ -113,6 +129,7 @@ export const listByConversation = query({
           displayName: m.displayName,
           role: m.role,
           images,
+          reactions: reactionsMap.get(m._id) ?? [],
         };
       })
     );

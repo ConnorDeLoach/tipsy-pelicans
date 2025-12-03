@@ -54,3 +54,13 @@ export const chatReadStatusTable = defineTable({
 })
   .index("by_user", ["userId"])
   .index("by_user_and_conversation", ["userId", "conversationId"]);
+
+// Message reactions table for emoji reactions
+export const messageReactionsTable = defineTable({
+  messageId: v.id("messages"),
+  playerId: v.id("players"),
+  emoji: v.string(), // Unicode emoji, e.g. "👍"
+  createdAt: v.number(),
+})
+  .index("by_message", ["messageId"])
+  .index("by_message_player_emoji", ["messageId", "playerId", "emoji"]);

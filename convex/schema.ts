@@ -6,6 +6,7 @@ import {
   conversationsTable,
   messagesTable,
   chatReadStatusTable,
+  messageReactionsTable,
 } from "./chat/model";
 import { oembedCacheTable } from "./oembed/model";
 
@@ -106,6 +107,7 @@ export default defineSchema({
   }).index("by_token", ["token"]),
   messages: messagesTable,
   chatReadStatus: chatReadStatusTable,
+  messageReactions: messageReactionsTable,
   oembedCache: oembedCacheTable,
   pushSubscriptions: defineTable({
     userId: v.id("users"),

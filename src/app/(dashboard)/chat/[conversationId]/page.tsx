@@ -16,11 +16,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Trash2, Loader2, Send, ChevronDown, ArrowLeft } from "lucide-react";
+import { Loader2, Send, ChevronDown, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ImagePicker, useImagePicker } from "@/components/chat/ImagePicker";
 import { MessageImages } from "@/components/chat/MessageImages";
 import { MessageContent } from "@/components/chat/MessageContent";
+import { ReactionChips, type Reaction } from "@/components/chat/ReactionChips";
+import { MessageActions } from "@/components/chat/MessageActions";
 
 const PAGE_SIZE = 50;
 
@@ -41,6 +43,7 @@ type OptimisticMessage = {
   displayName: string;
   role: string;
   images?: MessageImage[];
+  reactions: Reaction[];
   isOptimistic: true;
 };
 
@@ -52,10 +55,18 @@ type Message = {
   displayName: string;
   role: string;
   images?: MessageImage[];
+  reactions: Reaction[];
   isOptimistic?: false;
 };
 
 type AnyMessage = Message | OptimisticMessage;
+
+// Optimistic reaction update - keyed by "messageId:emoji"
+type OptimisticReaction = {
+  messageId: string;
+  emoji: string;
+  action: "add" | "remove";
+};
 
 export default function ChatDetailPage({
   params,
@@ -83,6 +94,7 @@ export default function ChatDetailPage({
   const deleteMessage = useMutation(api.chat.messages.remove);
   const markAsRead = useMutation(api.chat.unread.markAsRead);
   const heartbeat = useMutation(api.chat.presence.heartbeat);
+  const toggleReaction = useMutation(api.chat.reactions.toggle);
 
   const {
     images: pendingImages,
@@ -108,9 +120,72 @@ export default function ChatDetailPage({
   const [deleteConfirmId, setDeleteConfirmId] = useState<Id<"messages"> | null>(
     null
   );
+  const [optimisticReactions, setOptimisticReactions] = useState<
+    OptimisticReaction[]
+  >([]);
 
-  // Combine real messages with optimistic ones
-  const allMessages: AnyMessage[] = [...messages, ...optimisticMessages];
+  // Helper to apply optimistic reactions to a message
+  const applyOptimisticReactions = (
+    reactions: Reaction[],
+    messageId: string
+  ): Reaction[] => {
+    const pendingForMessage = optimisticReactions.filter(
+      (r) => r.messageId === messageId
+    );
+    if (pendingForMessage.length === 0) return reactions;
+
+    // Clone reactions array
+    const updated = reactions.map((r) => ({ ...r }));
+
+    for (const pending of pendingForMessage) {
+      const existing = updated.find((r) => r.emoji === pending.emoji);
+      const current = updated.find((r) => r.reactedByMe);
+
+      if (pending.action === "add") {
+        // Ensure only one reaction by this user: remove current if different
+        if (current && current.emoji !== pending.emoji) {
+          current.count--;
+          current.reactedByMe = false;
+          if (current.count <= 0) {
+            const idx = updated.indexOf(current);
+            if (idx !== -1) updated.splice(idx, 1);
+          }
+        }
+
+        if (existing) {
+          if (!existing.reactedByMe) {
+            existing.count++;
+            existing.reactedByMe = true;
+          }
+        } else {
+          updated.push({ emoji: pending.emoji, count: 1, reactedByMe: true });
+        }
+      } else {
+        // remove
+        const target =
+          existing && existing.reactedByMe ? existing : current ?? null;
+        if (target && target.reactedByMe) {
+          target.count--;
+          target.reactedByMe = false;
+          // Remove if count is 0
+          if (target.count <= 0) {
+            const idx = updated.indexOf(target);
+            if (idx !== -1) updated.splice(idx, 1);
+          }
+        }
+      }
+    }
+    return updated;
+  };
+
+  // Combine real messages with optimistic ones and apply optimistic reactions
+  const allMessages: AnyMessage[] = [
+    ...messages.map((m) => ({
+      ...m,
+      reactions: applyOptimisticReactions(m.reactions, m._id),
+    })),
+    ...optimisticMessages,
+  ];
 
   // Mark chat as read when page loads and when new messages arrive while viewing
   useEffect(() => {
@@ -207,6 +282,7 @@ export default function ChatDetailPage({
       displayName: me.name ?? "You",
       role: me.role ?? "player",
       images: optimisticImages,
+      reactions: [],
       isOptimistic: true,
     };
 
@@ -305,10 +381,39 @@ export default function ChatDetailPage({
     }
   };
 
-  const handleMessageTap = (msgId: string, canDeleteMsg: boolean) => {
-    if (!canDeleteMsg) return;
-    // Toggle selection on tap
-    setSelectedMessageId((prev) => (prev === msgId ? null : msgId));
+  const handleReaction = async (messageId: Id<"messages">, emoji: string) => {
+    if (!me?.playerId) return;
+
+    // Find the current message to determine if we're adding or removing
+    const message = messages.find((m) => m._id === messageId);
+    if (!message) return;
+
+    const currentReaction = message.reactions.find((r) => r.emoji === emoji);
+    const isRemoving = currentReaction?.reactedByMe ?? false;
+    const action = isRemoving ? "remove" : "add";
+
+    // Optimistic update
+    const optimisticKey = `${messageId}:${emoji}`;
+    setOptimisticReactions((prev) => {
+      // Remove any existing pending reaction for this message+emoji
+      const filtered = prev.filter(
+        (r) => !(r.messageId === messageId && r.emoji === emoji)
+      );
+      return [...filtered, { messageId, emoji, action }];
+    });
+
+    try {
+      await toggleReaction({ messageId, emoji });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to react.";
+      toast.error(errorMessage);
+    } finally {
+      // Remove optimistic update (real data will come from subscription)
+      setOptimisticReactions((prev) =>
+        prev.filter((r) => !(r.messageId === messageId && r.emoji === emoji))
+      );
+    }
   };
 
   const canDelete = (msg: {
@@ -434,63 +539,68 @@ export default function ChatDetailPage({
                 <div
                   className={`flex ${isMe ? "justify-end" : "justify-start"}`}
                 >
-                  <div
-                    onClick={() =>
-                      handleMessageTap(msg._id, !isOptimistic && canDelete(msg))
+                  <MessageActions
+                    open={selectedMessageId === msg._id && !isOptimistic}
+                    onOpenChange={(open) =>
+                      setSelectedMessageId(open ? msg._id : null)
                     }
-                    className={`group relative max-w-[85%] rounded-lg px-3 py-2 ${
-                      isMe
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
-                    } ${isOptimistic ? "opacity-70" : ""}`}
+                    onReact={(emoji) =>
+                      handleReaction(msg._id as Id<"messages">, emoji)
+                    }
+                    onDelete={
+                      canDelete(msg)
+                        ? () => setDeleteConfirmId(msg._id as Id<"messages">)
+                        : undefined
+                    }
+                    isMe={isMe}
                   >
-                    {!isMe && (
-                      <div className="mb-1 flex items-center gap-2">
-                        <span className="text-xs font-semibold">
-                          {msg.displayName}
-                        </span>
-                        <span className="text-xs capitalize opacity-60">
-                          {msg.role}
+                    <div
+                      className={`group relative max-w-[85%] rounded-lg px-3 py-2 cursor-pointer ${
+                        isMe
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-foreground"
+                      } ${isOptimistic ? "opacity-70 cursor-default" : ""}`}
+                    >
+                      {!isMe && (
+                        <div className="mb-1 flex items-center gap-2">
+                          <span className="text-xs font-semibold">
+                            {msg.displayName}
+                          </span>
+                          <span className="text-xs capitalize opacity-60">
+                            {msg.role}
+                          </span>
+                        </div>
+                      )}
+                      {msg.body && (
+                        <MessageContent body={msg.body} isMe={isMe} />
+                      )}
+                      {msg.images && msg.images.length > 0 && (
+                        <MessageImages images={msg.images} isMe={isMe} />
+                      )}
+                      {/* Reaction chips */}
+                      {!isOptimistic && (
+                        <ReactionChips
+                          reactions={msg.reactions}
+                          onToggle={(emoji) =>
+                            handleReaction(msg._id as Id<"messages">, emoji)
+                          }
+                          isMe={isMe}
+                          disabled={!me}
+                        />
+                      )}
+                      <div className="mt-1 flex items-center justify-end">
+                        <span
+                          className={`text-xs ${
+                            isMe ? "opacity-70" : "text-muted-foreground"
+                          }`}
+                        >
+                          {isOptimistic
+                            ? "Sending..."
+                            : formatTime(msg._creationTime)}
                         </span>
                       </div>
-                    )}
-                    {msg.body && <MessageContent body={msg.body} isMe={isMe} />}
-                    {msg.images && msg.images.length > 0 && (
-                      <MessageImages images={msg.images} isMe={isMe} />
-                    )}
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <span
-                        className={`text-xs ${
-                          isMe ? "opacity-70" : "text-muted-foreground"
-                        }`}
-                      >
-                        {isOptimistic
-                          ? "Sending..."
-                          : formatTime(msg._creationTime)}
-                      </span>
-                      {!isOptimistic && canDelete(msg) && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeleteConfirmId(msg._id as Id<"messages">);
-                          }}
-                          className={`transition-opacity md:opacity-0 md:group-hover:opacity-100 ${
-                            selectedMessageId === msg._id
-                              ? "opacity-100"
-                              : "opacity-0"
-                          } ${
-                            isMe
-                              ? "text-primary-foreground/70 hover:text-primary-foreground"
-                              : "text-muted-foreground hover:text-foreground"
-                          }`}
-                          aria-label="Delete message"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      )}
                     </div>
-                  </div>
+                  </MessageActions>
                 </div>
               </li>
             );

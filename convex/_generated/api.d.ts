@@ -19,6 +19,7 @@ import type * as chat_messages from "../chat/messages.js";
 import type * as chat_model from "../chat/model.js";
 import type * as chat_presence from "../chat/presence.js";
 import type * as chat_push from "../chat/push.js";
+import type * as chat_reactions from "../chat/reactions.js";
 import type * as chat_unread from "../chat/unread.js";
 import type * as cronLogger from "../cronLogger.js";
 import type * as crons from "../crons.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "chat/model": typeof chat_model;
   "chat/presence": typeof chat_presence;
   "chat/push": typeof chat_push;
+  "chat/reactions": typeof chat_reactions;
   "chat/unread": typeof chat_unread;
   cronLogger: typeof cronLogger;
   crons: typeof crons;
