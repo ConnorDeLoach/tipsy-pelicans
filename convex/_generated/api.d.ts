@@ -8,6 +8,11 @@
  * @module
  */
 
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
 import type * as admin_deleteUser from "../admin/deleteUser.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
@@ -26,14 +31,29 @@ import type * as crons from "../crons.js";
 import type * as games from "../games.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
+import type * as linkPreview_fetch from "../linkPreview/fetch.js";
+import type * as linkPreview_index from "../linkPreview/index.js";
+import type * as linkPreview_model from "../linkPreview/model.js";
+import type * as linkPreview_mutations from "../linkPreview/mutations.js";
+import type * as linkPreview_providers_giphy from "../linkPreview/providers/giphy.js";
+import type * as linkPreview_providers_index from "../linkPreview/providers/index.js";
+import type * as linkPreview_providers_og from "../linkPreview/providers/og.js";
+import type * as linkPreview_providers_reddit from "../linkPreview/providers/reddit.js";
+import type * as linkPreview_providers_soundcloud from "../linkPreview/providers/soundcloud.js";
+import type * as linkPreview_providers_spotify from "../linkPreview/providers/spotify.js";
+import type * as linkPreview_providers_tiktok from "../linkPreview/providers/tiktok.js";
+import type * as linkPreview_providers_types from "../linkPreview/providers/types.js";
+import type * as linkPreview_providers_vimeo from "../linkPreview/providers/vimeo.js";
+import type * as linkPreview_providers_youtube from "../linkPreview/providers/youtube.js";
+import type * as linkPreview_queries from "../linkPreview/queries.js";
 import type * as me from "../me.js";
 import type * as merch_actions from "../merch/actions.js";
 import type * as merch_http from "../merch/http.js";
 import type * as merch_model from "../merch/model.js";
 import type * as merch_mutations from "../merch/mutations.js";
 import type * as merch_queries from "../merch/queries.js";
-import type * as migrations from "../migrations.js";
 import type * as migrations_cleanupOrphans from "../migrations/cleanupOrphans.js";
+import type * as migrations from "../migrations.js";
 import type * as oembed_index from "../oembed/index.js";
 import type * as oembed_instagram from "../oembed/instagram.js";
 import type * as oembed_model from "../oembed/model.js";
@@ -47,12 +67,14 @@ import type * as reminders from "../reminders.js";
 import type * as rsvpTokens from "../rsvpTokens.js";
 import type * as seasons from "../seasons.js";
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
-
+/**
+ * A utility for referencing Convex functions in your app's API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 declare const fullApi: ApiFromModules<{
   "admin/deleteUser": typeof admin_deleteUser;
   auditLog: typeof auditLog;
@@ -72,14 +94,29 @@ declare const fullApi: ApiFromModules<{
   games: typeof games;
   health: typeof health;
   http: typeof http;
+  "linkPreview/fetch": typeof linkPreview_fetch;
+  "linkPreview/index": typeof linkPreview_index;
+  "linkPreview/model": typeof linkPreview_model;
+  "linkPreview/mutations": typeof linkPreview_mutations;
+  "linkPreview/providers/giphy": typeof linkPreview_providers_giphy;
+  "linkPreview/providers/index": typeof linkPreview_providers_index;
+  "linkPreview/providers/og": typeof linkPreview_providers_og;
+  "linkPreview/providers/reddit": typeof linkPreview_providers_reddit;
+  "linkPreview/providers/soundcloud": typeof linkPreview_providers_soundcloud;
+  "linkPreview/providers/spotify": typeof linkPreview_providers_spotify;
+  "linkPreview/providers/tiktok": typeof linkPreview_providers_tiktok;
+  "linkPreview/providers/types": typeof linkPreview_providers_types;
+  "linkPreview/providers/vimeo": typeof linkPreview_providers_vimeo;
+  "linkPreview/providers/youtube": typeof linkPreview_providers_youtube;
+  "linkPreview/queries": typeof linkPreview_queries;
   me: typeof me;
   "merch/actions": typeof merch_actions;
   "merch/http": typeof merch_http;
   "merch/model": typeof merch_model;
   "merch/mutations": typeof merch_mutations;
   "merch/queries": typeof merch_queries;
-  migrations: typeof migrations;
   "migrations/cleanupOrphans": typeof migrations_cleanupOrphans;
+  migrations: typeof migrations;
   "oembed/index": typeof oembed_index;
   "oembed/instagram": typeof oembed_instagram;
   "oembed/model": typeof oembed_model;
@@ -93,31 +130,11 @@ declare const fullApi: ApiFromModules<{
   rsvpTokens: typeof rsvpTokens;
   seasons: typeof seasons;
 }>;
-
-/**
- * A utility for referencing Convex functions in your app's public API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
 export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">
 >;
-
-/**
- * A utility for referencing Convex functions in your app's internal API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = internal.myModule.myFunction;
- * ```
- */
 export declare const internal: FilterApi<
   typeof fullApi,
   FunctionReference<any, "internal">
 >;
-
-export declare const components: {};

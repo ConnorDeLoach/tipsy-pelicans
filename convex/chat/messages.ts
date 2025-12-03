@@ -4,6 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { internal } from "../_generated/api";
 import { getReactionsForMessages } from "./reactions";
+import { extractUrls } from "../linkPreview/model";
 
 // Debounce window for chat push notifications (5 seconds)
 const PUSH_DEBOUNCE_MS = 5_000;
@@ -218,6 +219,16 @@ export const send = mutation({
         messagePreview: trimmedBody,
       }
     );
+
+    // Extract URLs and schedule link preview processing
+    const urls = extractUrls(trimmedBody);
+    if (urls.length > 0) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.linkPreview.fetch.processMessageUrls,
+        { urls }
+      );
+    }
 
     return messageId;
   },

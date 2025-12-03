@@ -9,6 +9,7 @@ import {
   messageReactionsTable,
 } from "./chat/model";
 import { oembedCacheTable } from "./oembed/model";
+import { linkPreviewsTable } from "./linkPreview/model";
 
 export default defineSchema({
   ...authTables,
@@ -109,6 +110,7 @@ export default defineSchema({
   chatReadStatus: chatReadStatusTable,
   messageReactions: messageReactionsTable,
   oembedCache: oembedCacheTable,
+  linkPreviews: linkPreviewsTable,
   pushSubscriptions: defineTable({
     userId: v.id("users"),
     endpoint: v.string(),

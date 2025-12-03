@@ -23,6 +23,7 @@ import { MessageImages } from "@/components/chat/MessageImages";
 import { MessageContent } from "@/components/chat/MessageContent";
 import { ReactionChips, type Reaction } from "@/components/chat/ReactionChips";
 import { MessageActions } from "@/components/chat/MessageActions";
+import { LinkPreviewCards } from "@/components/chat/LinkPreviewCard";
 
 const PAGE_SIZE = 50;
 
@@ -576,6 +577,9 @@ export default function ChatDetailPage({
                       )}
                       {msg.images && msg.images.length > 0 && (
                         <MessageImages images={msg.images} isMe={isMe} />
+                      )}
+                      {msg.body && !isOptimistic && (
+                        <LinkPreviewCards body={msg.body} isMe={isMe} />
                       )}
                       {/* Reaction chips */}
                       {!isOptimistic && (
