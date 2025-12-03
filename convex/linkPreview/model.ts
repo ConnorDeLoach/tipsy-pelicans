@@ -35,7 +35,10 @@ export const linkPreviewsTable = defineTable({
   type: v.optional(v.string()), // og:type (website, article, video, etc.)
   faviconUrl: v.optional(v.string()),
 
-  // Proxied image (stored in Convex storage)
+  // Image URL (direct link, not proxied)
+  originalImageUrl: v.optional(v.string()),
+
+  // Legacy: Proxied image (stored in Convex storage) - kept for existing data
   imageFullId: v.optional(v.id("_storage")),
   imageThumbId: v.optional(v.id("_storage")),
   imageWidth: v.optional(v.number()),

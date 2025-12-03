@@ -11,14 +11,6 @@ import {
 } from "./model";
 import { getProviderForUrl } from "./providers";
 
-// Get the app URL for calling Next.js API routes
-function getAppUrl(): string {
-  // Use CONVEX_SITE_URL which is set by Convex, or APP_URL env var
-  // Note: In local dev, image processing won't work unless you deploy
-  // or use a tunnel - but text preview will still work
-  return process.env.APP_URL || process.env.SITE_URL || "http://localhost:3000";
-}
-
 /**
  * Fetch HTML from a URL with timeout and size limits.
  */
@@ -98,50 +90,6 @@ async function fetchHtml(
     } else {
       console.error(`[LinkPreview] Error fetching ${url}:`, error);
     }
-    return null;
-  }
-}
-
-/**
- * Process an image through the Next.js API route.
- */
-async function processImage(imageUrl: string): Promise<{
-  full: ArrayBuffer;
-  thumb: ArrayBuffer;
-  width: number;
-  height: number;
-} | null> {
-  const appUrl = getAppUrl();
-
-  try {
-    const response = await fetch(`${appUrl}/api/link-preview/process-image`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: imageUrl }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error(`[LinkPreview] Image processing failed: ${error}`);
-      return null;
-    }
-
-    const data = await response.json();
-
-    // Convert base64 to ArrayBuffer
-    const fullBytes = Uint8Array.from(atob(data.full), (c) => c.charCodeAt(0));
-    const thumbBytes = Uint8Array.from(atob(data.thumb), (c) =>
-      c.charCodeAt(0)
-    );
-
-    return {
-      full: fullBytes.buffer,
-      thumb: thumbBytes.buffer,
-      width: data.width,
-      height: data.height,
-    };
-  } catch (error) {
-    console.error(`[LinkPreview] Error processing image:`, error);
     return null;
   }
 }
@@ -254,23 +202,9 @@ export const processUrl = internalAction({
     let imageWidth: number | undefined;
     let imageHeight: number | undefined;
 
-    if (parsed.imageUrl) {
-      console.log(`[LinkPreview] Processing image: ${parsed.imageUrl}`);
-      const imageData = await processImage(parsed.imageUrl);
-
-      if (imageData) {
-        // Store images in Convex storage
-        const fullBlob = new Blob([imageData.full], { type: "image/webp" });
-        const thumbBlob = new Blob([imageData.thumb], { type: "image/webp" });
-
-        imageFullId = await ctx.storage.store(fullBlob);
-        imageThumbId = await ctx.storage.store(thumbBlob);
-        imageWidth = imageData.width;
-        imageHeight = imageData.height;
-
-        console.log(`[LinkPreview] Stored images for ${normalizedUrl}`);
-      }
-    }
+    // Store the original image URL directly instead of proxying
+    // This avoids needing a separate image processing endpoint
+    const originalImageUrl = parsed.imageUrl;
 
     // Save to cache
     await ctx.runMutation(internal.linkPreview.mutations.upsertCache, {
@@ -282,10 +216,8 @@ export const processUrl = internalAction({
       siteName: parsed.siteName,
       type: parsed.type,
       faviconUrl: parsed.faviconUrl,
-      imageFullId: imageFullId as any, // Type coercion for storage ID
-      imageThumbId: imageThumbId as any,
-      imageWidth,
-      imageHeight,
+      // Store original image URL directly (no proxying)
+      originalImageUrl,
       status: "success",
       fetchedAt: now,
       expiresAt: now + LINK_PREVIEW_TTL_MS,

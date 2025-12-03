@@ -73,13 +73,19 @@ export const getPreviewsForUrls = query({
       previews.map(async (preview) => {
         if (!preview) return null;
 
-        // Get image URLs from storage
-        const imageFullUrl = preview.imageFullId
+        // Get image URLs - prefer storage URLs, fallback to original URL
+        let imageFullUrl: string | null | undefined = preview.imageFullId
           ? await ctx.storage.getUrl(preview.imageFullId)
           : undefined;
-        const imageThumbUrl = preview.imageThumbId
+        let imageThumbUrl: string | null | undefined = preview.imageThumbId
           ? await ctx.storage.getUrl(preview.imageThumbId)
           : undefined;
+
+        // Fallback to original image URL if no proxied version
+        if (!imageFullUrl && !imageThumbUrl && preview.originalImageUrl) {
+          imageFullUrl = preview.originalImageUrl;
+          imageThumbUrl = preview.originalImageUrl;
+        }
 
         return {
           urlHash: preview.urlHash,

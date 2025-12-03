@@ -8,11 +8,6 @@
  * @module
  */
 
-import type {
-  ApiFromModules,
-  FilterApi,
-  FunctionReference,
-} from "convex/server";
 import type * as admin_deleteUser from "../admin/deleteUser.js";
 import type * as auditLog from "../auditLog.js";
 import type * as auth from "../auth.js";
@@ -52,8 +47,8 @@ import type * as merch_http from "../merch/http.js";
 import type * as merch_model from "../merch/model.js";
 import type * as merch_mutations from "../merch/mutations.js";
 import type * as merch_queries from "../merch/queries.js";
-import type * as migrations_cleanupOrphans from "../migrations/cleanupOrphans.js";
 import type * as migrations from "../migrations.js";
+import type * as migrations_cleanupOrphans from "../migrations/cleanupOrphans.js";
 import type * as oembed_index from "../oembed/index.js";
 import type * as oembed_instagram from "../oembed/instagram.js";
 import type * as oembed_model from "../oembed/model.js";
@@ -67,14 +62,12 @@ import type * as reminders from "../reminders.js";
 import type * as rsvpTokens from "../rsvpTokens.js";
 import type * as seasons from "../seasons.js";
 
-/**
- * A utility for referencing Convex functions in your app's API.
- *
- * Usage:
- * ```js
- * const myFunctionReference = api.myModule.myFunction;
- * ```
- */
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+
 declare const fullApi: ApiFromModules<{
   "admin/deleteUser": typeof admin_deleteUser;
   auditLog: typeof auditLog;
@@ -115,8 +108,8 @@ declare const fullApi: ApiFromModules<{
   "merch/model": typeof merch_model;
   "merch/mutations": typeof merch_mutations;
   "merch/queries": typeof merch_queries;
-  "migrations/cleanupOrphans": typeof migrations_cleanupOrphans;
   migrations: typeof migrations;
+  "migrations/cleanupOrphans": typeof migrations_cleanupOrphans;
   "oembed/index": typeof oembed_index;
   "oembed/instagram": typeof oembed_instagram;
   "oembed/model": typeof oembed_model;
@@ -130,11 +123,31 @@ declare const fullApi: ApiFromModules<{
   rsvpTokens: typeof rsvpTokens;
   seasons: typeof seasons;
 }>;
+
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
 export declare const api: FilterApi<
   typeof fullApi,
   FunctionReference<any, "public">
 >;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
 export declare const internal: FilterApi<
   typeof fullApi,
   FunctionReference<any, "internal">
 >;
+
+export declare const components: {};
