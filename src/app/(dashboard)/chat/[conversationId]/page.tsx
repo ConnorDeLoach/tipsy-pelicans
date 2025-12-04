@@ -26,6 +26,7 @@ import { MessageActions } from "@/components/chat/MessageActions";
 import { LinkPreviewCards } from "@/components/chat/LinkPreviewCard";
 
 const PAGE_SIZE = 50;
+const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
 // Image type from API
 type MessageImage = {
@@ -581,10 +582,41 @@ export default function ChatDetailPage({
             const optimisticStatus =
               isOptimistic && "status" in msg ? msg.status : undefined;
             const prevMsg = index > 0 ? allMessages[index - 1] : null;
+            const nextMsg =
+              index < allMessages.length - 1 ? allMessages[index + 1] : null;
+
             const showDateSeparator =
               !prevMsg ||
               getDateKey(msg._creationTime) !==
                 getDateKey(prevMsg._creationTime);
+
+            const isSameSenderAsPrev =
+              !!prevMsg && prevMsg.createdBy === msg.createdBy;
+            const isSameSenderAsNext =
+              !!nextMsg && nextMsg.createdBy === msg.createdBy;
+
+            const withinPrevWindow =
+              !!prevMsg &&
+              msg._creationTime - prevMsg._creationTime <= GROUP_WINDOW_MS;
+            const withinNextWindow =
+              !!nextMsg &&
+              nextMsg._creationTime - msg._creationTime <= GROUP_WINDOW_MS;
+
+            const sameDayAsPrev = !!prevMsg && !showDateSeparator;
+            const sameDayAsNext =
+              !!nextMsg &&
+              getDateKey(nextMsg._creationTime) ===
+                getDateKey(msg._creationTime);
+
+            const isGroupedWithPrev =
+              isSameSenderAsPrev && withinPrevWindow && sameDayAsPrev;
+            const isGroupedWithNext =
+              isSameSenderAsNext && withinNextWindow && sameDayAsNext;
+
+            const isGroupStart = !isGroupedWithPrev;
+            const isGroupEnd = !isGroupedWithNext;
+            const showSenderHeader = !isMe && isGroupStart;
+            const showTimestamp = !isOptimistic && isGroupEnd;
 
             return (
               <li key={msg._id}>
@@ -642,7 +674,7 @@ export default function ChatDetailPage({
                           : ""
                       }`}
                     >
-                      {!isMe && (
+                      {showSenderHeader && (
                         <div className="mb-1 flex items-center gap-2">
                           <span className="text-xs font-semibold">
                             {msg.displayName}
@@ -706,7 +738,9 @@ export default function ChatDetailPage({
                             ? optimisticStatus === "failed"
                               ? ""
                               : "Sending..."
-                            : formatTime(msg._creationTime)}
+                            : showTimestamp
+                            ? formatTime(msg._creationTime)
+                            : ""}
                         </span>
                       </div>
                     </div>
