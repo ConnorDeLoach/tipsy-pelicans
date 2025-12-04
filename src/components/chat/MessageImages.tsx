@@ -15,18 +15,30 @@ export interface MessageImage {
 interface MessageImagesProps {
   images: MessageImage[];
   isMe?: boolean;
+  onLightboxOpenChange?: (open: boolean) => void;
 }
 
 /**
  * Renders images in a chat message with thumbnail grid and full-size lightbox.
  */
-export function MessageImages({ images, isMe = false }: MessageImagesProps) {
+export function MessageImages({
+  images,
+  isMe = false,
+  onLightboxOpenChange,
+}: MessageImagesProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   if (!images || images.length === 0) return null;
 
-  const openLightbox = (index: number) => setLightboxIndex(index);
-  const closeLightbox = () => setLightboxIndex(null);
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    onLightboxOpenChange?.(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxIndex(null);
+    onLightboxOpenChange?.(false);
+  };
 
   const goToPrevious = () => {
     if (lightboxIndex !== null && lightboxIndex > 0) {
@@ -73,7 +85,10 @@ export function MessageImages({ images, isMe = false }: MessageImagesProps) {
             <button
               key={index}
               type="button"
-              onClick={() => openLightbox(index)}
+              onClick={(e) => {
+                e.stopPropagation();
+                openLightbox(index);
+              }}
               className={cn(
                 "relative overflow-hidden rounded-md bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring",
                 spanFull && "col-span-2",
@@ -117,7 +132,10 @@ export function MessageImages({ images, isMe = false }: MessageImagesProps) {
 
           {/* Close button */}
           <button
-            onClick={closeLightbox}
+            onClick={(e) => {
+              e.stopPropagation();
+              closeLightbox();
+            }}
             className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
             aria-label="Close"
           >
@@ -133,7 +151,10 @@ export function MessageImages({ images, isMe = false }: MessageImagesProps) {
 
           {/* Main image */}
           {lightboxIndex !== null && images[lightboxIndex] && (
-            <div className="flex items-center justify-center min-h-[50vh] p-4">
+            <div
+              className="flex items-center justify-center min-h-[50vh] p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
               {images[lightboxIndex].fullUrl ? (
                 <img
                   src={images[lightboxIndex].fullUrl}
@@ -151,7 +172,10 @@ export function MessageImages({ images, isMe = false }: MessageImagesProps) {
             <>
               {lightboxIndex > 0 && (
                 <button
-                  onClick={goToPrevious}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToPrevious();
+                  }}
                   className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
                   aria-label="Previous image"
                 >
@@ -172,7 +196,10 @@ export function MessageImages({ images, isMe = false }: MessageImagesProps) {
               )}
               {lightboxIndex < images.length - 1 && (
                 <button
-                  onClick={goToNext}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToNext();
+                  }}
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
                   aria-label="Next image"
                 >

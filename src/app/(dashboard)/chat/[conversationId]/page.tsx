@@ -124,6 +124,7 @@ export default function ChatDetailPage({
   const [optimisticReactions, setOptimisticReactions] = useState<
     OptimisticReaction[]
   >([]);
+  const [suppressNextActionsOpen, setSuppressNextActionsOpen] = useState(false);
 
   // Helper to apply optimistic reactions to a message
   const applyOptimisticReactions = (
@@ -542,9 +543,19 @@ export default function ChatDetailPage({
                 >
                   <MessageActions
                     open={selectedMessageId === msg._id && !isOptimistic}
-                    onOpenChange={(open) =>
-                      setSelectedMessageId(open ? msg._id : null)
-                    }
+                    onOpenChange={(open) => {
+                      if (open) {
+                        if (suppressNextActionsOpen) {
+                          setSuppressNextActionsOpen(false);
+                          return;
+                        }
+                        setSelectedMessageId(msg._id);
+                      } else {
+                        setSelectedMessageId((current) =>
+                          current === msg._id ? null : current
+                        );
+                      }
+                    }}
                     onReact={(emoji) =>
                       handleReaction(msg._id as Id<"messages">, emoji)
                     }
@@ -576,7 +587,15 @@ export default function ChatDetailPage({
                         <MessageContent body={msg.body} isMe={isMe} />
                       )}
                       {msg.images && msg.images.length > 0 && (
-                        <MessageImages images={msg.images} isMe={isMe} />
+                        <MessageImages
+                          images={msg.images}
+                          isMe={isMe}
+                          onLightboxOpenChange={(open) => {
+                            if (!open) {
+                              setSuppressNextActionsOpen(true);
+                            }
+                          }}
+                        />
                       )}
                       {msg.body && !isOptimistic && (
                         <LinkPreviewCards body={msg.body} isMe={isMe} />
