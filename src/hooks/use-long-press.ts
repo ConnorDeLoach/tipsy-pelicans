@@ -13,10 +13,16 @@ interface LongPressHandlers {
   onPointerLeave: () => void;
 }
 
-export function useLongPress(options: UseLongPressOptions): LongPressHandlers {
+interface UseLongPressResult {
+  isPressing: boolean;
+  handlers: LongPressHandlers;
+}
+
+export function useLongPress(options: UseLongPressOptions): UseLongPressResult {
   const { onLongPress, threshold = 700, disabled } = options;
   const timerRef = React.useRef<number | null>(null);
   const startPosRef = React.useRef<{ x: number; y: number } | null>(null);
+  const [isPressing, setIsPressing] = React.useState(false);
 
   const clear = React.useCallback(() => {
     if (timerRef.current !== null) {
@@ -24,6 +30,7 @@ export function useLongPress(options: UseLongPressOptions): LongPressHandlers {
       timerRef.current = null;
     }
     startPosRef.current = null;
+    setIsPressing(false);
   }, []);
 
   const start = React.useCallback(
@@ -31,6 +38,7 @@ export function useLongPress(options: UseLongPressOptions): LongPressHandlers {
       if (disabled) return;
       clear();
       startPosRef.current = { x: clientX, y: clientY };
+      setIsPressing(true);
       timerRef.current = window.setTimeout(() => {
         timerRef.current = null;
         onLongPress();
@@ -84,5 +92,13 @@ export function useLongPress(options: UseLongPressOptions): LongPressHandlers {
 
   React.useEffect(() => cancel, [cancel]);
 
-  return { onPointerDown, onPointerMove, onPointerUp, onPointerLeave };
+  return {
+    isPressing,
+    handlers: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp,
+      onPointerLeave,
+    },
+  };
 }

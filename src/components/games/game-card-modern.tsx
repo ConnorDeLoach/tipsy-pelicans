@@ -106,7 +106,7 @@ export function GameCardModern({
 }: GameCardModernProps) {
   const isMobile = useIsMobile();
 
-  const longPressHandlers = useLongPress({
+  const { isPressing, handlers: longPressHandlers } = useLongPress({
     onLongPress: () => {
       if (isAdmin && isMobile) {
         onEdit(entry);
@@ -248,7 +248,9 @@ export function GameCardModern({
             {/* Main Content */}
             <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center gap-2 sm:gap-3">
               <div
-                className="flex justify-between items-start gap-2"
+                className={`flex justify-between items-start gap-2 transition-transform duration-150 ${
+                  isMobile && isAdmin && isPressing ? "scale-[0.97]" : ""
+                }`}
                 {...(isMobile && isAdmin ? longPressHandlers : {})}
               >
                 <div>

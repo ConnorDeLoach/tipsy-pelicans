@@ -78,7 +78,7 @@ export function PlayerCard({
 
   const isMobile = useIsMobile();
 
-  const longPressHandlers = useLongPress({
+  const { isPressing, handlers: longPressHandlers } = useLongPress({
     onLongPress: () => {
       if (isAdmin && isMobile) {
         onEdit(player);
@@ -103,7 +103,9 @@ export function PlayerCard({
             {/* Main Content */}
             <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center gap-1">
               <div
-                className="flex justify-between items-start gap-2"
+                className={`flex justify-between items-start gap-2 transition-transform duration-150 ${
+                  isMobile && isAdmin && isPressing ? "scale-[0.97]" : ""
+                }`}
                 {...(isMobile && isAdmin ? longPressHandlers : {})}
               >
                 <div className="flex items-center gap-3">
