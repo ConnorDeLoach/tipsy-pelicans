@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
@@ -33,12 +33,33 @@ export function MessageImages({
   const openLightbox = (index: number) => {
     setLightboxIndex(index);
     onLightboxOpenChange?.(true);
+    // Push history state so the browser back button can close the lightbox
+    window.history.pushState({ imageLightbox: true }, "");
   };
 
-  const closeLightbox = () => {
+  const closeLightbox = useCallback(() => {
     setLightboxIndex(null);
     onLightboxOpenChange?.(false);
-  };
+  }, [onLightboxOpenChange]);
+
+  // When closing via overlay or close button, go back in history
+  const handleCloseWithHistory = useCallback(() => {
+    if (lightboxIndex !== null) {
+      window.history.back();
+    }
+  }, [lightboxIndex]);
+
+  // Handle browser back button to close the lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const handlePopState = () => {
+      closeLightbox();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [lightboxIndex, closeLightbox]);
 
   const goToPrevious = () => {
     if (lightboxIndex !== null && lightboxIndex > 0) {
@@ -120,7 +141,14 @@ export function MessageImages({
       </div>
 
       {/* Lightbox dialog */}
-      <Dialog open={lightboxIndex !== null} onOpenChange={closeLightbox}>
+      <Dialog
+        open={lightboxIndex !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCloseWithHistory();
+          }
+        }}
+      >
         <DialogContent
           className="max-w-[95vw] max-h-[95vh] p-0 bg-black/95 border-none overflow-hidden"
           aria-describedby={undefined}
@@ -134,7 +162,7 @@ export function MessageImages({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              closeLightbox();
+              handleCloseWithHistory();
             }}
             className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
             aria-label="Close"
