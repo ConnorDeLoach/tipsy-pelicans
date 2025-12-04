@@ -44,6 +44,10 @@ export const linkPreviewsTable = defineTable({
   imageWidth: v.optional(v.number()),
   imageHeight: v.optional(v.number()),
 
+  // Embed support for video content
+  videoId: v.optional(v.string()), // Platform-specific video ID for embedding
+  embedProvider: v.optional(v.string()), // Provider name (e.g., "tiktok", "youtube")
+
   // Status tracking
   status: linkPreviewStatusValidator,
   errorMessage: v.optional(v.string()),

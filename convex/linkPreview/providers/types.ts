@@ -8,6 +8,10 @@ export interface ParsedPreview {
   siteName?: string;
   type?: string;
   faviconUrl?: string;
+  /** Video ID for embeddable video content (e.g., TikTok, YouTube) */
+  videoId?: string;
+  /** Provider name for embed routing (e.g., "tiktok", "youtube") */
+  embedProvider?: string;
 }
 
 /**

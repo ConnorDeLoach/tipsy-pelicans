@@ -6,6 +6,7 @@ import { useMemo, useState, useEffect } from "react";
 import { extractUrls } from "@/lib/parseMessageContent";
 import { ExternalLink, Globe } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { TikTokEmbed } from "./TikTokEmbed";
 
 interface LinkPreviewCardProps {
   body: string;
@@ -23,6 +24,8 @@ interface PreviewData {
   imageThumbUrl?: string | null;
   imageWidth?: number;
   imageHeight?: number;
+  videoId?: string;
+  embedProvider?: string;
 }
 
 /**
@@ -96,6 +99,39 @@ function LinkPreviewCardInner({ url, isMe }: { url: string; isMe: boolean }) {
     }
   }, [url]);
 
+  // Fetch preview data to check for embeddable content
+  const preview = useLinkPreview(normalizedUrl);
+
+  // Render TikTok embed if applicable
+  if (
+    preview?.status === "success" &&
+    preview.embedProvider === "tiktok" &&
+    preview.videoId
+  ) {
+    return (
+      <div
+        className={cn(
+          "rounded-lg border overflow-hidden",
+          isMe
+            ? "border-primary-foreground/20 bg-primary-foreground/10"
+            : "border-border bg-background/50"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <TikTokEmbed
+          videoId={preview.videoId}
+          thumbnailUrl={
+            preview.imageThumbUrl || preview.imageFullUrl || undefined
+          }
+          title={preview.title}
+          description={preview.description}
+          isMe={isMe}
+        />
+      </div>
+    );
+  }
+
+  // Standard link preview card
   return (
     <a
       href={url}
@@ -109,7 +145,12 @@ function LinkPreviewCardInner({ url, isMe }: { url: string; isMe: boolean }) {
           : "border-border hover:border-border/80 bg-background/50"
       )}
     >
-      <LinkPreviewContent url={normalizedUrl} domain={domain} isMe={isMe} />
+      <LinkPreviewContent
+        url={normalizedUrl}
+        domain={domain}
+        isMe={isMe}
+        preview={preview}
+      />
     </a>
   );
 }
@@ -121,14 +162,13 @@ function LinkPreviewContent({
   url,
   domain,
   isMe,
+  preview,
 }: {
   url: string;
   domain: string;
   isMe: boolean;
+  preview: PreviewData | null;
 }) {
-  // Use a custom hook to fetch preview data
-  const preview = useLinkPreview(url);
-
   if (preview === null) {
     // Loading state
     return (

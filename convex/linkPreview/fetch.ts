@@ -218,6 +218,9 @@ export const processUrl = internalAction({
       faviconUrl: parsed.faviconUrl,
       // Store original image URL directly (no proxying)
       originalImageUrl,
+      // Embed support for video content
+      videoId: parsed.videoId,
+      embedProvider: parsed.embedProvider,
       status: "success",
       fetchedAt: now,
       expiresAt: now + LINK_PREVIEW_TTL_MS,

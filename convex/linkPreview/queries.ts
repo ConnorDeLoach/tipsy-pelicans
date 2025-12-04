@@ -55,6 +55,8 @@ export const getPreviewsForUrls = query({
       imageThumbUrl: v.optional(v.union(v.string(), v.null())),
       imageWidth: v.optional(v.number()),
       imageHeight: v.optional(v.number()),
+      videoId: v.optional(v.string()),
+      embedProvider: v.optional(v.string()),
     })
   ),
   handler: async (ctx, { urlHashes }) => {
@@ -98,6 +100,8 @@ export const getPreviewsForUrls = query({
           imageThumbUrl,
           imageWidth: preview.imageWidth,
           imageHeight: preview.imageHeight,
+          videoId: preview.videoId,
+          embedProvider: preview.embedProvider,
         };
       })
     );
