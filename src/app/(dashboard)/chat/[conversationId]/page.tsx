@@ -3,7 +3,14 @@
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useMutation, usePaginatedQuery, useQuery } from "convex/react";
-import { useEffect, useRef, useState, use } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  use,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -116,6 +123,7 @@ export default function ChatDetailPage({
   >([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const prevMessageCountRef = useRef(0);
@@ -259,7 +267,9 @@ export default function ChatDetailPage({
     setShouldAutoScroll(isNearBottom);
   };
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSend = async (
+    e: FormEvent<HTMLFormElement> | KeyboardEvent<HTMLTextAreaElement>
+  ) => {
     e.preventDefault();
     const trimmed = body.trim();
     const hasText = trimmed.length > 0;
@@ -377,6 +387,7 @@ export default function ChatDetailPage({
       toast.error(message);
     } finally {
       setIsSending(false);
+      textareaRef.current?.focus();
     }
   };
 
@@ -774,6 +785,7 @@ export default function ChatDetailPage({
             disabled={isSending || !me}
           />
           <textarea
+            ref={textareaRef}
             value={body}
             onChange={(e) => setBody(e.target.value)}
             onKeyDown={(e) => {
@@ -785,7 +797,7 @@ export default function ChatDetailPage({
             placeholder="Type a message..."
             rows={1}
             className="flex-1 resize-none rounded-lg border border-border bg-muted px-3 py-2 text-sm focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/40"
-            disabled={isSending || !me}
+            disabled={!me}
             maxLength={2000}
           />
           <Button
