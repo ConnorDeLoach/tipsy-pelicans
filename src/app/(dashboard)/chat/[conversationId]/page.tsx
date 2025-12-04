@@ -10,6 +10,7 @@ import {
   use,
   type FormEvent,
   type KeyboardEvent,
+  type MutableRefObject,
 } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Send, ChevronDown, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ImagePicker, useImagePicker } from "@/components/chat/ImagePicker";
+import {
+  ImagePicker,
+  useImagePicker,
+  type PendingImage,
+} from "@/components/chat/ImagePicker";
 import { MessageImages } from "@/components/chat/MessageImages";
 import { MessageContent } from "@/components/chat/MessageContent";
 import { ReactionChips, type Reaction } from "@/components/chat/ReactionChips";
@@ -80,16 +85,64 @@ type OptimisticReaction = {
   action: "add" | "remove";
 };
 
-export default function ChatDetailPage({
-  params,
-}: {
-  params: Promise<{ conversationId: Id<"conversations"> }>;
-}) {
-  const { conversationId } = use(params);
-  const router = useRouter();
-  const me = useQuery(api.me.get);
-  const conversation = useQuery(api.chat.conversations.get, { conversationId });
+type Me =
+  | {
+      playerId?: Id<"players">;
+      role?: string;
+      name?: string | null;
+    }
+  | null
+  | undefined;
 
+type Conversation =
+  | {
+      displayName: string;
+    }
+  | null
+  | undefined;
+
+const formatTime = (timestamp: number) => {
+  const date = new Date(timestamp);
+  return date.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+};
+
+const formatDateSeparator = (timestamp: number) => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  if (isToday) return "Today";
+  if (isYesterday) return "Yesterday";
+  return date.toLocaleDateString(undefined, {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const getDateKey = (timestamp: number) => {
+  return new Date(timestamp).toDateString();
+};
+
+type UseChatMessagesArgs = {
+  conversationId: Id<"conversations">;
+  me: Me;
+  textareaRef: MutableRefObject<HTMLTextAreaElement | null>;
+  onForceAutoScroll?: () => void;
+};
+
+function useChatMessages({
+  conversationId,
+  me,
+  textareaRef,
+  onForceAutoScroll,
+}: UseChatMessagesArgs) {
   const {
     results: messages,
     status,
@@ -104,8 +157,6 @@ export default function ChatDetailPage({
   const sendWithImages = useMutation(api.chat.images.sendWithImages);
   const generateUploadUrl = useMutation(api.chat.images.generateUploadUrl);
   const deleteMessage = useMutation(api.chat.messages.remove);
-  const markAsRead = useMutation(api.chat.unread.markAsRead);
-  const heartbeat = useMutation(api.chat.presence.heartbeat);
   const toggleReaction = useMutation(api.chat.reactions.toggle);
 
   const {
@@ -121,22 +172,9 @@ export default function ChatDetailPage({
   const [optimisticMessages, setOptimisticMessages] = useState<
     OptimisticMessage[]
   >([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const prevMessageCountRef = useRef(0);
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
-    null
-  );
-  const [deleteConfirmId, setDeleteConfirmId] = useState<Id<"messages"> | null>(
-    null
-  );
   const [optimisticReactions, setOptimisticReactions] = useState<
     OptimisticReaction[]
   >([]);
-  const [suppressNextActionsOpen, setSuppressNextActionsOpen] = useState(false);
 
   // Helper to apply optimistic reactions to a message
   const applyOptimisticReactions = (
@@ -201,72 +239,6 @@ export default function ChatDetailPage({
     ...optimisticMessages,
   ];
 
-  // Mark chat as read when page loads and when new messages arrive while viewing
-  useEffect(() => {
-    if (me && messages.length > 0) {
-      markAsRead({ conversationId });
-    }
-  }, [me, messages.length, markAsRead, conversationId]);
-
-  // Send presence heartbeat every 15 seconds while viewing chat
-  // This is used to suppress push notifications for active users
-  useEffect(() => {
-    if (!me) return;
-
-    // Send initial heartbeat
-    heartbeat({ conversationId });
-
-    // Set up interval for ongoing heartbeats
-    const interval = setInterval(() => {
-      // Only send heartbeat if document is visible
-      if (document.visibilityState === "visible") {
-        heartbeat({ conversationId });
-      }
-    }, 15_000); // Every 15 seconds
-
-    // Also send heartbeat when tab becomes visible again
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        heartbeat({ conversationId });
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [me, heartbeat, conversationId]);
-
-  // Auto-scroll to bottom when new messages arrive (if user is near bottom)
-  useEffect(() => {
-    if (shouldAutoScroll && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [allMessages.length, shouldAutoScroll]);
-
-  // Track new messages when scrolled up
-  useEffect(() => {
-    const currentCount = messages.length;
-    if (currentCount > prevMessageCountRef.current && !shouldAutoScroll) {
-      setUnreadCount(
-        (prev) => prev + (currentCount - prevMessageCountRef.current)
-      );
-    }
-    if (shouldAutoScroll) {
-      setUnreadCount(0);
-    }
-    prevMessageCountRef.current = currentCount;
-  }, [messages.length, shouldAutoScroll]);
-
-  // Track scroll position to determine if we should auto-scroll
-  const handleScroll = () => {
-    if (!containerRef.current) return;
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
-    setShouldAutoScroll(isNearBottom);
-  };
-
   const handleSend = async (
     e: FormEvent<HTMLFormElement> | KeyboardEvent<HTMLTextAreaElement>
   ) => {
@@ -293,7 +265,7 @@ export default function ChatDetailPage({
     const optimisticMsg: OptimisticMessage = {
       _id: optimisticId,
       _creationTime: Date.now(),
-      createdBy: me.playerId,
+      createdBy: me.playerId as Id<"players">,
       body: trimmed,
       displayName: me.name ?? "You",
       role: me.role ?? "player",
@@ -307,7 +279,9 @@ export default function ChatDetailPage({
     setBody("");
     const imagesToUpload = [...pendingImages];
     clearImages();
-    setShouldAutoScroll(true);
+    if (onForceAutoScroll) {
+      onForceAutoScroll();
+    }
     setIsSending(true);
 
     try {
@@ -391,12 +365,6 @@ export default function ChatDetailPage({
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    setShouldAutoScroll(true);
-    setUnreadCount(0);
-  };
-
   const handleDelete = async (messageId: Id<"messages">) => {
     try {
       await deleteMessage({ messageId });
@@ -405,9 +373,6 @@ export default function ChatDetailPage({
       const message =
         err instanceof Error ? err.message : "Failed to delete message.";
       toast.error(message);
-    } finally {
-      setDeleteConfirmId(null);
-      setSelectedMessageId(null);
     }
   };
 
@@ -487,6 +452,149 @@ export default function ChatDetailPage({
     }
   };
 
+  return {
+    messages,
+    status,
+    loadMore,
+    allMessages,
+    body,
+    setBody,
+    isSending,
+    pendingImages,
+    setPendingImages,
+    hasImages,
+    allReady,
+    handleSend,
+    handleRetryOptimistic,
+    handleReaction,
+    handleDelete,
+  };
+}
+
+export default function ChatDetailPage({
+  params,
+}: {
+  params: Promise<{ conversationId: Id<"conversations"> }>;
+}) {
+  const { conversationId } = use(params);
+  const router = useRouter();
+  const me = useQuery(api.me.get);
+  const conversation = useQuery(api.chat.conversations.get, { conversationId });
+  const markAsRead = useMutation(api.chat.unread.markAsRead);
+  const heartbeat = useMutation(api.chat.presence.heartbeat);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const prevMessageCountRef = useRef(0);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(
+    null
+  );
+  const [deleteConfirmId, setDeleteConfirmId] = useState<Id<"messages"> | null>(
+    null
+  );
+  const [suppressNextActionsOpen, setSuppressNextActionsOpen] = useState(false);
+
+  const handleForceAutoScroll = () => {
+    setShouldAutoScroll(true);
+  };
+
+  const {
+    messages,
+    status,
+    loadMore,
+    allMessages,
+    body,
+    setBody,
+    isSending,
+    pendingImages,
+    setPendingImages,
+    hasImages,
+    allReady,
+    handleSend,
+    handleRetryOptimistic,
+    handleReaction,
+    handleDelete,
+  } = useChatMessages({
+    conversationId,
+    me,
+    textareaRef,
+    onForceAutoScroll: handleForceAutoScroll,
+  });
+
+  // Mark chat as read when page loads and when new messages arrive while viewing
+  useEffect(() => {
+    if (me && messages.length > 0) {
+      markAsRead({ conversationId });
+    }
+  }, [me, messages.length, markAsRead, conversationId]);
+
+  // Send presence heartbeat every 15 seconds while viewing chat
+  // This is used to suppress push notifications for active users
+  useEffect(() => {
+    if (!me) return;
+
+    // Send initial heartbeat
+    heartbeat({ conversationId });
+
+    // Set up interval for ongoing heartbeats
+    const interval = setInterval(() => {
+      // Only send heartbeat if document is visible
+      if (document.visibilityState === "visible") {
+        heartbeat({ conversationId });
+      }
+    }, 15_000); // Every 15 seconds
+
+    // Also send heartbeat when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        heartbeat({ conversationId });
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [me, heartbeat, conversationId]);
+
+  // Auto-scroll to bottom when new messages arrive (if user is near bottom)
+  useEffect(() => {
+    if (shouldAutoScroll && messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [allMessages.length, shouldAutoScroll]);
+
+  // Track new messages when scrolled up
+  useEffect(() => {
+    const currentCount = messages.length;
+    if (currentCount > prevMessageCountRef.current && !shouldAutoScroll) {
+      setUnreadCount(
+        (prev) => prev + (currentCount - prevMessageCountRef.current)
+      );
+    }
+    if (shouldAutoScroll) {
+      setUnreadCount(0);
+    }
+    prevMessageCountRef.current = currentCount;
+  }, [messages.length, shouldAutoScroll]);
+
+  // Track scroll position to determine if we should auto-scroll
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    setShouldAutoScroll(isNearBottom);
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setShouldAutoScroll(true);
+    setUnreadCount(0);
+  };
+
   const canDelete = (msg: {
     createdBy: Id<"players">;
     _creationTime: number;
@@ -497,48 +605,117 @@ export default function ChatDetailPage({
     const withinWindow = Date.now() - msg._creationTime < 10 * 60 * 1000;
     return isAdmin || (isOwner && withinWindow);
   };
-
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString(undefined, {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
-
-  const formatDateSeparator = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday = date.toDateString() === yesterday.toDateString();
-
-    if (isToday) return "Today";
-    if (isYesterday) return "Yesterday";
-    return date.toLocaleDateString(undefined, {
-      weekday: "long",
-      month: "short",
-      day: "numeric",
-    });
-  };
-
-  const getDateKey = (timestamp: number) => {
-    return new Date(timestamp).toDateString();
-  };
-
   const isLoading = status === "LoadingFirstPage";
+  const canLoadMore = status === "CanLoadMore";
+
+  const handleBack = () => {
+    router.push("/chat");
+  };
+
+  const handleLoadMore = () => {
+    loadMore(PAGE_SIZE);
+  };
+
+  const handleMessageActionsOpenChange = (
+    messageId: string,
+    isOptimistic: boolean | undefined,
+    open: boolean
+  ) => {
+    if (isOptimistic) return;
+
+    if (open) {
+      if (suppressNextActionsOpen) {
+        setSuppressNextActionsOpen(false);
+        return;
+      }
+      setSelectedMessageId(messageId);
+    } else {
+      setSelectedMessageId((current) =>
+        current === messageId ? null : current
+      );
+    }
+  };
+
+  const handleMessageLightboxClose = () => {
+    setSuppressNextActionsOpen(true);
+  };
+
+  const handleRequestDelete = (
+    messageId: Id<"messages">,
+    _msg: { createdBy: Id<"players">; _creationTime: number }
+  ) => {
+    setDeleteConfirmId(messageId);
+  };
+
+  const handleDeleteDialogOpenChange = (open: boolean) => {
+    if (!open) {
+      setDeleteConfirmId(null);
+      setSelectedMessageId(null);
+    }
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirmId) {
+      handleDelete(deleteConfirmId);
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100dvh-var(--header-height)-2rem)] px-4 lg:px-6">
+      <ChatHeader conversation={conversation} onBack={handleBack} />
+      <ChatMessagesSection
+        me={me}
+        allMessages={allMessages}
+        messagesLength={messages.length}
+        isLoading={isLoading}
+        canLoadMore={canLoadMore}
+        unreadCount={unreadCount}
+        shouldAutoScroll={shouldAutoScroll}
+        selectedMessageId={selectedMessageId}
+        containerRef={containerRef}
+        messagesEndRef={messagesEndRef}
+        onLoadMore={handleLoadMore}
+        onScroll={handleScroll}
+        onScrollToBottom={scrollToBottom}
+        onReaction={handleReaction}
+        onRetryOptimistic={handleRetryOptimistic}
+        onRequestDelete={handleRequestDelete}
+        onMessageActionsOpenChange={handleMessageActionsOpenChange}
+        onMessageLightboxClose={handleMessageLightboxClose}
+        canDelete={canDelete}
+      />
+      <ChatComposer
+        me={me}
+        body={body}
+        isSending={isSending}
+        hasImages={hasImages}
+        allReady={allReady}
+        pendingImages={pendingImages}
+        textareaRef={textareaRef}
+        onBodyChange={setBody}
+        onImagesChange={setPendingImages}
+        onSend={handleSend}
+      />
+      <DeleteMessageDialog
+        deleteConfirmId={deleteConfirmId}
+        onOpenChange={handleDeleteDialogOpenChange}
+        onConfirm={handleConfirmDelete}
+      />
+    </div>
+  );
+}
+
+type ChatHeaderProps = {
+  conversation: Conversation;
+  onBack: () => void;
+};
+
+function ChatHeader({ conversation, onBack }: ChatHeaderProps) {
+  return (
+    <>
       {/* Header */}
       <div className="mb-4 flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="-ml-2"
-          onClick={() => router.push("/chat")}
-        >
+        <Button variant="ghost" size="icon" className="-ml-2" onClick={onBack}>
           <ArrowLeft className="size-6" />
           <span className="sr-only">Back to messages</span>
         </Button>
@@ -552,21 +729,79 @@ export default function ChatDetailPage({
           )}
         </div>
       </div>
+    </>
+  );
+}
 
+type ChatMessagesSectionProps = {
+  me: Me;
+  allMessages: AnyMessage[];
+  messagesLength: number;
+  isLoading: boolean;
+  canLoadMore: boolean;
+  unreadCount: number;
+  shouldAutoScroll: boolean;
+  selectedMessageId: string | null;
+  containerRef: MutableRefObject<HTMLDivElement | null>;
+  messagesEndRef: MutableRefObject<HTMLDivElement | null>;
+  onLoadMore: () => void;
+  onScroll: () => void;
+  onScrollToBottom: () => void;
+  onReaction: (messageId: Id<"messages">, emoji: string) => void;
+  onRetryOptimistic: (optimisticId: string) => void;
+  onRequestDelete: (
+    messageId: Id<"messages">,
+    msg: { createdBy: Id<"players">; _creationTime: number }
+  ) => void;
+  onMessageActionsOpenChange: (
+    messageId: string,
+    isOptimistic: boolean | undefined,
+    open: boolean
+  ) => void;
+  onMessageLightboxClose: () => void;
+  canDelete: (msg: {
+    createdBy: Id<"players">;
+    _creationTime: number;
+  }) => boolean;
+};
+
+function ChatMessagesSection({
+  me,
+  allMessages,
+  messagesLength,
+  isLoading,
+  canLoadMore,
+  unreadCount,
+  shouldAutoScroll,
+  selectedMessageId,
+  containerRef,
+  messagesEndRef,
+  onLoadMore,
+  onScroll,
+  onScrollToBottom,
+  onReaction,
+  onRetryOptimistic,
+  onRequestDelete,
+  onMessageActionsOpenChange,
+  onMessageLightboxClose,
+  canDelete,
+}: ChatMessagesSectionProps) {
+  return (
+    <>
       {/* Messages container */}
       <div
         ref={containerRef}
-        onScroll={handleScroll}
+        onScroll={onScroll}
         className="relative flex-1 min-h-0 overflow-y-auto rounded-xl p-4"
       >
         {/* Load more button */}
-        {status === "CanLoadMore" && (
+        {canLoadMore && (
           <div className="mb-4 text-center">
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => loadMore(PAGE_SIZE)}
+              onClick={onLoadMore}
             >
               Load older messages
             </Button>
@@ -579,7 +814,7 @@ export default function ChatDetailPage({
           </div>
         )}
 
-        {!isLoading && messages.length === 0 && (
+        {!isLoading && messagesLength === 0 && (
           <p className="py-8 text-center text-muted-foreground">
             No messages yet—be the first to say hi!
           </p>
@@ -645,25 +880,19 @@ export default function ChatDetailPage({
                 >
                   <MessageActions
                     open={selectedMessageId === msg._id && !isOptimistic}
-                    onOpenChange={(open) => {
-                      if (open) {
-                        if (suppressNextActionsOpen) {
-                          setSuppressNextActionsOpen(false);
-                          return;
-                        }
-                        setSelectedMessageId(msg._id);
-                      } else {
-                        setSelectedMessageId((current) =>
-                          current === msg._id ? null : current
-                        );
-                      }
-                    }}
+                    onOpenChange={(open) =>
+                      onMessageActionsOpenChange(
+                        msg._id as string,
+                        isOptimistic,
+                        open
+                      )
+                    }
                     onReact={(emoji) =>
-                      handleReaction(msg._id as Id<"messages">, emoji)
+                      onReaction(msg._id as Id<"messages">, emoji)
                     }
                     onDelete={
                       canDelete(msg)
-                        ? () => setDeleteConfirmId(msg._id as Id<"messages">)
+                        ? () => onRequestDelete(msg._id as Id<"messages">, msg)
                         : undefined
                     }
                     isMe={isMe}
@@ -704,7 +933,7 @@ export default function ChatDetailPage({
                           isMe={isMe}
                           onLightboxOpenChange={(open) => {
                             if (!open) {
-                              setSuppressNextActionsOpen(true);
+                              onMessageLightboxClose();
                             }
                           }}
                         />
@@ -717,7 +946,7 @@ export default function ChatDetailPage({
                         <ReactionChips
                           reactions={msg.reactions}
                           onToggle={(emoji) =>
-                            handleReaction(msg._id as Id<"messages">, emoji)
+                            onReaction(msg._id as Id<"messages">, emoji)
                           }
                           isMe={isMe}
                           disabled={!me}
@@ -732,7 +961,7 @@ export default function ChatDetailPage({
                             <button
                               type="button"
                               onClick={() =>
-                                handleRetryOptimistic(msg._id as string)
+                                onRetryOptimistic(msg._id as string)
                               }
                               className="text-xs font-medium underline underline-offset-2 hover:opacity-80"
                             >
@@ -767,7 +996,7 @@ export default function ChatDetailPage({
         {!shouldAutoScroll && unreadCount > 0 && (
           <button
             type="button"
-            onClick={scrollToBottom}
+            onClick={onScrollToBottom}
             className="absolute bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-lg transition-transform hover:scale-105"
           >
             <ChevronDown className="size-4" />
@@ -775,23 +1004,55 @@ export default function ChatDetailPage({
           </button>
         )}
       </div>
+    </>
+  );
+}
 
+type ChatComposerProps = {
+  me: Me;
+  body: string;
+  isSending: boolean;
+  hasImages: boolean;
+  allReady: boolean;
+  pendingImages: PendingImage[];
+  textareaRef: MutableRefObject<HTMLTextAreaElement | null>;
+  onBodyChange: (value: string) => void;
+  onImagesChange: (images: PendingImage[]) => void;
+  onSend: (
+    e: FormEvent<HTMLFormElement> | KeyboardEvent<HTMLTextAreaElement>
+  ) => void;
+};
+
+function ChatComposer({
+  me,
+  body,
+  isSending,
+  hasImages,
+  allReady,
+  pendingImages,
+  textareaRef,
+  onBodyChange,
+  onImagesChange,
+  onSend,
+}: ChatComposerProps) {
+  return (
+    <>
       {/* Composer */}
-      <form onSubmit={handleSend} className="mt-4 space-y-2">
+      <form onSubmit={onSend} className="mt-4 space-y-2">
         <div className="flex gap-2 items-end">
           <ImagePicker
             images={pendingImages}
-            onImagesChange={setPendingImages}
+            onImagesChange={onImagesChange}
             disabled={isSending || !me}
           />
           <textarea
             ref={textareaRef}
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={(e) => onBodyChange(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                handleSend(e);
+                onSend(e);
               }
             }}
             placeholder="Type a message..."
@@ -824,17 +1085,25 @@ export default function ChatDetailPage({
           {body.length}/2000 characters
         </p>
       )}
+    </>
+  );
+}
 
+type DeleteMessageDialogProps = {
+  deleteConfirmId: Id<"messages"> | null;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+};
+
+function DeleteMessageDialog({
+  deleteConfirmId,
+  onOpenChange,
+  onConfirm,
+}: DeleteMessageDialogProps) {
+  return (
+    <>
       {/* Delete confirmation dialog */}
-      <AlertDialog
-        open={deleteConfirmId !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setDeleteConfirmId(null);
-            setSelectedMessageId(null);
-          }
-        }}
-      >
+      <AlertDialog open={deleteConfirmId !== null} onOpenChange={onOpenChange}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete message?</AlertDialogTitle>
@@ -845,14 +1114,10 @@ export default function ChatDetailPage({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => deleteConfirmId && handleDelete(deleteConfirmId)}
-            >
-              Delete
-            </AlertDialogAction>
+            <AlertDialogAction onClick={onConfirm}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

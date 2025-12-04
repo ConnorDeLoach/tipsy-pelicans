@@ -8,6 +8,15 @@ import { Loader2, MessageSquarePlus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Id } from "@/convex/_generated/dataModel";
 
+type ConversationSummary = {
+  _id: Id<"conversations">;
+  displayName: string;
+  lastMessageAt?: number;
+  lastMessagePreview?: string;
+  lastMessageByName?: string;
+  unreadCount: number;
+};
+
 export default function ChatListPage() {
   const router = useRouter();
   const conversations = useQuery(api.chat.conversations.list);
@@ -27,6 +36,23 @@ export default function ChatListPage() {
     router.push(`/chat/${conversationId}`);
   };
 
+  return (
+    <ChatListContent
+      conversations={conversations}
+      onConversationClick={handleConversationClick}
+    />
+  );
+}
+
+type ChatListContentProps = {
+  conversations: ConversationSummary[] | undefined;
+  onConversationClick: (conversationId: Id<"conversations">) => void;
+};
+
+function ChatListContent({
+  conversations,
+  onConversationClick,
+}: ChatListContentProps) {
   if (conversations === undefined) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -57,7 +83,7 @@ export default function ChatListPage() {
           {conversations.map((conv) => (
             <div
               key={conv._id}
-              onClick={() => handleConversationClick(conv._id)}
+              onClick={() => onConversationClick(conv._id)}
               className="flex items-center gap-4 p-4 rounded-xl bg-card border shadow-sm hover:bg-muted/50 transition-colors cursor-pointer active:scale-[0.98]"
             >
               {/* Avatar / Icon Placeholder */}
