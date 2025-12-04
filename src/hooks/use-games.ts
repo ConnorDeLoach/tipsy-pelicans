@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { GameWithRsvps, Me } from "@/app/(dashboard)/games/actions";
+import type { GameWithRsvps, Me } from "@/features/games/types";
 
 type RsvpStatus = "in" | "out";
 

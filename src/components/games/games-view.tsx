@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CreateGameDialog, GameFormData } from "./create-game-dialog";
 import { GameCardModern } from "./game-card-modern";
-import {
+import type {
   GameWithRsvps,
   Player,
   Me,
   Opponent,
   SeasonStats,
   Season,
-} from "@/app/(dashboard)/games/actions";
+} from "@/features/games/types";
 import { Id } from "@/convex/_generated/dataModel";
 import { EnablePushButton } from "@/components/EnablePushButton";
 

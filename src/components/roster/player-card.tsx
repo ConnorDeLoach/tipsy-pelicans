@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Player } from "@/app/(dashboard)/games/actions";
+import type { Player } from "@/features/games/types";
 import { Id } from "@/convex/_generated/dataModel";
 
 interface PlayerCardProps {

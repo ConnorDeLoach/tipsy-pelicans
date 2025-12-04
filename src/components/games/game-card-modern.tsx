@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RosterDrawer } from "./roster-drawer";
-import { GameWithRsvps, Player, Me } from "@/app/(dashboard)/games/actions";
+import type { GameWithRsvps, Player, Me } from "@/features/games/types";
 import { Id } from "@/convex/_generated/dataModel";
 
 type RsvpStatus = "in" | "out";

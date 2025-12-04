@@ -10,7 +10,7 @@ import {
 } from "convex/react";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { Player } from "@/app/(dashboard)/games/actions";
+import type { Player } from "@/features/games/types";
 import { PlayerCard } from "@/components/roster/player-card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

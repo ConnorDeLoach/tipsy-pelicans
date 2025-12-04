@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Users, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
-import { GameWithRsvps, Player } from "@/app/(dashboard)/games/actions";
+import type { GameWithRsvps, Player } from "@/features/games/types";
 import { Id } from "@/convex/_generated/dataModel";
 
 // Helper for initials - exported so it can be used by parent

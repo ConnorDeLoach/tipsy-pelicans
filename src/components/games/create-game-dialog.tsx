@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Opponent } from "@/app/(dashboard)/games/actions";
+import type { Opponent } from "@/features/games/types";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
