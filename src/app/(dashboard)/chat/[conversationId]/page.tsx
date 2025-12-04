@@ -36,6 +36,8 @@ type MessageImage = {
 };
 
 // Optimistic message type
+type OptimisticMessageStatus = "pending" | "failed";
+
 type OptimisticMessage = {
   _id: string;
   _creationTime: number;
@@ -46,6 +48,7 @@ type OptimisticMessage = {
   images?: MessageImage[];
   reactions: Reaction[];
   isOptimistic: true;
+  status: OptimisticMessageStatus;
 };
 
 type Message = {
@@ -286,6 +289,7 @@ export default function ChatDetailPage({
       images: optimisticImages,
       reactions: [],
       isOptimistic: true,
+      status: "pending",
     };
 
     setOptimisticMessages((prev) => [...prev, optimisticMsg]);
@@ -349,11 +353,23 @@ export default function ChatDetailPage({
         prev.filter((m) => m._id !== optimisticId)
       );
     } catch (err) {
-      // Remove optimistic message and restore body on error
-      setOptimisticMessages((prev) =>
-        prev.filter((m) => m._id !== optimisticId)
-      );
-      setBody(trimmed);
+      if (hasImagesReady) {
+        // For image messages, fall back to previous behavior: remove optimistic
+        // bubble and restore body so the user can retry after re-selecting
+        // images.
+        setOptimisticMessages((prev) =>
+          prev.filter((m) => m._id !== optimisticId)
+        );
+        setBody(trimmed);
+      } else {
+        // For text-only messages, keep the optimistic bubble and mark it as
+        // failed so the user sees a clear error state and can retry.
+        setOptimisticMessages((prev) =>
+          prev.map((m) =>
+            m._id === optimisticId ? { ...m, status: "failed" } : m
+          )
+        );
+      }
       // Note: images are cleared and lost on error (could be improved)
       const message =
         err instanceof Error ? err.message : "Failed to send message.";
@@ -380,6 +396,47 @@ export default function ChatDetailPage({
     } finally {
       setDeleteConfirmId(null);
       setSelectedMessageId(null);
+    }
+  };
+
+  const handleRetryOptimistic = async (optimisticId: string) => {
+    if (!me?.playerId) return;
+
+    const msg = optimisticMessages.find((m) => m._id === optimisticId);
+    if (!msg || msg.status !== "failed") return;
+
+    const trimmed = msg.body.trim();
+    if (!trimmed) return;
+
+    setIsSending(true);
+
+    // Mark as pending again while we retry
+    setOptimisticMessages((prev) =>
+      prev.map((m) =>
+        m._id === optimisticId ? { ...m, status: "pending" } : m
+      )
+    );
+
+    try {
+      await sendMessage({ conversationId, body: trimmed });
+
+      // On success, remove the optimistic bubble
+      setOptimisticMessages((prev) =>
+        prev.filter((m) => m._id !== optimisticId)
+      );
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to send message.";
+      toast.error(message);
+
+      // Restore failed state
+      setOptimisticMessages((prev) =>
+        prev.map((m) =>
+          m._id === optimisticId ? { ...m, status: "failed" } : m
+        )
+      );
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -521,6 +578,8 @@ export default function ChatDetailPage({
           {allMessages.map((msg, index) => {
             const isMe = me?.playerId === msg.createdBy;
             const isOptimistic = "isOptimistic" in msg && msg.isOptimistic;
+            const optimisticStatus =
+              isOptimistic && "status" in msg ? msg.status : undefined;
             const prevMsg = index > 0 ? allMessages[index - 1] : null;
             const showDateSeparator =
               !prevMsg ||
@@ -571,7 +630,17 @@ export default function ChatDetailPage({
                         isMe
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-foreground"
-                      } ${isOptimistic ? "opacity-70 cursor-default" : ""}`}
+                      } ${
+                        isOptimistic && optimisticStatus !== "failed"
+                          ? "opacity-70 cursor-default"
+                          : ""
+                      } ${
+                        isOptimistic && optimisticStatus === "failed"
+                          ? isMe
+                            ? "ring-1 ring-destructive/40"
+                            : "ring-1 ring-destructive/50"
+                          : ""
+                      }`}
                     >
                       {!isMe && (
                         <div className="mb-1 flex items-center gap-2">
@@ -611,14 +680,32 @@ export default function ChatDetailPage({
                           disabled={!me}
                         />
                       )}
-                      <div className="mt-1 flex items-center justify-end">
+                      <div className="mt-1 flex items-center justify-end gap-2">
+                        {isOptimistic && optimisticStatus === "failed" && (
+                          <>
+                            <span className="text-xs text-destructive/80">
+                              Failed to send.
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleRetryOptimistic(msg._id as string)
+                              }
+                              className="text-xs font-medium underline underline-offset-2 hover:opacity-80"
+                            >
+                              Retry
+                            </button>
+                          </>
+                        )}
                         <span
                           className={`text-xs ${
                             isMe ? "opacity-70" : "text-muted-foreground"
                           }`}
                         >
                           {isOptimistic
-                            ? "Sending..."
+                            ? optimisticStatus === "failed"
+                              ? ""
+                              : "Sending..."
                             : formatTime(msg._creationTime)}
                         </span>
                       </div>
