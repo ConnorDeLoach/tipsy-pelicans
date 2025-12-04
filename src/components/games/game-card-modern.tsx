@@ -23,6 +23,8 @@ import {
 import { RosterDrawer } from "./roster-drawer";
 import type { GameWithRsvps, Player, Me } from "@/features/games/types";
 import { Id } from "@/convex/_generated/dataModel";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useLongPress } from "@/hooks/use-long-press";
 
 type RsvpStatus = "in" | "out";
 
@@ -102,6 +104,18 @@ export function GameCardModern({
   onEdit,
   isPast,
 }: GameCardModernProps) {
+  const isMobile = useIsMobile();
+
+  const longPressHandlers = useLongPress({
+    onLongPress: () => {
+      if (isAdmin && isMobile) {
+        onEdit(entry);
+      }
+    },
+    threshold: 600,
+    disabled: !isMobile || !isAdmin,
+  });
+
   const game = entry.game;
   const gameDate = new Date(game.startTime);
 
@@ -233,7 +247,10 @@ export function GameCardModern({
 
             {/* Main Content */}
             <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center gap-2 sm:gap-3">
-              <div className="flex justify-between items-start gap-2">
+              <div
+                className="flex justify-between items-start gap-2"
+                {...(isMobile && isAdmin ? longPressHandlers : {})}
+              >
                 <div>
                   <div className="text-[10px] sm:text-xs font-semibold text-primary tracking-wider uppercase mb-0.5 sm:mb-1">
                     Opponent
@@ -255,7 +272,7 @@ export function GameCardModern({
                   {isPast && result !== "pending" && (
                     <ResultBadge result={result} score={{ us: ts, them: os }} />
                   )}
-                  {isAdmin && (
+                  {isAdmin && !isMobile && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">

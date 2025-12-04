@@ -21,6 +21,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Player } from "@/features/games/types";
 import { Id } from "@/convex/_generated/dataModel";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useLongPress } from "@/hooks/use-long-press";
 
 interface PlayerCardProps {
   player: Player;
@@ -74,6 +76,18 @@ export function PlayerCard({
   const isSpare = player.role === "spare";
   const isSpectator = player.role === "spectator";
 
+  const isMobile = useIsMobile();
+
+  const longPressHandlers = useLongPress({
+    onLongPress: () => {
+      if (isAdmin && isMobile) {
+        onEdit(player);
+      }
+    },
+    threshold: 600,
+    disabled: !isMobile || !isAdmin,
+  });
+
   return (
     <motion.div variants={itemVariants}>
       <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group relative">
@@ -88,7 +102,10 @@ export function PlayerCard({
 
             {/* Main Content */}
             <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center gap-1">
-              <div className="flex justify-between items-start gap-2">
+              <div
+                className="flex justify-between items-start gap-2"
+                {...(isMobile && isAdmin ? longPressHandlers : {})}
+              >
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
                     <AvatarFallback className={`font-bold ${roleColor}`}>
@@ -115,7 +132,7 @@ export function PlayerCard({
                   </div>
                 </div>
 
-                {isAdmin && (
+                {isAdmin && !isMobile && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
