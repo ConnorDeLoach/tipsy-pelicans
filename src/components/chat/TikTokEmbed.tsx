@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Play, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -28,16 +28,38 @@ export function TikTokEmbed({
 }: TikTokEmbedProps) {
   const [isOpen, setIsOpen] = useState(false);
 
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+    onLightboxOpenChange?.(false);
+  }, [onLightboxOpenChange]);
+
   const handleOpen = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsOpen(true);
     onLightboxOpenChange?.(true);
+    // Push history state so back button closes lightbox
+    window.history.pushState({ tiktokLightbox: true }, "");
   };
 
-  const handleClose = () => {
-    setIsOpen(false);
-    onLightboxOpenChange?.(false);
+  // Handle browser back button
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePopState = (e: PopStateEvent) => {
+      // Back button pressed, close the lightbox
+      handleClose();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [isOpen, handleClose]);
+
+  // When closing via X button or overlay, go back in history
+  const handleCloseWithHistory = () => {
+    if (isOpen) {
+      window.history.back();
+    }
   };
 
   return (
@@ -110,9 +132,9 @@ export function TikTokEmbed({
       </button>
 
       {/* Lightbox dialog */}
-      <Dialog open={isOpen} onOpenChange={handleClose}>
+      <Dialog open={isOpen} onOpenChange={handleCloseWithHistory}>
         <DialogContent
-          className="max-w-[95vw] sm:max-w-[400px] max-h-[95vh] p-0 bg-black/95 border-none overflow-hidden"
+          className="max-w-[80vw] sm:max-w-[360px] max-h-[90vh] p-0 bg-black/95 border-none overflow-hidden"
           aria-describedby={undefined}
         >
           <DialogTitle className="sr-only">
@@ -123,7 +145,7 @@ export function TikTokEmbed({
           <button
             onClick={(e) => {
               e.stopPropagation();
-              handleClose();
+              handleCloseWithHistory();
             }}
             className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
             aria-label="Close"
