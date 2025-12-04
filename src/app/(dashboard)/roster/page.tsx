@@ -1,5 +1,7 @@
-import RosterServer from "./RosterServer";
+import { preloadRosterPageData } from "./actions";
+import { RosterClient } from "./RosterClient";
 
-export default function RosterPage() {
-  return <RosterServer />;
+export default async function RosterPage() {
+  const preloadedPlayers = await preloadRosterPageData();
+  return <RosterClient preloadedPlayers={preloadedPlayers} />;
 }

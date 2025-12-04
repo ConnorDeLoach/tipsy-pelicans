@@ -2,12 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import {
-  useMutation,
-  useQuery,
-  usePreloadedQuery,
-  Preloaded,
-} from "convex/react";
+import { Preloaded } from "convex/react";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import type { Player } from "@/features/games/types";
@@ -45,6 +40,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useRosterPageData } from "@/features/roster/queries";
+import { useRosterMutations } from "@/features/roster/mutations";
 
 type PositionOption = "RW" | "C" | "LW" | "LD" | "RD" | "G";
 type RoleOption = "player" | "spare" | "spectator";
@@ -74,68 +71,17 @@ const containerVariants = {
 };
 
 export function RosterClient({ preloadedPlayers }: RosterClientProps) {
-  // Use preloaded query for zero-flash hydration - seamlessly transitions to live updates
-  const players = usePreloadedQuery(preloadedPlayers);
-  const displayPlayers = players as Player[];
-
-  const me = useQuery(api.me.get);
-  const isAdmin = me?.role === "admin";
-
-  const addPlayer = useMutation(api.players.addPlayer).withOptimisticUpdate(
-    (localStore, { name, email, position, number, flair, isAdmin, role }) => {
-      const list = localStore.getQuery(api.players.getPlayers);
-      if (!list) return;
-      const trimmedEmail = email.trim();
-      const optimistic = {
-        _id: "optimistic:new-player" as Id<"players">,
-        _creationTime: Date.now(),
-        name,
-        email: trimmedEmail,
-        emailLowercase: trimmedEmail.toLowerCase(),
-        position,
-        number,
-        flair,
-        role: role ?? "player",
-        isAdmin: isAdmin ?? false,
-        createdAt: Date.now(),
-      } as any;
-      const updated = [...list, optimistic].sort((a, b) =>
-        a.name.localeCompare(b.name)
-      );
-      localStore.setQuery(api.players.getPlayers, {}, updated);
-    }
-  );
-
-  const updatePlayer = useMutation(
-    api.players.updatePlayer
-  ).withOptimisticUpdate((localStore, { playerId, email, ...fields }) => {
-    const list = localStore.getQuery(api.players.getPlayers);
-    if (!list) return;
-    const updated = list.map((p) => {
-      if (p._id !== playerId) return p;
-      const patch: any = { ...fields };
-      if (email !== undefined) {
-        const trimmed = email.trim();
-        patch.email = trimmed;
-        patch.emailLowercase = trimmed.toLowerCase();
-      }
-      return { ...p, ...patch };
-    });
-    updated.sort((a, b) => a.name.localeCompare(b.name));
-    localStore.setQuery(api.players.getPlayers, {}, updated);
-  });
-
-  const removePlayer = useMutation(
-    api.players.removePlayer
-  ).withOptimisticUpdate((localStore, { playerId }) => {
-    const list = localStore.getQuery(api.players.getPlayers);
-    if (!list) return;
-    localStore.setQuery(
-      api.players.getPlayers,
-      {},
-      list.filter((p) => p._id !== playerId)
-    );
-  });
+  const {
+    players,
+    activeRoster,
+    otherPlayers,
+    totalPlayers,
+    spares,
+    spectators,
+    me,
+    isAdmin,
+  } = useRosterPageData(preloadedPlayers);
+  const { addPlayer, updatePlayer, removePlayer } = useRosterMutations();
 
   const [playerForm, setPlayerForm] = useState<PlayerFormState>({
     name: "",
@@ -230,17 +176,6 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
     }
     toast.success("Player removed");
   };
-
-  // Computed lists for display
-  const activeRoster = displayPlayers.filter((p) => p.role === "player");
-  const otherPlayers = displayPlayers.filter((p) => p.role !== "player");
-
-  // Stats
-  const totalPlayers = activeRoster.length;
-  const spares = displayPlayers.filter((p) => p.role === "spare").length;
-  const spectators = displayPlayers.filter(
-    (p) => p.role === "spectator"
-  ).length;
 
   return (
     <div className="bg-background text-foreground font-sans">
