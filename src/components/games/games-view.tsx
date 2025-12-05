@@ -135,6 +135,22 @@ export function GamesView({
               </div>
             </div>
           </div>
+          <div className="mt-4 flex justify-start">
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-white/10 border-white/30 text-blue-50 hover:bg-white/20 hover:text-white"
+              asChild
+            >
+              <a
+                href="https://skateeverblades.com/hockey/adult-hockey/adult-intermediate-c-2-league/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View Standings <ChevronRight className="ml-1 h-4 w-4" />
+              </a>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -166,48 +182,13 @@ export function GamesView({
                 <Button
                   size="sm"
                   variant="outline"
-                  className="hidden sm:flex"
                   onClick={() => setIsCreateDialogOpen(true)}
                 >
                   <Plus className="h-4 w-4 mr-1" /> Add Game
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground hover:text-primary hidden sm:flex"
-                asChild
-              >
-                <a
-                  href="https://skateeverblades.com/hockey/adult-hockey/adult-intermediate-c-2-league/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Standings <ChevronRight className="ml-1 h-4 w-4" />
-                </a>
-              </Button>
+              <EnablePushButton />
             </div>
-          </div>
-
-          {/* Mobile only stats link */}
-          <div className="flex sm:hidden justify-between items-center mb-6 px-1">
-            <a
-              href="https://skateeverblades.com/hockey/adult-hockey/adult-intermediate-c-2-league/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-muted-foreground hover:text-primary flex items-center"
-            >
-              View Standings <ChevronRight className="ml-1 h-4 w-4" />
-            </a>
-            {isAdmin && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setIsCreateDialogOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-1" /> Add Game
-              </Button>
-            )}
           </div>
 
           <Tabs defaultValue="upcoming" className="space-y-6">
@@ -226,9 +207,6 @@ export function GamesView({
                   Past Games
                 </TabsTrigger>
               </TabsList>
-              <div className="hidden sm:block ml-4">
-                <EnablePushButton />
-              </div>
             </div>
 
             <TabsContent value="upcoming" className="mt-0 min-h-[200px]">
@@ -239,12 +217,6 @@ export function GamesView({
                 animate="visible"
                 className="flex flex-col gap-4"
               >
-                <div className="text-sm text-muted-foreground font-medium px-1 flex justify-between items-center">
-                  <span>Next up</span>
-                  <span className="sm:hidden">
-                    <EnablePushButton />
-                  </span>
-                </div>
                 {upcomingGames.length > 0 ? (
                   upcomingGames.map((entry, index) => (
                     <GameCardModern
@@ -276,9 +248,6 @@ export function GamesView({
                 animate="visible"
                 className="flex flex-col gap-4"
               >
-                <div className="text-sm text-muted-foreground font-medium px-1">
-                  Season History
-                </div>
                 {pastGames.length > 0 ? (
                   pastGames.map((entry) => (
                     <GameCardModern
