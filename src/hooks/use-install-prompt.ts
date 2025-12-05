@@ -38,6 +38,7 @@ export function useInstallPrompt() {
 
   // Chrome's beforeinstallprompt event
   const deferredPromptRef = React.useRef<BeforeInstallPromptEvent | null>(null);
+  const [hasInstallPrompt, setHasInstallPrompt] = React.useState(false);
 
   // Detect platform and mobile on mount
   React.useEffect(() => {
@@ -72,6 +73,7 @@ export function useInstallPrompt() {
     const handler = (e: Event) => {
       e.preventDefault();
       deferredPromptRef.current = e as BeforeInstallPromptEvent;
+      setHasInstallPrompt(true);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
@@ -123,8 +125,20 @@ export function useInstallPrompt() {
     // Only show on mobile
     if (!isMobile) return false;
 
+    // On iOS, we can always show (instructions overlay)
+    // On Android/Chrome, only show if we have a valid install prompt
+    if (platform !== "ios" && !hasInstallPrompt) return false;
+
     return shouldShow;
-  }, [isHydrated, isPWAHydrated, isPWA, isMobile, shouldShow]);
+  }, [
+    isHydrated,
+    isPWAHydrated,
+    isPWA,
+    isMobile,
+    platform,
+    hasInstallPrompt,
+    shouldShow,
+  ]);
 
   // Install handler - Chrome triggers native prompt, Safari shows overlay
   const handleInstall = React.useCallback(() => {
@@ -133,16 +147,19 @@ export function useInstallPrompt() {
     } else if (deferredPromptRef.current) {
       deferredPromptRef.current.prompt();
       deferredPromptRef.current.userChoice.then((choice) => {
+        // Chrome won't fire beforeinstallprompt again until next page load
+        // So we mark the prompt as consumed regardless of outcome
+        deferredPromptRef.current = null;
+        setHasInstallPrompt(false);
+
         if (choice.outcome === "accepted") {
           setShouldShow(false);
         }
-        deferredPromptRef.current = null;
+        // If dismissed, pill will auto-hide due to hasInstallPrompt = false
+        // It will re-appear on next page load when Chrome fires beforeinstallprompt again
       });
-    } else {
-      // Fallback: show instructions or do nothing
-      // On Android without the prompt event, we can't do much
-      setShouldShow(false);
     }
+    // No fallback needed - pill shouldn't show if hasInstallPrompt is false
   }, [platform]);
 
   // Dismiss handler
