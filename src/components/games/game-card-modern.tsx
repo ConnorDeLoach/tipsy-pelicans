@@ -260,7 +260,13 @@ export function GameCardModern({
     };
   }, [optimisticRsvps, players]);
 
-  const handleRsvpClick = (status: RsvpStatus) => {
+  const handleRsvpClick = (
+    e: React.MouseEvent | React.TouchEvent,
+    status: RsvpStatus
+  ) => {
+    // Prevent event from bubbling to swipe container
+    e.stopPropagation();
+
     if (me?.playerId) {
       // Optimistic update: toggle or set status
       if (optimisticStatus === status) {
@@ -281,7 +287,12 @@ export function GameCardModern({
         {swipeEnabled && (
           <motion.div
             className="absolute inset-y-0 right-0 flex items-stretch"
-            style={{ opacity: actionOpacity, width: ACTION_WIDTH }}
+            style={{
+              opacity: actionOpacity,
+              width: ACTION_WIDTH,
+              // Only allow clicks when swipe is open to prevent touch pass-through
+              pointerEvents: swipeState.isOpen ? "auto" : "none",
+            }}
           >
             <button
               onClick={handleEditClick}
@@ -397,7 +408,7 @@ export function GameCardModern({
                               ? "bg-green-600 hover:bg-green-700"
                               : "text-muted-foreground"
                           }`}
-                          onClick={() => handleRsvpClick("in")}
+                          onClick={(e) => handleRsvpClick(e, "in")}
                         >
                           <Check className="h-4 w-4 sm:mr-1.5" />
                           <span className="hidden sm:inline">In</span>
@@ -410,7 +421,7 @@ export function GameCardModern({
                           className={`h-8 px-3 ${
                             rsvpStatus === "out" ? "" : "text-muted-foreground"
                           }`}
-                          onClick={() => handleRsvpClick("out")}
+                          onClick={(e) => handleRsvpClick(e, "out")}
                         >
                           <X className="h-4 w-4 sm:mr-1.5" />
                           <span className="hidden sm:inline">Out</span>

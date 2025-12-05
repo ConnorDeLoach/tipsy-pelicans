@@ -6,6 +6,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import type { GameWithRsvps, Me } from "@/features/games/types";
+import { triggerInstallPrompt } from "@/hooks/use-install-prompt";
 
 type RsvpStatus = "in" | "out";
 
@@ -89,6 +90,9 @@ export function useGames() {
       }
       try {
         await setRsvpMutation({ gameId, playerId, status });
+        // Trigger PWA install prompt after successful RSVP
+        // Listener: src/hooks/use-install-prompt.ts
+        triggerInstallPrompt();
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Failed to update attendance.";

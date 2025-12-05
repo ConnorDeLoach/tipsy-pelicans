@@ -93,6 +93,15 @@ export function useSwipeActions(
   const onTouchStart = React.useCallback(
     (e: React.TouchEvent<HTMLElement>) => {
       if (disabled) return;
+
+      // Ignore touches that start on interactive elements (buttons, links, etc.)
+      const target = e.target as HTMLElement;
+      if (
+        target.closest('button, a, input, select, textarea, [role="button"]')
+      ) {
+        return;
+      }
+
       const touch = e.touches[0];
       startRef.current = { x: touch.clientX, y: touch.clientY };
       directionLockedRef.current = null;
@@ -140,6 +149,9 @@ export function useSwipeActions(
 
   const onTouchEnd = React.useCallback(() => {
     if (disabled) return;
+
+    // If touch was never started (e.g., started on interactive element), do nothing
+    if (!startRef.current) return;
 
     startRef.current = null;
     directionLockedRef.current = null;
