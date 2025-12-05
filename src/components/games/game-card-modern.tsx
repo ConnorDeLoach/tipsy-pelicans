@@ -1,16 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { motion } from "motion/react";
-import {
-  Clock,
-  Check,
-  X,
-  Pencil,
-  Trash2,
-  MoreVertical,
-  Info,
-} from "lucide-react";
+import { motion, useSpring, useTransform } from "motion/react";
+import { Clock, Check, X, Pencil, MoreVertical, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +16,7 @@ import { RosterDrawer } from "./roster-drawer";
 import type { GameWithRsvps, Player, Me } from "@/features/games/types";
 import { Id } from "@/convex/_generated/dataModel";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useLongPress } from "@/hooks/use-long-press";
+import { useSwipeActions } from "@/hooks/use-swipe-actions";
 
 type RsvpStatus = "in" | "out";
 
@@ -95,6 +87,8 @@ function ResultBadge({
   );
 }
 
+const ACTION_WIDTH = 80; // Width of action button area
+
 export function GameCardModern({
   entry,
   players,
@@ -105,16 +99,44 @@ export function GameCardModern({
   isPast,
 }: GameCardModernProps) {
   const isMobile = useIsMobile();
+  const swipeEnabled = isMobile && isAdmin;
 
-  const { isPressing, handlers: longPressHandlers } = useLongPress({
-    onLongPress: () => {
-      if (isAdmin && isMobile) {
-        onEdit(entry);
-      }
-    },
-    threshold: 600,
-    disabled: !isMobile || !isAdmin,
+  const {
+    state: swipeState,
+    handlers: swipeHandlers,
+    close: closeSwipe,
+  } = useSwipeActions({
+    threshold: 40,
+    maxSwipe: ACTION_WIDTH,
+    disabled: !swipeEnabled,
+    autoCloseDelay: 4000,
   });
+
+  // Spring animation for smooth swipe
+  const springX = useSpring(0, { stiffness: 400, damping: 30 });
+
+  // Update spring when swipe state changes
+  useEffect(() => {
+    springX.set(
+      swipeState.isDragging
+        ? swipeState.offsetX
+        : swipeState.isOpen
+        ? -ACTION_WIDTH
+        : 0
+    );
+  }, [swipeState.offsetX, swipeState.isOpen, swipeState.isDragging, springX]);
+
+  // Action button opacity based on reveal
+  const actionOpacity = useTransform(
+    springX,
+    [-ACTION_WIDTH, -20, 0],
+    [1, 0.5, 0]
+  );
+
+  const handleEditClick = () => {
+    closeSwipe();
+    onEdit(entry);
+  };
 
   const game = entry.game;
   const gameDate = new Date(game.startTime);
@@ -230,126 +252,155 @@ export function GameCardModern({
 
   return (
     <motion.div variants={itemVariants}>
-      <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group">
-        <CardContent className="p-0">
-          <div className="flex flex-row h-full">
-            {/* Time & Date Strip - Fixed Column */}
-            <div className="flex flex-col justify-center items-center bg-secondary/30 p-3 w-20 sm:w-24 border-r border-border/40 gap-2 shrink-0">
-              <GameDateBadge date={gameDate} />
-              <div className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center justify-center gap-1 bg-background px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full border border-border/50 shadow-sm whitespace-nowrap w-full">
-                <Clock className="h-3 w-3 hidden sm:block" />
-                {gameDate.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                })}
-              </div>
-            </div>
+      {/* Swipe container - relative positioning for action buttons */}
+      <div className="relative overflow-hidden rounded-xl">
+        {/* Action buttons revealed on swipe (positioned behind card) */}
+        {swipeEnabled && (
+          <motion.div
+            className="absolute inset-y-0 right-0 flex items-stretch"
+            style={{ opacity: actionOpacity, width: ACTION_WIDTH }}
+          >
+            <button
+              onClick={handleEditClick}
+              className="flex-1 flex items-center justify-center bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/80 transition-colors"
+              aria-label="Edit game"
+            >
+              <Pencil className="h-5 w-5" />
+            </button>
+          </motion.div>
+        )}
 
-            {/* Main Content */}
-            <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center gap-2 sm:gap-3">
-              <div
-                className={`flex justify-between items-start gap-2 transition-transform duration-150 ${
-                  isMobile && isAdmin && isPressing ? "scale-[0.97]" : ""
-                }`}
-                {...(isMobile && isAdmin ? longPressHandlers : {})}
-              >
-                <div>
-                  <div className="text-[10px] sm:text-xs font-semibold text-primary tracking-wider uppercase mb-0.5 sm:mb-1">
-                    Opponent
+        {/* Swipeable card content */}
+        <motion.div
+          style={{ x: springX }}
+          {...(swipeEnabled ? swipeHandlers : {})}
+        >
+          <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group select-none">
+            <CardContent className="p-0">
+              <div className="flex flex-row h-full">
+                {/* Time & Date Strip - Fixed Column */}
+                <div className="flex flex-col justify-center items-center bg-secondary/30 p-3 w-20 sm:w-24 border-r border-border/40 gap-2 shrink-0">
+                  <GameDateBadge date={gameDate} />
+                  <div className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center justify-center gap-1 bg-background px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full border border-border/50 shadow-sm whitespace-nowrap w-full">
+                    <Clock className="h-3 w-3 hidden sm:block" />
+                    {gameDate.toLocaleTimeString("en-US", {
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
                   </div>
-                  <h3 className="font-bold text-base sm:text-xl text-foreground flex flex-wrap items-center gap-x-2 leading-tight">
-                    <span className="text-muted-foreground font-normal text-sm sm:text-base">
-                      vs
-                    </span>
-                    {game.opponent}
-                  </h3>
-                  {game.location && (
-                    <div className="text-xs text-muted-foreground mt-1 hidden">
-                      {/* Hidden location as requested, but code kept just in case */}
-                      {game.location}
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-1 p-3 sm:p-5 flex flex-col justify-center gap-2 sm:gap-3">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <div className="text-[10px] sm:text-xs font-semibold text-primary tracking-wider uppercase mb-0.5 sm:mb-1">
+                        Opponent
+                      </div>
+                      <h3 className="font-bold text-base sm:text-xl text-foreground flex flex-wrap items-center gap-x-2 leading-tight">
+                        <span className="text-muted-foreground font-normal text-sm sm:text-base">
+                          vs
+                        </span>
+                        {game.opponent}
+                      </h3>
+                      {game.location && (
+                        <div className="text-xs text-muted-foreground mt-1 hidden">
+                          {/* Hidden location as requested, but code kept just in case */}
+                          {game.location}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {isPast && result !== "pending" && (
+                        <ResultBadge
+                          result={result}
+                          score={{ us: ts, them: os }}
+                        />
+                      )}
+                      {isAdmin && !isMobile && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onEdit(entry)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Edit
+                            </DropdownMenuItem>
+                            {/* Delete is handled in the edit dialog usually, but could add here */}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Notes Section */}
+                  {game.notes && (
+                    <div className="mt-2 flex items-start gap-2 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 px-2.5 py-2 border border-blue-100/50 dark:border-blue-800/30">
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                      <span className="text-xs sm:text-sm text-foreground/80 font-medium leading-snug">
+                        {game.notes}
+                      </span>
                     </div>
                   )}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {isPast && result !== "pending" && (
-                    <ResultBadge result={result} score={{ us: ts, them: os }} />
-                  )}
-                  {isAdmin && !isMobile && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <MoreVertical className="h-4 w-4" />
+
+                  <div className="flex items-center justify-between mt-1 sm:mt-2">
+                    {/* Roster on Left */}
+                    <div className="flex items-center gap-3">
+                      {!isPast && (
+                        <RosterDrawer
+                          game={optimisticEntry}
+                          players={players}
+                          inPlayers={inPlayers}
+                          outPlayers={outPlayers}
+                          inCount={inCount}
+                        />
+                      )}
+                    </div>
+
+                    {/* Actions on Right */}
+                    {!isPast && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant={rsvpStatus === "in" ? "default" : "outline"}
+                          className={`h-8 px-3 ${
+                            rsvpStatus === "in"
+                              ? "bg-green-600 hover:bg-green-700"
+                              : "text-muted-foreground"
+                          }`}
+                          onClick={() => handleRsvpClick("in")}
+                        >
+                          <Check className="h-4 w-4 sm:mr-1.5" />
+                          <span className="hidden sm:inline">In</span>
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(entry)}>
-                          <Pencil className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        {/* Delete is handled in the edit dialog usually, but could add here */}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              </div>
-
-              {/* Notes Section */}
-              {game.notes && (
-                <div className="mt-2 flex items-start gap-2 rounded-lg bg-blue-50/50 dark:bg-blue-900/10 px-2.5 py-2 border border-blue-100/50 dark:border-blue-800/30">
-                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
-                  <span className="text-xs sm:text-sm text-foreground/80 font-medium leading-snug">
-                    {game.notes}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between mt-1 sm:mt-2">
-                {/* Roster on Left */}
-                <div className="flex items-center gap-3">
-                  {!isPast && (
-                    <RosterDrawer
-                      game={optimisticEntry}
-                      players={players}
-                      inPlayers={inPlayers}
-                      outPlayers={outPlayers}
-                      inCount={inCount}
-                    />
-                  )}
-                </div>
-
-                {/* Actions on Right */}
-                {!isPast && (
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={rsvpStatus === "in" ? "default" : "outline"}
-                      className={`h-8 px-3 ${
-                        rsvpStatus === "in"
-                          ? "bg-green-600 hover:bg-green-700"
-                          : "text-muted-foreground"
-                      }`}
-                      onClick={() => handleRsvpClick("in")}
-                    >
-                      <Check className="h-4 w-4 sm:mr-1.5" />
-                      <span className="hidden sm:inline">In</span>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={rsvpStatus === "out" ? "destructive" : "outline"}
-                      className={`h-8 px-3 ${
-                        rsvpStatus === "out" ? "" : "text-muted-foreground"
-                      }`}
-                      onClick={() => handleRsvpClick("out")}
-                    >
-                      <X className="h-4 w-4 sm:mr-1.5" />
-                      <span className="hidden sm:inline">Out</span>
-                    </Button>
+                        <Button
+                          size="sm"
+                          variant={
+                            rsvpStatus === "out" ? "destructive" : "outline"
+                          }
+                          className={`h-8 px-3 ${
+                            rsvpStatus === "out" ? "" : "text-muted-foreground"
+                          }`}
+                          onClick={() => handleRsvpClick("out")}
+                        >
+                          <X className="h-4 w-4 sm:mr-1.5" />
+                          <span className="hidden sm:inline">Out</span>
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </motion.div>
   );
 }
