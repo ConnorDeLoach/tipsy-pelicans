@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/select";
 import { useRosterPageData } from "@/features/roster/queries";
 import { useRosterMutations } from "@/features/roster/mutations";
+import { useSwipeHint } from "@/hooks/use-swipe-hint";
 
 type PositionOption = "RW" | "C" | "LW" | "LD" | "RD" | "G";
 type RoleOption = "player" | "spare" | "spectator";
@@ -82,6 +83,9 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
     isAdmin,
   } = useRosterPageData(preloadedPlayers);
   const { addPlayer, updatePlayer, removePlayer } = useRosterMutations();
+
+  // Swipe hint for first-time admin users on mobile
+  const { shouldShowHint, markAsSwiped } = useSwipeHint(isAdmin);
 
   const [playerForm, setPlayerForm] = useState<PlayerFormState>({
     name: "",
@@ -274,13 +278,15 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
                 {activeRoster.length > 0 ? (
-                  activeRoster.map((player) => (
+                  activeRoster.map((player, index) => (
                     <PlayerCard
                       key={player._id}
                       player={player}
                       isAdmin={isAdmin}
                       onEdit={onEdit}
                       onDelete={onDelete}
+                      showSwipeHint={index === 0 && shouldShowHint}
+                      onSwipeUsed={markAsSwiped}
                     />
                   ))
                 ) : (
@@ -299,13 +305,15 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
                 className="grid grid-cols-1 md:grid-cols-2 gap-4"
               >
                 {otherPlayers.length > 0 ? (
-                  otherPlayers.map((player) => (
+                  otherPlayers.map((player, index) => (
                     <PlayerCard
                       key={player._id}
                       player={player}
                       isAdmin={isAdmin}
                       onEdit={onEdit}
                       onDelete={onDelete}
+                      showSwipeHint={index === 0 && shouldShowHint}
+                      onSwipeUsed={markAsSwiped}
                     />
                   ))
                 ) : (

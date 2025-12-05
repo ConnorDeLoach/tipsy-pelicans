@@ -144,29 +144,43 @@ export function useSwipeActions(
     startRef.current = null;
     directionLockedRef.current = null;
 
-    setState((s) => {
-      // Determine if we should snap open or closed
-      const shouldOpen = Math.abs(s.offsetX) >= threshold;
+    // Calculate new state outside of setState to avoid calling callbacks during render
+    const currentState = state;
+    const shouldOpen = Math.abs(currentState.offsetX) >= threshold;
 
-      if (shouldOpen && !s.isOpen) {
-        onSwipeOpen?.();
-        startAutoCloseTimer();
-        return { offsetX: -maxSwipe, isOpen: true, isDragging: false };
-      } else if (!shouldOpen && s.isOpen) {
-        onSwipeClose?.();
-        return { offsetX: 0, isOpen: false, isDragging: false };
-      } else if (shouldOpen && s.isOpen) {
-        // Stay open, restart timer
-        startAutoCloseTimer();
-        return { offsetX: -maxSwipe, isOpen: true, isDragging: false };
-      } else {
-        return { offsetX: 0, isOpen: false, isDragging: false };
-      }
-    });
+    let newState: SwipeState;
+    let shouldCallOpen = false;
+    let shouldCallClose = false;
+
+    if (shouldOpen && !currentState.isOpen) {
+      shouldCallOpen = true;
+      newState = { offsetX: -maxSwipe, isOpen: true, isDragging: false };
+    } else if (!shouldOpen && currentState.isOpen) {
+      shouldCallClose = true;
+      newState = { offsetX: 0, isOpen: false, isDragging: false };
+    } else if (shouldOpen && currentState.isOpen) {
+      // Stay open, restart timer
+      newState = { offsetX: -maxSwipe, isOpen: true, isDragging: false };
+    } else {
+      newState = { offsetX: 0, isOpen: false, isDragging: false };
+    }
+
+    setState(newState);
+
+    // Call callbacks after setState, not during
+    if (shouldCallOpen) {
+      onSwipeOpen?.();
+      startAutoCloseTimer();
+    } else if (shouldCallClose) {
+      onSwipeClose?.();
+    } else if (shouldOpen && currentState.isOpen) {
+      startAutoCloseTimer();
+    }
   }, [
     disabled,
     threshold,
     maxSwipe,
+    state,
     onSwipeOpen,
     onSwipeClose,
     startAutoCloseTimer,

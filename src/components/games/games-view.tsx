@@ -17,6 +17,7 @@ import type {
 } from "@/features/games/types";
 import { Id } from "@/convex/_generated/dataModel";
 import { EnablePushButton } from "@/components/EnablePushButton";
+import { useSwipeHint } from "@/hooks/use-swipe-hint";
 
 type RsvpStatus = "in" | "out";
 
@@ -73,6 +74,9 @@ export function GamesView({
 }: GamesViewProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingGame, setEditingGame] = useState<GameWithRsvps | null>(null);
+
+  // Swipe hint for first-time admin users on mobile
+  const { shouldShowHint, markAsSwiped } = useSwipeHint(isAdmin);
 
   const handleEdit = (game: GameWithRsvps) => {
     setEditingGame(game);
@@ -242,7 +246,7 @@ export function GamesView({
                   </span>
                 </div>
                 {upcomingGames.length > 0 ? (
-                  upcomingGames.map((entry) => (
+                  upcomingGames.map((entry, index) => (
                     <GameCardModern
                       key={entry.game._id}
                       entry={entry}
@@ -252,6 +256,8 @@ export function GamesView({
                       onRsvp={onRsvp}
                       onEdit={handleEdit}
                       isPast={false}
+                      showSwipeHint={index === 0 && shouldShowHint}
+                      onSwipeUsed={markAsSwiped}
                     />
                   ))
                 ) : (

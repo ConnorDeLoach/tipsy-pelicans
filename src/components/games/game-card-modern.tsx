@@ -32,6 +32,10 @@ interface GameCardModernProps {
   ) => void;
   onEdit: (entry: GameWithRsvps) => void;
   isPast: boolean;
+  /** Show swipe hint animation (first card only) */
+  showSwipeHint?: boolean;
+  /** Called when user successfully swipes */
+  onSwipeUsed?: () => void;
 }
 
 const itemVariants = {
@@ -97,6 +101,8 @@ export function GameCardModern({
   onRsvp,
   onEdit,
   isPast,
+  showSwipeHint,
+  onSwipeUsed,
 }: GameCardModernProps) {
   const isMobile = useIsMobile();
   const swipeEnabled = isMobile && isAdmin;
@@ -110,6 +116,7 @@ export function GameCardModern({
     maxSwipe: ACTION_WIDTH,
     disabled: !swipeEnabled,
     autoCloseDelay: 4000,
+    onSwipeOpen: onSwipeUsed,
   });
 
   // Spring animation for smooth swipe
@@ -125,6 +132,22 @@ export function GameCardModern({
         : 0
     );
   }, [swipeState.offsetX, swipeState.isOpen, swipeState.isDragging, springX]);
+
+  // Hint animation: nudge card left briefly to reveal action
+  useEffect(() => {
+    if (!showSwipeHint || !swipeEnabled) return;
+
+    const timer = setTimeout(() => {
+      // Nudge left
+      springX.set(-24);
+      // Return after a moment
+      setTimeout(() => {
+        springX.set(0);
+      }, 400);
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [showSwipeHint, swipeEnabled, springX]);
 
   // Action button opacity based on reveal
   const actionOpacity = useTransform(
