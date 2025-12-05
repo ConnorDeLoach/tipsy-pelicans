@@ -92,7 +92,7 @@ export function GamesView({
   return (
     <div className="bg-background text-foreground font-sans">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-hero-gradient text-primary-foreground pb-16 pt-8 px-4 sm:px-6 lg:px-8 rounded-3xl shadow-xl mb-8">
+      <div className="relative overflow-hidden bg-hero-gradient text-primary-foreground pb-10 pt-8 px-4 sm:px-6 lg:px-8 rounded-3xl shadow-xl mb-8">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
         <div className="relative max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -157,7 +157,7 @@ export function GamesView({
       <div className="max-w-4xl mx-auto px-0 sm:px-6 -mt-8 relative z-10">
         <div className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl p-4 sm:p-6 mb-10">
           {/* Season Selector */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex gap-2 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
               {seasons?.map((season) => (
                 <button
@@ -189,7 +189,7 @@ export function GamesView({
             </div>
           </div>
 
-          <Tabs defaultValue="upcoming" className="space-y-6">
+          <Tabs defaultValue="upcoming" className="space-y-3">
             <div className="flex justify-between items-center">
               <TabsList className="grid w-full max-w-md grid-cols-2 p-1 bg-secondary/50 rounded-xl">
                 <TabsTrigger
