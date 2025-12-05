@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { BottomNav } from "@/components/bottom-nav";
+import { NotificationPromptPill } from "@/components/NotificationPromptPill";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/lib/nav-config";
@@ -59,6 +60,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
           </div>
         </div>
       </SidebarInset>
+      <NotificationPromptPill />
       <BottomNav />
     </SidebarProvider>
   );

@@ -16,7 +16,6 @@ import type {
   Season,
 } from "@/features/games/types";
 import { Id } from "@/convex/_generated/dataModel";
-import { EnablePushButton } from "@/components/EnablePushButton";
 import { useSwipeHint } from "@/hooks/use-swipe-hint";
 
 type RsvpStatus = "in" | "out";
@@ -187,7 +186,6 @@ export function GamesView({
                   <Plus className="h-4 w-4 mr-1" /> Add Game
                 </Button>
               )}
-              <EnablePushButton />
             </div>
           </div>
 
