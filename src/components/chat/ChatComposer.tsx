@@ -5,6 +5,7 @@ import { Loader2, Send } from "lucide-react";
 import { ImagePicker, type PendingImage } from "@/components/chat/ImagePicker";
 import { type Me } from "@/hooks/use-chat";
 import {
+  useLayoutEffect,
   type MutableRefObject,
   type FormEvent,
   type KeyboardEvent,
@@ -37,6 +38,29 @@ export function ChatComposer({
   onImagesChange,
   onSend,
 }: ChatComposerProps) {
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+
+    el.style.height = "auto";
+
+    const style = window.getComputedStyle(el);
+    const lineHeight = parseFloat(style.lineHeight || "0") || 0;
+    const maxLines = 8;
+    const maxHeight = lineHeight > 0 ? lineHeight * maxLines : 0;
+
+    const fullHeight = el.scrollHeight;
+    const nextHeight =
+      maxHeight > 0 ? Math.min(fullHeight, maxHeight) : fullHeight;
+
+    el.style.height = `${nextHeight}px`;
+    if (maxHeight > 0 && fullHeight > maxHeight) {
+      el.style.overflowY = "auto";
+    } else {
+      el.style.overflowY = "hidden";
+    }
+  }, [body, textareaRef]);
+
   return (
     <>
       {/* Composer */}
