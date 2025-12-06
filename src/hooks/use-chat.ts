@@ -24,6 +24,17 @@ export type MessageImage = {
   height: number;
 };
 
+// GIF type from API (Tenor GIF metadata)
+export type MessageGif = {
+  tenorId: string;
+  url: string;
+  previewUrl: string;
+  width: number;
+  height: number;
+  previewWidth: number;
+  previewHeight: number;
+};
+
 // Optimistic message type
 export type OptimisticMessageStatus = "pending" | "failed";
 
@@ -41,6 +52,7 @@ export type OptimisticMessage = {
   displayName: string;
   role: string;
   images?: MessageImage[];
+  gif?: MessageGif;
   reactions: Reaction[];
   isOptimistic: true;
   status: OptimisticMessageStatus;
@@ -54,6 +66,7 @@ export type Message = {
   displayName: string;
   role: string;
   images?: MessageImage[];
+  gif?: MessageGif;
   reactions: Reaction[];
   isOptimistic?: false;
 };
@@ -101,6 +114,7 @@ export function useChatMessages({
 
   const sendMessage = useMutation(api.chat.messages.send);
   const sendWithImages = useMutation(api.chat.images.sendWithImages);
+  const sendGifMessage = useMutation(api.chat.gif.sendGif);
   const generateUploadUrl = useMutation(api.chat.images.generateUploadUrl);
   const deleteMessage = useMutation(api.chat.messages.remove);
   const toggleReaction = useMutation(api.chat.reactions.toggle);
@@ -398,6 +412,64 @@ export function useChatMessages({
     }
   };
 
+  const handleSendGif = async (gif: MessageGif) => {
+    if (isSending || !me?.playerId) return;
+
+    const optimisticId = `optimistic-${Date.now()}`;
+
+    const optimisticMsg: OptimisticMessage = {
+      _id: optimisticId,
+      _creationTime: Date.now(),
+      createdBy: me.playerId as Id<"players">,
+      body: "",
+      displayName: me.name ?? "You",
+      role: me.role ?? "player",
+      gif,
+      reactions: [],
+      isOptimistic: true,
+      status: "pending",
+    };
+
+    setOptimisticMessages((prev) => [...prev, optimisticMsg]);
+    if (onForceAutoScroll) {
+      onForceAutoScroll();
+    }
+    setIsSending(true);
+
+    try {
+      await sendGifMessage({
+        conversationId,
+        gif: {
+          tenorId: gif.tenorId,
+          url: gif.url,
+          previewUrl: gif.previewUrl,
+          width: gif.width,
+          height: gif.height,
+          previewWidth: gif.previewWidth,
+          previewHeight: gif.previewHeight,
+        },
+      });
+
+      // Remove optimistic message after server confirms
+      setOptimisticMessages((prev) =>
+        prev.filter((m) => m._id !== optimisticId)
+      );
+    } catch (err) {
+      // Mark as failed so user can see error
+      setOptimisticMessages((prev) =>
+        prev.map((m) =>
+          m._id === optimisticId ? { ...m, status: "failed" } : m
+        )
+      );
+      const message =
+        err instanceof Error ? err.message : "Failed to send GIF.";
+      toast.error(message);
+    } finally {
+      setIsSending(false);
+      textareaRef.current?.focus();
+    }
+  };
+
   return {
     messages,
     status,
@@ -411,6 +483,7 @@ export function useChatMessages({
     hasImages,
     allReady,
     handleSend,
+    handleSendGif,
     handleRetryOptimistic,
     handleReaction,
     handleDelete,

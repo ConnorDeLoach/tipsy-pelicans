@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, ImagePlus } from "lucide-react";
 import { ImagePicker, type PendingImage } from "@/components/chat/ImagePicker";
-import { type Me } from "@/hooks/use-chat";
+import { GifPicker } from "@/components/chat/GifPicker";
+import { type Me, type MessageGif } from "@/hooks/use-chat";
+import { type TenorGif } from "@/lib/tenor";
 import {
   useLayoutEffect,
   type MutableRefObject,
@@ -24,6 +27,7 @@ export type ChatComposerProps = {
   onSend: (
     e: FormEvent<HTMLFormElement> | KeyboardEvent<HTMLTextAreaElement>
   ) => void;
+  onSendGif: (gif: MessageGif) => void;
 };
 
 export function ChatComposer({
@@ -37,7 +41,9 @@ export function ChatComposer({
   onBodyChange,
   onImagesChange,
   onSend,
+  onSendGif,
 }: ChatComposerProps) {
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -61,16 +67,48 @@ export function ChatComposer({
     }
   }, [body, textareaRef]);
 
+  // Convert TenorGif to MessageGif and send
+  const handleGifSelect = (gif: TenorGif) => {
+    onSendGif({
+      tenorId: gif.id,
+      url: gif.url,
+      previewUrl: gif.previewUrl,
+      width: gif.dims[0],
+      height: gif.dims[1],
+      previewWidth: gif.previewDims[0],
+      previewHeight: gif.previewDims[1],
+    });
+    setGifPickerOpen(false);
+  };
+
+  // Show image picker only when not typing and no images selected
+  const showImagePicker = !body.trim() && !hasImages;
+  // Show send button when typing or has images
+  const showSendButton = body.trim() || hasImages;
+
   return (
     <>
       {/* Composer */}
       <form onSubmit={onSend} className="mt-4 space-y-2">
-        <div className="flex gap-2 items-end">
+        {/* Image previews row (if any) */}
+        {hasImages && (
           <ImagePicker
             images={pendingImages}
             onImagesChange={onImagesChange}
             disabled={isSending || !me}
+            showButton={false}
           />
+        )}
+
+        <div className="flex gap-2 items-end">
+          {/* GIF picker on left */}
+          <GifPicker
+            disabled={isSending || !me}
+            onSelect={handleGifSelect}
+            open={gifPickerOpen}
+            onOpenChange={setGifPickerOpen}
+          />
+
           <textarea
             ref={textareaRef}
             value={body}
@@ -87,23 +125,37 @@ export function ChatComposer({
             disabled={!me}
             maxLength={2000}
           />
-          <Button
-            type="submit"
-            disabled={
-              isSending ||
-              (!body.trim() && !hasImages) ||
-              (hasImages && !allReady) ||
-              !me
-            }
-            className="shrink-0"
-          >
-            {isSending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Send className="size-4" />
-            )}
-            <span className="sr-only">Send</span>
-          </Button>
+
+          {/* Right side: Image picker OR Send button */}
+          {showImagePicker && (
+            <ImagePicker
+              images={pendingImages}
+              onImagesChange={onImagesChange}
+              disabled={isSending || !me}
+              showButton={true}
+              showPreviews={false}
+            />
+          )}
+
+          {showSendButton && (
+            <Button
+              type="submit"
+              disabled={
+                isSending ||
+                (!body.trim() && !hasImages) ||
+                (hasImages && !allReady) ||
+                !me
+              }
+              className="shrink-0"
+            >
+              {isSending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Send className="size-4" />
+              )}
+              <span className="sr-only">Send</span>
+            </Button>
+          )}
         </div>
       </form>
       {body.length >= 1500 && (

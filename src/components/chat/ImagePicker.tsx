@@ -28,12 +28,18 @@ interface ImagePickerProps {
   images: PendingImage[];
   onImagesChange: (images: PendingImage[]) => void;
   disabled?: boolean;
+  /** Show the add image button (default: true) */
+  showButton?: boolean;
+  /** Show image previews (default: true) */
+  showPreviews?: boolean;
 }
 
 export function ImagePicker({
   images,
   onImagesChange,
   disabled = false,
+  showButton = true,
+  showPreviews = true,
 }: ImagePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -144,7 +150,7 @@ export function ImagePicker({
   return (
     <div className="flex items-center gap-2">
       {/* Selected images preview */}
-      {images.length > 0 && (
+      {showPreviews && images.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
           {images.map((img) => (
             <div
@@ -175,7 +181,7 @@ export function ImagePicker({
       )}
 
       {/* Add image button */}
-      {canAddMore && (
+      {showButton && canAddMore && (
         <>
           <input
             ref={inputRef}

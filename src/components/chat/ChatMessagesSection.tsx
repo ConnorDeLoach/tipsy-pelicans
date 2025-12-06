@@ -6,6 +6,7 @@ import { Loader2, ChevronDown } from "lucide-react";
 import { MessageActions } from "@/components/chat/MessageActions";
 import { MessageContent } from "@/components/chat/MessageContent";
 import { MessageImages } from "@/components/chat/MessageImages";
+import { MessageGif } from "@/components/chat/MessageGif";
 import { ReactionChips } from "@/components/chat/ReactionChips";
 import { LinkPreviewCards } from "@/components/chat/LinkPreviewCard";
 import { type AnyMessage, type Me } from "@/hooks/use-chat";
@@ -239,6 +240,17 @@ export function ChatMessagesSection({
                       {msg.images && msg.images.length > 0 && (
                         <MessageImages
                           images={msg.images}
+                          isMe={isMe}
+                          onLightboxOpenChange={(open) => {
+                            if (!open) {
+                              onMessageLightboxClose();
+                            }
+                          }}
+                        />
+                      )}
+                      {msg.gif && (
+                        <MessageGif
+                          gif={msg.gif}
                           isMe={isMe}
                           onLightboxOpenChange={(open) => {
                             if (!open) {

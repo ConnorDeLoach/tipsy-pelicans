@@ -67,6 +67,17 @@ export const listByConversation = query({
             })
           )
         ),
+        gif: v.optional(
+          v.object({
+            tenorId: v.string(),
+            url: v.string(),
+            previewUrl: v.string(),
+            width: v.number(),
+            height: v.number(),
+            previewWidth: v.number(),
+            previewHeight: v.number(),
+          })
+        ),
         reactions: v.array(
           v.object({
             emoji: v.string(),
@@ -130,6 +141,7 @@ export const listByConversation = query({
           displayName: m.displayName,
           role: m.role,
           images,
+          gif: m.gif,
           reactions: reactionsMap.get(m._id) ?? [],
         };
       })

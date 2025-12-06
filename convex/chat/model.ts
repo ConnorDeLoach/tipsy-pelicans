@@ -10,6 +10,17 @@ export const messageImageValidator = v.object({
   height: v.number(), // Original height for aspect ratio
 });
 
+// GIF attachment validator for Tenor GIFs (stored as URLs, not uploaded)
+export const messageGifValidator = v.object({
+  tenorId: v.string(), // Tenor GIF ID
+  url: v.string(), // Full-size GIF URL
+  previewUrl: v.string(), // Thumbnail/preview URL (tinygif)
+  width: v.number(), // Full-size width
+  height: v.number(), // Full-size height
+  previewWidth: v.number(), // Preview width
+  previewHeight: v.number(), // Preview height
+});
+
 // Max images per message
 export const MAX_IMAGES_PER_MESSAGE = 4;
 
@@ -45,6 +56,8 @@ export const messagesTable = defineTable({
   embeds: v.optional(v.array(messageEmbedValidator)),
   // Optional array of image attachments (max 4 per message)
   images: v.optional(v.array(messageImageValidator)),
+  // Optional GIF attachment (Tenor GIF, stored as URL metadata)
+  gif: v.optional(messageGifValidator),
 }).index("by_conversation", ["conversationId"]);
 
 export const chatReadStatusTable = defineTable({

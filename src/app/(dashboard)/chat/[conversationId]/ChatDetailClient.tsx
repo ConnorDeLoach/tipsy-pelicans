@@ -59,6 +59,7 @@ export function ChatDetailClient({
     hasImages,
     allReady,
     handleSend,
+    handleSendGif,
     handleRetryOptimistic,
     handleReaction,
     handleDelete,
@@ -203,6 +204,7 @@ export function ChatDetailClient({
         onBodyChange={setBody}
         onImagesChange={setPendingImages}
         onSend={handleSendWithScroll}
+        onSendGif={handleSendGif}
       />
       <DeleteMessageDialog
         deleteConfirmId={deleteConfirmId}
