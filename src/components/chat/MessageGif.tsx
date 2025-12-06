@@ -61,9 +61,6 @@ export function MessageGif({
     return () => window.removeEventListener("popstate", handlePopState);
   }, [showLightbox, closeLightbox]);
 
-  // Calculate aspect ratio for proper sizing
-  const aspectRatio = gif.previewWidth / gif.previewHeight;
-
   return (
     <>
       {/* GIF thumbnail */}
@@ -73,15 +70,12 @@ export function MessageGif({
           e.stopPropagation();
           openLightbox();
         }}
-        className="relative overflow-hidden rounded-md bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring hover:opacity-90 transition-opacity max-w-[280px] mt-2"
-        style={{
-          aspectRatio: `${gif.previewWidth}/${gif.previewHeight}`,
-        }}
+        className="relative inline-block overflow-hidden rounded-md bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring hover:opacity-90 transition-opacity max-w-full mt-2"
       >
         <img
-          src={gif.previewUrl}
+          src={gif.url}
           alt="GIF"
-          className="size-full object-cover"
+          className="block max-w-full h-auto"
           loading="lazy"
         />
         {/* GIF badge */}
