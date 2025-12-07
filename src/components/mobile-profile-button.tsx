@@ -6,7 +6,7 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,11 +26,16 @@ export function MobileProfileButton() {
   // Only render on mobile
   if (!isMobile) return null;
 
-  const user = {
-    name: me?.name ?? "Tipsy Pelican",
-    email: me?.email ?? "",
-    avatar: "/tipsy-bird.png",
-  };
+  const userName = me?.name ?? "Tipsy Pelican";
+  const userEmail = me?.email ?? "";
+
+  // Generate initials from user name
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <>
@@ -40,9 +45,10 @@ export function MobileProfileButton() {
       />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Avatar className="h-8 w-8 rounded-lg grayscale cursor-pointer">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback className="rounded-lg">TP</AvatarFallback>
+          <Avatar className="h-8 w-8 rounded-lg cursor-pointer">
+            <AvatarFallback className="rounded-lg bg-primary text-primary-foreground font-semibold text-sm">
+              {initials}
+            </AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -52,9 +58,9 @@ export function MobileProfileButton() {
           sideOffset={4}
         >
           <div className="p-2 text-sm">
-            <div className="font-medium">{user.name}</div>
+            <div className="font-medium">{userName}</div>
             <div className="text-muted-foreground text-xs truncate">
-              {user.email}
+              {userEmail}
             </div>
           </div>
           <DropdownMenuSeparator />
