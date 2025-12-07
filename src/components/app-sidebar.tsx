@@ -33,7 +33,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     [me]
   );
   const { isMobile, setOpenMobile } = useSidebar();
-  // Route prefetching is handled by DashboardShell
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
