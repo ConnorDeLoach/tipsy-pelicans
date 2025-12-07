@@ -4,7 +4,6 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Preloaded } from "convex/react";
 import { useRouter } from "next/navigation";
-import { MessageSquarePlus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import {
   useChatListData,
@@ -45,12 +44,14 @@ function ChatListContent({
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Messages</h1>
         {/* Future: Add New Chat button here */}
+        {/*
         <button
           className="p-2 rounded-full hover:bg-muted text-muted-foreground"
           title="New Chat (Coming Soon)"
         >
           <MessageSquarePlus className="size-6" />
         </button>
+        */}
       </div>
 
       {conversations.length === 0 ? (

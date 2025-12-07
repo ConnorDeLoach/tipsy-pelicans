@@ -14,7 +14,7 @@ export function SiteHeader() {
         {/* Mobile: Team logo */}
         <div className="md:hidden flex items-center gap-2">
           <Image
-            src="/favicon.png"
+            src="/tipsy-bird.png"
             alt="Tipsy Pelicans"
             width={24}
             height={24}
