@@ -41,7 +41,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div
               className={cn(
-                "flex flex-1 flex-col gap-4 pt-4 md:py-6 md:gap-6",
+                "flex flex-1 flex-col gap-3 pt-0 md:py-4 md:gap-4",
                 // Only add bottom padding if NOT in a chat conversation
                 !isChatConversation && "pb-20"
               )}
