@@ -12,6 +12,7 @@ import {
   registerShare,
   type TenorGif,
 } from "@/lib/tenor";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Custom GIF icon component
 function GifIcon({ className }: { className?: string }) {
@@ -70,6 +71,7 @@ export function GifPicker({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
 
   // Debounce query for search
   useEffect(() => {
@@ -191,20 +193,22 @@ export function GifPicker({
     return () => grid.removeEventListener("scroll", handleScroll);
   }, [loadMore]);
 
-  // Focus input when opening
+  // Focus input when opening (desktop-only to avoid opening mobile keyboard)
   useEffect(() => {
-    if (open) {
+    if (open && !isMobile) {
       // Small delay to let the panel render
       setTimeout(() => {
         inputRef.current?.focus();
       }, 50);
-    } else {
+    }
+
+    if (!open) {
       // Reset state when closing
       setQuery("");
       setDebouncedQuery("");
       setSuggestions([]);
     }
-  }, [open]);
+  }, [open, isMobile]);
 
   const handleSelectGif = (gif: TenorGif) => {
     // Register share with Tenor (fire and forget)

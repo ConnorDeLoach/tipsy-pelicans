@@ -43,6 +43,7 @@ import {
 import { useRosterPageData } from "@/features/roster/queries";
 import { useRosterMutations } from "@/features/roster/mutations";
 import { useSwipeHint } from "@/hooks/use-swipe-hint";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type PositionOption = "RW" | "C" | "LW" | "LD" | "RD" | "G";
 type RoleOption = "player" | "spare" | "spectator";
@@ -86,6 +87,8 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
 
   // Swipe hint for first-time admin users on mobile
   const { shouldShowHint, markAsSwiped } = useSwipeHint(isAdmin);
+
+  const isMobile = useIsMobile();
 
   const [playerForm, setPlayerForm] = useState<PlayerFormState>({
     name: "",
@@ -296,7 +299,13 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
             }
           }}
         >
-          <DialogContent>
+          <DialogContent
+            onOpenAutoFocus={(event) => {
+              if (isMobile) {
+                event.preventDefault();
+              }
+            }}
+          >
             <DialogHeader>
               <DialogTitle>
                 {editingId ? "Edit player" : "Add a new player"}
