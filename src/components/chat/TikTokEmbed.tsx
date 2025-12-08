@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Play, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { useBackButtonClose } from "@/hooks/use-back-button-close";
 
 interface TikTokEmbedProps {
   videoId: string;
@@ -39,27 +40,18 @@ export function TikTokEmbed({
     setIsOpen(true);
     onLightboxOpenChange?.(true);
     // Push history state so back button closes lightbox
-    window.history.pushState({ tiktokLightbox: true }, "");
   };
 
   // Handle browser back button
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handlePopState = (e: PopStateEvent) => {
-      // Back button pressed, close the lightbox
-      handleClose();
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [isOpen, handleClose]);
+  const { closeWithHistory } = useBackButtonClose({
+    open: isOpen,
+    onClose: handleClose,
+    stateKey: "tiktokLightbox",
+  });
 
   // When closing via X button or overlay, go back in history
   const handleCloseWithHistory = () => {
-    if (isOpen) {
-      window.history.back();
-    }
+    closeWithHistory();
   };
 
   return (

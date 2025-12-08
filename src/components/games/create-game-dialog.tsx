@@ -36,6 +36,8 @@ import {
 import type { Opponent } from "@/features/games/types";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useBackButtonClose } from "@/hooks/use-back-button-close";
 
 interface CreateGameDialogProps {
   open: boolean;
@@ -78,10 +80,19 @@ export function CreateGameDialog({
   const [opponentScore, setOpponentScore] = useState<string>("");
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
+  const isMobile = useIsMobile();
+
   const dateFormatter = new Intl.DateTimeFormat(undefined, {
     weekday: "long",
     month: "long",
     day: "numeric",
+  });
+
+  const { closeWithHistory } = useBackButtonClose({
+    open,
+    onClose: () => onOpenChange(false),
+    enabled: isMobile,
+    stateKey: mode === "create" ? "createGameDialog" : "editGameDialog",
   });
 
   // Reset or populate form when dialog opens/closes or initialData changes
@@ -163,21 +174,29 @@ export function CreateGameDialog({
       teamScore: teamScoreNum,
       opponentScore: opponentScoreNum,
     });
-
-    onOpenChange(false);
+    closeWithHistory();
   };
 
   const handleDelete = async () => {
     if (onDelete) {
       await onDelete();
       setShowDeleteAlert(false);
-      onOpenChange(false);
+      closeWithHistory();
     }
   };
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            closeWithHistory();
+          } else {
+            onOpenChange(true);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
@@ -328,7 +347,7 @@ export function CreateGameDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => closeWithHistory()}
               >
                 Cancel
               </Button>

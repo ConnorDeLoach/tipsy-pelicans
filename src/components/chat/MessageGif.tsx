@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
+import { useBackButtonClose } from "@/hooks/use-back-button-close";
 
 export interface MessageGifData {
   tenorId: string;
@@ -34,7 +35,6 @@ export function MessageGif({
     setShowLightbox(true);
     onLightboxOpenChange?.(true);
     // Push history state so the browser back button can close the lightbox
-    window.history.pushState({ gifLightbox: true }, "");
   };
 
   const closeLightbox = useCallback(() => {
@@ -42,24 +42,17 @@ export function MessageGif({
     onLightboxOpenChange?.(false);
   }, [onLightboxOpenChange]);
 
+  // Handle browser back button to close the lightbox
+  const { closeWithHistory } = useBackButtonClose({
+    open: showLightbox,
+    onClose: closeLightbox,
+    stateKey: "gifLightbox",
+  });
+
   // When closing via overlay or close button, go back in history
   const handleCloseWithHistory = useCallback(() => {
-    if (showLightbox) {
-      window.history.back();
-    }
-  }, [showLightbox]);
-
-  // Handle browser back button to close the lightbox
-  useEffect(() => {
-    if (!showLightbox) return;
-
-    const handlePopState = () => {
-      closeLightbox();
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [showLightbox, closeLightbox]);
+    closeWithHistory();
+  }, [closeWithHistory]);
 
   return (
     <>

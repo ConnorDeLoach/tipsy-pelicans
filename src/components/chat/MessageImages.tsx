@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { useBackButtonClose } from "@/hooks/use-back-button-close";
 
 export interface MessageImage {
   fullUrl: string | null;
@@ -34,7 +35,6 @@ export function MessageImages({
     setLightboxIndex(index);
     onLightboxOpenChange?.(true);
     // Push history state so the browser back button can close the lightbox
-    window.history.pushState({ imageLightbox: true }, "");
   };
 
   const closeLightbox = useCallback(() => {
@@ -42,24 +42,17 @@ export function MessageImages({
     onLightboxOpenChange?.(false);
   }, [onLightboxOpenChange]);
 
+  // Handle browser back button to close the lightbox
+  const { closeWithHistory } = useBackButtonClose({
+    open: lightboxIndex !== null,
+    onClose: closeLightbox,
+    stateKey: "imageLightbox",
+  });
+
   // When closing via overlay or close button, go back in history
   const handleCloseWithHistory = useCallback(() => {
-    if (lightboxIndex !== null) {
-      window.history.back();
-    }
-  }, [lightboxIndex]);
-
-  // Handle browser back button to close the lightbox
-  useEffect(() => {
-    if (lightboxIndex === null) return;
-
-    const handlePopState = () => {
-      closeLightbox();
-    };
-
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
-  }, [lightboxIndex, closeLightbox]);
+    closeWithHistory();
+  }, [closeWithHistory]);
 
   const goToPrevious = () => {
     if (lightboxIndex !== null && lightboxIndex > 0) {

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Loader2, Search, X } from "lucide-react";
+import { Loader2, Search, X, Keyboard } from "lucide-react";
 import {
   searchGifs,
   getFeaturedGifs,
@@ -13,6 +13,7 @@ import {
   type TenorGif,
 } from "@/lib/tenor";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useBackButtonClose } from "@/hooks/use-back-button-close";
 
 // Custom GIF icon component
 function GifIcon({ className }: { className?: string }) {
@@ -210,6 +211,13 @@ export function GifPicker({
     }
   }, [open, isMobile]);
 
+  useBackButtonClose({
+    open,
+    onClose: () => onOpenChange(false),
+    enabled: isMobile,
+    stateKey: "gifPicker",
+  });
+
   const handleSelectGif = (gif: TenorGif) => {
     // Register share with Tenor (fire and forget)
     registerShare(gif.id, lastSearchQuery || undefined);
@@ -233,14 +241,25 @@ export function GifPicker({
         onClick={() => onOpenChange(!open)}
         disabled={disabled}
         className="shrink-0"
-        title="Add GIF"
+        title={isMobile && open ? "Back to keyboard" : "Add GIF"}
       >
-        <GifIcon className="size-5" />
+        {isMobile && open ? (
+          <Keyboard className="size-5" />
+        ) : (
+          <GifIcon className="size-5" />
+        )}
       </Button>
 
       {/* Inline panel */}
       {open && (
-        <div className="absolute bottom-full left-0 mb-2 w-[320px] sm:w-[400px] bg-background border rounded-lg shadow-lg z-50 overflow-hidden">
+        <div
+          className={cn(
+            "bg-background border shadow-lg z-50 overflow-hidden",
+            isMobile
+              ? "fixed left-1/2 bottom-0 w-full max-w-[540px] -translate-x-1/2 rounded-t-xl"
+              : "absolute bottom-full left-0 mb-2 w-[320px] sm:w-[400px] rounded-lg"
+          )}
+        >
           {/* Header with search */}
           <div className="p-2 border-b space-y-2">
             <div className="flex items-center gap-2">
@@ -296,7 +315,13 @@ export function GifPicker({
           </div>
 
           {/* GIF grid */}
-          <div ref={gridRef} className="h-[300px] overflow-y-auto p-2">
+          <div
+            ref={gridRef}
+            className={cn(
+              "overflow-y-auto p-2",
+              isMobile ? "h-[45vh]" : "h-[300px]"
+            )}
+          >
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <Loader2 className="size-6 animate-spin text-muted-foreground" />
