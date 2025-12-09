@@ -1,395 +1,648 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Users,
+  MapPin,
+  Calendar,
+  Clock,
+  ChevronLeft,
   Shield,
   Swords,
-  Goal,
   MoreVertical,
-  Pencil,
-  Trash2,
+  User,
+  GripVertical,
+  ArrowRightLeft,
+  X,
   Plus,
-  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
-// Mock Data
-const MOCK_PLAYERS = [
+// --- Types ---
+
+type Player = {
+  id: string;
+  name: string;
+  number: string;
+  position: "F" | "D" | "G";
+  status: "in" | "out" | "maybe";
+  avatarColor: string;
+};
+
+type SlotId = string; // e.g., "L1-LW", "D1-LD"
+
+// --- Mock Data ---
+
+const MOCK_GAME = {
+  opponent: "Puck Hogs",
+  date: "Fri, Dec 12",
+  time: "9:45 PM",
+  location: "Hertz Arena",
+  status: "upcoming",
+};
+
+const MOCK_PLAYERS: Player[] = [
   {
-    _id: "1",
+    id: "1",
     name: "Connor DeLoach",
     number: "88",
-    position: "C",
-    role: "player",
-    flair: "Captain",
-    email: "connor@example.com",
-    isAdmin: true,
+    position: "F",
+    status: "in",
+    avatarColor: "bg-blue-500",
   },
   {
-    _id: "2",
+    id: "2",
     name: "Wayne Gretzky",
     number: "99",
-    position: "C",
-    role: "player",
-    flair: "The Great One",
-    email: "wayne@example.com",
-    isAdmin: false,
+    position: "F",
+    status: "in",
+    avatarColor: "bg-orange-500",
   },
   {
-    _id: "3",
+    id: "3",
     name: "Mario Lemieux",
     number: "66",
-    position: "C",
-    role: "player",
-    flair: "Super Mario",
-    email: "mario@example.com",
-    isAdmin: false,
+    position: "F",
+    status: "in",
+    avatarColor: "bg-emerald-500",
   },
   {
-    _id: "4",
+    id: "4",
     name: "Patrick Roy",
     number: "33",
     position: "G",
-    role: "player",
-    flair: "Wall",
-    email: "patrick@example.com",
-    isAdmin: false,
+    status: "in",
+    avatarColor: "bg-indigo-500",
   },
   {
-    _id: "5",
+    id: "5",
     name: "Bobby Orr",
     number: "4",
-    position: "LD",
-    role: "player",
-    flair: "Legend",
-    email: "bobby@example.com",
-    isAdmin: false,
+    position: "D",
+    status: "in",
+    avatarColor: "bg-rose-500",
   },
   {
-    _id: "6",
-    name: "Doug Glatt",
-    number: "69",
-    position: "LW",
-    role: "spare",
-    flair: "Enforcer",
-    email: "doug@example.com",
-    isAdmin: false,
+    id: "6",
+    name: "Ray Bourque",
+    number: "77",
+    position: "D",
+    status: "in",
+    avatarColor: "bg-cyan-500",
   },
   {
-    _id: "7",
-    name: "Happy Gilmore",
-    number: "18",
-    position: "RD",
-    role: "spectator",
-    flair: "Shooter",
-    email: "happy@example.com",
-    isAdmin: false,
+    id: "7",
+    name: "Steve Yzerman",
+    number: "19",
+    position: "F",
+    status: "in",
+    avatarColor: "bg-violet-500",
+  },
+  {
+    id: "8",
+    name: "Joe Sakic",
+    number: "19",
+    position: "F",
+    status: "in",
+    avatarColor: "bg-fuchsia-500",
+  },
+  {
+    id: "9",
+    name: "Nick Lidstrom",
+    number: "5",
+    position: "D",
+    status: "in",
+    avatarColor: "bg-yellow-500",
+  },
+  {
+    id: "10",
+    name: "Dominik Hasek",
+    number: "39",
+    position: "G",
+    status: "maybe",
+    avatarColor: "bg-red-500",
+  },
+  {
+    id: "11",
+    name: "Jaromir Jagr",
+    number: "68",
+    position: "F",
+    status: "in",
+    avatarColor: "bg-lime-500",
+  },
+  {
+    id: "12",
+    name: "Teemu Selanne",
+    number: "8",
+    position: "F",
+    status: "in",
+    avatarColor: "bg-sky-500",
+  },
+  {
+    id: "13",
+    name: "Paul Kariya",
+    number: "9",
+    position: "F",
+    status: "in",
+    avatarColor: "bg-teal-500",
+  },
+  {
+    id: "14",
+    name: "Chris Pronger",
+    number: "44",
+    position: "D",
+    status: "in",
+    avatarColor: "bg-stone-500",
   },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-    },
-  },
-};
+// --- Components ---
 
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "spring" as const,
-      stiffness: 100,
-      damping: 15,
-    },
-  },
-};
+function SegmentedControl({
+  active,
+  onChange,
+}: {
+  active: "attendance" | "lines";
+  onChange: (v: "attendance" | "lines") => void;
+}) {
+  return (
+    <div className="bg-muted/50 p-1 rounded-xl flex gap-1 relative mb-6">
+      {/* Active Indicator Background */}
+      <motion.div
+        className="absolute bg-background shadow-sm rounded-lg inset-y-1"
+        layoutId="segment-indicator"
+        initial={false}
+        animate={{
+          left: active === "attendance" ? "4px" : "50%",
+          width: "calc(50% - 4px)",
+          x: active === "lines" ? "0%" : "0%",
+        }}
+        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+      />
 
-function PlayerCard({ player, isAdmin }: { player: any; isAdmin: boolean }) {
-  // Get initials for avatar
-  const initials = player.name
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+      <button
+        onClick={() => onChange("attendance")}
+        className={cn(
+          "flex-1 py-2 text-sm font-semibold rounded-lg z-10 transition-colors relative flex items-center justify-center gap-2",
+          active === "attendance"
+            ? "text-foreground"
+            : "text-muted-foreground hover:text-foreground/70"
+        )}
+      >
+        <Users className="w-4 h-4" />
+        Attendance
+      </button>
+      <button
+        onClick={() => onChange("lines")}
+        className={cn(
+          "flex-1 py-2 text-sm font-semibold rounded-lg z-10 transition-colors relative flex items-center justify-center gap-2",
+          active === "lines"
+            ? "text-foreground"
+            : "text-muted-foreground hover:text-foreground/70"
+        )}
+      >
+        <Swords className="w-4 h-4" />
+        Lines
+      </button>
+    </div>
+  );
+}
 
-  // Determine role icon/color
-  let RoleIcon = Users;
-  let roleColor =
-    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300";
-
-  if (player.position === "G") {
-    RoleIcon = Shield;
-    roleColor =
-      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300";
-  } else if (["LD", "RD"].includes(player.position)) {
-    RoleIcon = Shield;
-    roleColor =
-      "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300";
-  } else if (["LW", "RW", "C"].includes(player.position)) {
-    RoleIcon = Swords;
-    roleColor =
-      "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300";
-  }
-
-  const isSpare = player.role === "spare";
-  const isSpectator = player.role === "spectator";
+function AttendanceList({ players }: { players: Player[] }) {
+  const going = players.filter((p) => p.status === "in");
+  const maybe = players.filter((p) => p.status === "maybe");
+  const out = players.filter((p) => p.status === "out");
 
   return (
-    <motion.div variants={itemVariants}>
-      <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group relative">
-        <CardContent className="p-0">
-          <div className="flex flex-row h-full">
-            {/* Number Strip - Fixed Column */}
-            <div className="flex flex-col justify-center items-center bg-secondary/30 p-3 w-16 sm:w-20 border-r border-border/40 gap-2 shrink-0">
-              <div className="text-2xl font-black text-foreground/20 group-hover:text-primary/20 transition-colors">
-                {player.number || "—"}
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="space-y-3">
+        <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider pl-1">
+          Going ({going.length})
+        </h3>
+        {going.map((p) => (
+          <div
+            key={p.id}
+            className="flex items-center justify-between p-3 bg-card border rounded-xl shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
+                <AvatarFallback
+                  className={cn("text-white font-bold", p.avatarColor)}
+                >
+                  {p.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-bold text-sm">{p.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  #{p.number} • {p.position}
+                </div>
               </div>
             </div>
+            <Badge
+              variant="secondary"
+              className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+            >
+              In
+            </Badge>
+          </div>
+        ))}
+      </div>
 
-            {/* Main Content */}
-            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center gap-1">
-              <div className="flex justify-between items-start gap-2">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border-2 border-background shadow-sm">
-                    <AvatarFallback className={`font-bold ${roleColor}`}>
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-bold text-base sm:text-lg text-foreground leading-none">
-                      {player.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] px-1.5 py-0 h-5 font-medium uppercase tracking-wide"
-                      >
-                        {player.position || "N/A"}
-                      </Badge>
-                      {player.flair && (
-                        <span className="text-xs text-muted-foreground truncate max-w-[120px]">
-                          {player.flair}
-                        </span>
-                      )}
-                    </div>
+      {maybe.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider pl-1">
+            Maybe ({maybe.length})
+          </h3>
+          {maybe.map((p) => (
+            <div
+              key={p.id}
+              className="flex items-center justify-between p-3 bg-card/50 border border-dashed rounded-xl"
+            >
+              <div className="flex items-center gap-3 opacity-70">
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback>
+                    {p.name.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-bold text-sm">{p.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    #{p.number}
                   </div>
                 </div>
-
-                {isAdmin && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 -mr-2 -mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Pencil className="mr-2 h-4 w-4" /> Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
-                        <Trash2 className="mr-2 h-4 w-4" /> Remove
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
               </div>
+              <Badge variant="outline">Maybe</Badge>
             </div>
-          </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-          {/* Status indicators for non-regular players */}
-          {(isSpare || isSpectator) && (
-            <div className="absolute top-0 right-0 px-2 py-1 bg-muted/80 text-[10px] font-bold uppercase text-muted-foreground rounded-bl-lg backdrop-blur-sm">
-              {player.role}
+// --- Lines Logic & Components ---
+
+type LineAssignment = Record<SlotId, string>; // slotId -> playerId
+
+function LinesView({ players }: { players: Player[] }) {
+  const [assignments, setAssignments] = useState<LineAssignment>({});
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+
+  // Filter only 'in' players for lines
+  const availablePlayers = players.filter((p) => p.status === "in");
+
+  // Computed
+  const unassignedPlayers = availablePlayers.filter(
+    (p) => !Object.values(assignments).includes(p.id)
+  );
+
+  const handlePlayerClick = (playerId: string) => {
+    if (selectedPlayerId === playerId) {
+      setSelectedPlayerId(null);
+    } else {
+      setSelectedPlayerId(playerId);
+    }
+  };
+
+  const handleSlotClick = (slotId: string) => {
+    if (selectedPlayerId) {
+      // Assign selected player to this slot
+      setAssignments((prev) => {
+        // Remove player from any other slot first
+        const next = { ...prev };
+        Object.keys(next).forEach((key) => {
+          if (next[key] === selectedPlayerId) delete next[key];
+        });
+        next[slotId] = selectedPlayerId;
+        return next;
+      });
+      setSelectedPlayerId(null);
+    } else if (assignments[slotId]) {
+      // If slot has player, select them (to move them) or remove them?
+      // Let's just remove them for this simple mockup
+      const pid = assignments[slotId];
+      setSelectedPlayerId(pid);
+      setAssignments((prev) => {
+        const next = { ...prev };
+        delete next[slotId];
+        return next;
+      });
+    }
+  };
+
+  return (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      {/* Bench / Unassigned */}
+      <Card className="bg-muted/30 border-dashed border-2 overflow-hidden">
+        <div className="px-4 py-2 border-b bg-muted/20 flex justify-between items-center">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Users className="w-3 h-3" />
+            Bench ({unassignedPlayers.length})
+          </h3>
+          {selectedPlayerId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 text-xs hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setSelectedPlayerId(null)}
+            >
+              Cancel Selection
+            </Button>
+          )}
+        </div>
+        <CardContent className="p-3">
+          {unassignedPlayers.length === 0 ? (
+            <div className="text-center py-4 text-sm text-muted-foreground italic">
+              All players assigned!
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {unassignedPlayers.map((player) => (
+                <button
+                  key={player.id}
+                  onClick={() => handlePlayerClick(player.id)}
+                  className={cn(
+                    "flex items-center gap-2 px-2 py-1.5 rounded-full border transition-all text-sm font-medium",
+                    selectedPlayerId === player.id
+                      ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2"
+                      : "bg-background hover:border-primary/50"
+                  )}
+                >
+                  <span className="text-xs opacity-70 w-4 text-center">
+                    {player.number}
+                  </span>
+                  {player.name.split(" ")[0]}
+                  {/* Position Dot */}
+                  <div
+                    className={cn(
+                      "w-1.5 h-1.5 rounded-full ml-1",
+                      player.position === "D"
+                        ? "bg-blue-400"
+                        : player.position === "G"
+                        ? "bg-yellow-400"
+                        : "bg-red-400"
+                    )}
+                  />
+                </button>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
-    </motion.div>
-  );
-}
 
-export default function RosterMockPage() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const isAdmin = true; // Toggle to test admin view
-
-  // Stats
-  const totalPlayers = MOCK_PLAYERS.filter((p) => p.role === "player").length;
-  const spares = MOCK_PLAYERS.filter((p) => p.role === "spare").length;
-  const goalies = MOCK_PLAYERS.filter((p) => p.position === "G").length;
-
-  // Filter
-  const filteredPlayers = MOCK_PLAYERS.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.number.includes(searchTerm) ||
-      (p.flair && p.flair.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const activeRoster = filteredPlayers.filter((p) => p.role === "player");
-  const otherPlayers = filteredPlayers.filter((p) => p.role !== "player");
-
-  return (
-    <div className="min-h-screen bg-background text-foreground font-sans pb-20">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-hero-gradient text-primary-foreground pb-20 pt-8 px-4 sm:px-6 lg:px-8 rounded-b-[3rem] shadow-xl mb-8">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
-        <div className="relative max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-inner">
-                  <Users className="h-6 w-6 text-white" />
+      {/* Lines Grid */}
+      <div className="space-y-6">
+        {/* Forwards */}
+        <div>
+          <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+            <Swords className="w-4 h-4 text-rose-500" />
+            Forwards
+          </h3>
+          <div className="space-y-3">
+            {[1, 2, 3].map((lineNum) => (
+              <div
+                key={`F${lineNum}`}
+                className="grid grid-cols-[auto_1fr] gap-3"
+              >
+                <div className="flex items-center justify-center w-6">
+                  <span className="text-xs font-black text-muted-foreground/50 rotate-180 writing-mode-vertical">
+                    LINE {lineNum}
+                  </span>
                 </div>
-                <span className="text-sm font-medium text-blue-100 tracking-wide uppercase">
-                  Team Roster
-                </span>
-              </div>
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-2">
-                Tipsy Pelicans
-              </h1>
-              <p className="text-blue-100 text-lg max-w-md">
-                2024-2025 Season · Intermediate C
-              </p>
-            </div>
-
-            {/* Stats Summary Card */}
-            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex gap-6 shadow-lg min-w-[280px] justify-between">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">
-                  {totalPlayers}
-                </div>
-                <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
-                  Active
+                <div className="grid grid-cols-3 gap-2">
+                  {["LW", "C", "RW"].map((pos) => (
+                    <Slot
+                      key={`L${lineNum}-${pos}`}
+                      id={`L${lineNum}-${pos}`}
+                      label={pos}
+                      assignment={assignments[`L${lineNum}-${pos}`]}
+                      allPlayers={players}
+                      isSelected={false}
+                      isTarget={!!selectedPlayerId}
+                      onClick={() => handleSlotClick(`L${lineNum}-${pos}`)}
+                    />
+                  ))}
                 </div>
               </div>
-              <div className="w-px bg-white/20"></div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">{goalies}</div>
-                <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
-                  Goalies
+            ))}
+          </div>
+        </div>
+
+        {/* Defense */}
+        <div>
+          <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-indigo-500" />
+            Defense
+          </h3>
+          <div className="space-y-3">
+            {[1, 2].map((pairNum) => (
+              <div
+                key={`D${pairNum}`}
+                className="grid grid-cols-[auto_1fr] gap-3"
+              >
+                <div className="flex items-center justify-center w-6">
+                  <span className="text-xs font-black text-muted-foreground/50 rotate-180 writing-mode-vertical">
+                    PAIR {pairNum}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {["LD", "RD"].map((pos) => (
+                    <Slot
+                      key={`D${pairNum}-${pos}`}
+                      id={`D${pairNum}-${pos}`}
+                      label={pos}
+                      assignment={assignments[`D${pairNum}-${pos}`]}
+                      allPlayers={players}
+                      isSelected={false}
+                      isTarget={!!selectedPlayerId}
+                      onClick={() => handleSlotClick(`D${pairNum}-${pos}`)}
+                    />
+                  ))}
                 </div>
               </div>
-              <div className="w-px bg-white/20"></div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-white">{spares}</div>
-                <div className="text-xs font-medium text-blue-200 uppercase tracking-wider">
-                  Spares
-                </div>
-              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Goalies */}
+        <div>
+          <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-amber-500" />
+            Goalies
+          </h3>
+          <div className="grid grid-cols-[auto_1fr] gap-3">
+            <div className="w-6" /> {/* Spacer */}
+            <div className="grid grid-cols-1 gap-2">
+              <Slot
+                id="G-1"
+                label="STARTER"
+                assignment={assignments["G-1"]}
+                allPlayers={players}
+                isSelected={false}
+                isTarget={!!selectedPlayerId}
+                onClick={() => handleSlotClick("G-1")}
+              />
             </div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Content Area */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-12 relative z-10">
-        <div className="bg-card/80 backdrop-blur-xl border border-border/50 rounded-3xl shadow-2xl p-4 sm:p-6 mb-10">
-          {/* Controls */}
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search players..."
-                className="pl-9 bg-secondary/50 border-border/50 focus:bg-background transition-all"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+function Slot({
+  id,
+  label,
+  assignment,
+  allPlayers,
+  isSelected,
+  isTarget,
+  onClick,
+}: {
+  id: string;
+  label: string;
+  assignment?: string;
+  allPlayers: Player[];
+  isSelected: boolean;
+  isTarget: boolean;
+  onClick: () => void;
+}) {
+  const assignedPlayer = assignment
+    ? allPlayers.find((p) => p.id === assignment)
+    : null;
 
-            {isAdmin && (
-              <Button className="w-full sm:w-auto shadow-md shadow-primary/20">
-                <Plus className="h-4 w-4 mr-2" /> Add Player
-              </Button>
-            )}
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "relative aspect-[3/2] sm:aspect-[4/2] rounded-xl border-2 flex flex-col items-center justify-center p-2 cursor-pointer transition-all",
+        // Empty state styles
+        !assignedPlayer &&
+          "border-dashed bg-muted/10 hover:bg-muted/20 border-border/50",
+        // Target state (when holding a player)
+        !assignedPlayer &&
+          isTarget &&
+          "border-primary/50 bg-primary/5 ring-2 ring-primary/20 animate-pulse",
+        // Filled state
+        assignedPlayer && "bg-card border-border shadow-sm",
+        // Interactive hover
+        "hover:scale-[1.02] active:scale-[0.98]"
+      )}
+    >
+      <div className="absolute top-1.5 left-2 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest pointer-events-none">
+        {label}
+      </div>
+
+      {assignedPlayer ? (
+        <div className="flex flex-col items-center gap-1 w-full animate-in zoom-in-50 duration-200">
+          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border border-background shadow-sm">
+            <AvatarFallback
+              className={cn(
+                "text-white text-[10px] font-bold",
+                assignedPlayer.avatarColor
+              )}
+            >
+              {assignedPlayer.number}
+            </AvatarFallback>
+          </Avatar>
+          <div className="text-xs sm:text-sm font-bold truncate max-w-full px-1">
+            {assignedPlayer.name.split(" ")[1] || assignedPlayer.name}
+          </div>
+        </div>
+      ) : (
+        <Plus
+          className={cn(
+            "w-5 h-5 text-muted-foreground/20",
+            isTarget && "text-primary/40"
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
+// --- Main Page ---
+
+export default function GameDetailsMockup() {
+  const [view, setView] = useState<"attendance" | "lines">("lines");
+
+  return (
+    <div className="min-h-screen bg-background text-foreground font-sans pb-20">
+      {/* Navbar Mock */}
+      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b px-4 h-14 flex items-center gap-4">
+        <Button variant="ghost" size="icon" className="-ml-2">
+          <ChevronLeft className="w-5 h-5" />
+        </Button>
+        <div className="font-bold text-lg">Game Details</div>
+        <div className="ml-auto flex gap-2">
+          <Button variant="ghost" size="icon">
+            <MoreVertical className="w-5 h-5" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-md mx-auto p-4 pt-6">
+        {/* Game Header Card */}
+        <div className="mb-8 text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 text-xs font-bold uppercase tracking-wider mb-2">
+            <Calendar className="w-3 h-3" />
+            {MOCK_GAME.status}
           </div>
 
-          <Tabs defaultValue="active" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2 p-1 bg-secondary/50 rounded-xl">
-              <TabsTrigger
-                value="active"
-                className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
-              >
-                Active Roster
-              </TabsTrigger>
-              <TabsTrigger
-                value="other"
-                className="rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm transition-all"
-              >
-                Subs & Spares
-              </TabsTrigger>
-            </TabsList>
+          <h1 className="text-4xl font-black tracking-tighter leading-none">
+            <span className="text-muted-foreground text-2xl font-bold block mb-1">
+              VS
+            </span>
+            {MOCK_GAME.opponent}
+          </h1>
 
-            <TabsContent value="active" className="mt-0">
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              >
-                {activeRoster.length > 0 ? (
-                  activeRoster.map((player) => (
-                    <PlayerCard
-                      key={player._id}
-                      player={player}
-                      isAdmin={isAdmin}
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-12 text-muted-foreground">
-                    No active players found matching your search.
-                  </div>
-                )}
-              </motion.div>
-            </TabsContent>
-
-            <TabsContent value="other" className="mt-0">
-              <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 md:grid-cols-2 gap-4"
-              >
-                {otherPlayers.length > 0 ? (
-                  otherPlayers.map((player) => (
-                    <PlayerCard
-                      key={player._id}
-                      player={player}
-                      isAdmin={isAdmin}
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-12 text-muted-foreground">
-                    No spare players found.
-                  </div>
-                )}
-              </motion.div>
-            </TabsContent>
-          </Tabs>
+          <div className="flex justify-center gap-4 text-sm font-medium text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-4 h-4" />
+              {MOCK_GAME.time}
+            </div>
+            <div className="w-px bg-border h-4 self-center" />
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4" />
+              {MOCK_GAME.location}
+            </div>
+          </div>
         </div>
+
+        {/* View Switcher */}
+        <SegmentedControl active={view} onChange={setView} />
+
+        {/* Dynamic View Content */}
+        <AnimatePresence mode="wait">
+          {view === "attendance" ? (
+            <motion.div
+              key="attendance"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AttendanceList players={MOCK_PLAYERS} />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="lines"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <LinesView players={MOCK_PLAYERS} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
