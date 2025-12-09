@@ -8,6 +8,7 @@ import { Users, Swords, Shield, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { getPositionColor } from "@/lib/positions";
 import { getInitials } from "./roster-drawer";
 import type {
   Player,
@@ -203,7 +204,7 @@ export function LinesEditor({
                       : "bg-background opacity-80 cursor-default",
                     player.status === "pending" &&
                       selectedPlayerId !== player._id &&
-                      "opacity-60 grayscale bg-muted"
+                      "opacity-50 bg-muted/50"
                   )}
                 >
                   <span className="text-xs opacity-70 w-4 text-center">
@@ -214,13 +215,7 @@ export function LinesEditor({
                   <div
                     className={cn(
                       "w-1.5 h-1.5 rounded-full ml-1",
-                      player.position === "D" ||
-                        player.position === "LD" ||
-                        player.position === "RD"
-                        ? "bg-blue-400"
-                        : player.position === "G"
-                        ? "bg-yellow-400"
-                        : "bg-red-400"
+                      getPositionColor(player.position)
                     )}
                   />
                 </button>

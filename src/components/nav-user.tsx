@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { IconDotsVertical, IconLogout, IconBell } from "@tabler/icons-react";
 import { useAuthActions } from "@convex-dev/auth/react";
 
@@ -32,8 +32,17 @@ export function NavUser({
   const { isMobile } = useSidebar();
   const { signOut } = useAuthActions();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  if (isMobile) return null;
+  // Delay render until after hydration to prevent Radix ID mismatch
+  // caused by isMobile differing between server and client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || isMobile) {
+    return null;
+  }
 
   return (
     <>
