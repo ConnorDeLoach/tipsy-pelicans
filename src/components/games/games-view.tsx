@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "motion/react";
 import { Plus, ChevronDown, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,39 @@ export function GamesView({
   // Swipe hint for first-time admin users on mobile
   const { shouldShowHint, markAsSwiped } = useSwipeHint(isAdmin);
 
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">(() => {
+    const urlTab = searchParams.get("tab");
+    return urlTab === "past" ? "past" : "upcoming";
+  });
+
+  useEffect(() => {
+    const urlTab = searchParams.get("tab");
+    const normalized = urlTab === "past" ? "past" : "upcoming";
+    if (normalized !== activeTab) {
+      setActiveTab(normalized);
+    }
+  }, [searchParams, activeTab]);
+
+  const handleTabChange = (value: string) => {
+    const nextTab = value === "past" ? "past" : "upcoming";
+    setActiveTab(nextTab);
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (nextTab === "upcoming") {
+      params.delete("tab");
+    } else {
+      params.set("tab", nextTab);
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  };
+
   const handleEdit = (game: GameWithRsvps) => {
     setEditingGame(game);
   };
@@ -162,7 +196,11 @@ export function GamesView({
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="upcoming" className="space-y-3">
+      <Tabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        className="space-y-3"
+      >
         <TabsList className="grid w-full grid-cols-2 p-1 bg-secondary/50 rounded-xl h-10">
           <TabsTrigger
             value="upcoming"

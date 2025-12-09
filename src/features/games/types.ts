@@ -20,9 +20,10 @@ export type GameWithRsvps = {
     _creationTime: number;
     gameId: Id<"games">;
     playerId: Id<"players">;
-    status: "in" | "out";
+    status: "in" | "out" | "pending";
     updatedAt: number;
   }[];
+  lines?: GameLines;
 };
 
 export type Player = {
@@ -79,4 +80,21 @@ export type SeasonStats = {
   ties: number;
   points: number;
   record: string;
+};
+
+export type Slot = {
+  id: string;
+  group: string;
+  lineNumber: number;
+  role: string;
+  playerId?: Id<"players">;
+};
+
+export type GameLines = {
+  _id: Id<"gameLines">;
+  _creationTime: number;
+  gameId: Id<"games">;
+  slots: Slot[];
+  createdAt: number;
+  updatedAt: number;
 };

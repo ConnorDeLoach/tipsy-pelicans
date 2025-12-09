@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, useSpring, useTransform } from "motion/react";
 import { Clock, Check, X, Pencil, MoreVertical, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,7 +19,11 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSwipeActions } from "@/hooks/use-swipe-actions";
 
+// Local RSVP choice that this component can send back to onRsvp
 type RsvpStatus = "in" | "out";
+
+// Server-side RSVP status including "pending" (maybe)
+type ServerRsvpStatus = "in" | "out" | "pending";
 
 interface GameCardModernProps {
   entry: GameWithRsvps;
@@ -104,6 +109,7 @@ export function GameCardModern({
   showSwipeHint,
   onSwipeUsed,
 }: GameCardModernProps) {
+  const router = useRouter();
   const isMobile = useIsMobile();
   const swipeEnabled = isMobile && isAdmin;
 
@@ -121,6 +127,11 @@ export function GameCardModern({
 
   // Spring animation for smooth swipe
   const springX = useSpring(0, { stiffness: 400, damping: 30 });
+
+  // Temporarily suppress card clicks right after closing the roster drawer.
+  // Using a ref so it's updated synchronously within the same event cycle
+  // that closes the drawer (e.g. overlay click or drag down).
+  const suppressClickUntilRef = useRef(0);
 
   // Update spring when swipe state changes
   useEffect(() => {
@@ -161,6 +172,18 @@ export function GameCardModern({
     onEdit(entry);
   };
 
+  const handleCardClick = () => {
+    const now = Date.now();
+    if (now < suppressClickUntilRef.current) {
+      return;
+    }
+    if (swipeState.isOpen) {
+      closeSwipe();
+      return;
+    }
+    router.push(`/games/${entry.game._id}`);
+  };
+
   const game = entry.game;
   const gameDate = new Date(game.startTime);
 
@@ -174,20 +197,29 @@ export function GameCardModern({
     else result = "tie";
   }
 
-  // Get server RSVP status from entry
+  // Get server RSVP status from entry (can be "pending")
   const serverMyRsvp = entry.rsvps.find((r) => r.playerId === me?.playerId);
   const serverRsvpStatus = (serverMyRsvp as any)?.status as
-    | RsvpStatus
+    | ServerRsvpStatus
     | undefined;
 
-  // Local optimistic state for immediate UI feedback
+  // Local optimistic state for immediate UI feedback (only "in" | "out" | undefined)
   const [optimisticStatus, setOptimisticStatus] = useState<
     RsvpStatus | undefined
-  >(serverRsvpStatus);
+  >(
+    serverRsvpStatus === "in" || serverRsvpStatus === "out"
+      ? serverRsvpStatus
+      : undefined
+  );
 
   // Sync local state with server state when it changes
   useEffect(() => {
-    setOptimisticStatus(serverRsvpStatus);
+    if (serverRsvpStatus === "in" || serverRsvpStatus === "out") {
+      setOptimisticStatus(serverRsvpStatus);
+    } else {
+      // Treat pending / no record as "no explicit choice" in local toggle state
+      setOptimisticStatus(undefined);
+    }
   }, [serverRsvpStatus]);
 
   // Use optimistic status for display
@@ -235,8 +267,8 @@ export function GameCardModern({
     [entry, optimisticRsvps]
   );
 
-  // Compute inPlayers and outPlayers with player details for RosterDrawer
-  const { inPlayers, outPlayers, inCount } = useMemo(() => {
+  // Compute inPlayers, outPlayers, and maybePlayers with player details for RosterDrawer
+  const { inPlayers, outPlayers, maybePlayers, inCount } = useMemo(() => {
     const eligiblePlayerIds = new Set(players.map((p) => p._id));
 
     const playerRsvps = optimisticRsvps
@@ -245,17 +277,19 @@ export function GameCardModern({
         const player = players.find((p) => p._id === rsvp.playerId);
         return {
           playerId: rsvp.playerId,
-          status: (rsvp as any).status as "in" | "out",
+          status: (rsvp as any).status as ServerRsvpStatus,
           player,
         };
       });
 
     const inList = playerRsvps.filter((p) => p.status === "in");
     const outList = playerRsvps.filter((p) => p.status === "out");
+    const maybeList = playerRsvps.filter((p) => p.status === "pending");
 
     return {
       inPlayers: inList,
       outPlayers: outList,
+      maybePlayers: maybeList,
       inCount: inList.length,
     };
   }, [optimisticRsvps, players]);
@@ -309,7 +343,10 @@ export function GameCardModern({
           style={{ x: springX }}
           {...(swipeEnabled ? swipeHandlers : {})}
         >
-          <Card className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group select-none">
+          <Card
+            onClick={handleCardClick}
+            className="overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 group select-none cursor-pointer active:scale-[0.99]"
+          >
             <CardContent className="p-0">
               <div className="flex flex-row h-full">
                 {/* Time & Date Strip - Fixed Column */}
@@ -392,7 +429,11 @@ export function GameCardModern({
                           players={players}
                           inPlayers={inPlayers}
                           outPlayers={outPlayers}
+                          maybePlayers={maybePlayers}
                           inCount={inCount}
+                          onClosed={() => {
+                            suppressClickUntilRef.current = Date.now() + 500;
+                          }}
                         />
                       )}
                     </div>

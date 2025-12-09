@@ -25,6 +25,7 @@ import type * as chat_reactions from "../chat/reactions.js";
 import type * as chat_unread from "../chat/unread.js";
 import type * as cronLogger from "../cronLogger.js";
 import type * as crons from "../crons.js";
+import type * as gameLines from "../gameLines.js";
 import type * as games from "../games.js";
 import type * as health from "../health.js";
 import type * as http from "../http.js";
@@ -88,6 +89,7 @@ declare const fullApi: ApiFromModules<{
   "chat/unread": typeof chat_unread;
   cronLogger: typeof cronLogger;
   crons: typeof crons;
+  gameLines: typeof gameLines;
   games: typeof games;
   health: typeof health;
   http: typeof http;

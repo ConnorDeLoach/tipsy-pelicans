@@ -1,9 +1,11 @@
 import { mutation, query, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { getOrCreateSeasonForGame } from "./seasons";
 import { logAuditEvent } from "./auditLog";
+import { buildDefaultSlots, type Slot } from "./gameLines";
 
 function deriveOutcomePoints(
   teamScore?: number,
@@ -353,6 +355,75 @@ export const createGame = mutation({
       after: gameData,
     });
 
+    // ============ Initialize RSVPs + Lines ============
+
+    // 1. Get all active roster players (not spares/spectators, not deleted)
+    const activePlayers = await ctx.db
+      .query("players")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("deletedAt"), undefined),
+          q.eq(q.field("role"), "player")
+        )
+      )
+      .collect();
+
+    // 2. Create pending RSVPs for all active players
+    await Promise.all(
+      activePlayers.map((player) =>
+        ctx.db.insert("gameRsvps", {
+          gameId: id,
+          playerId: player._id,
+          status: "pending",
+          updatedAt: now,
+        })
+      )
+    );
+
+    // 3. Find previous game's lines (most recent game before this one)
+    const prevGame = await ctx.db
+      .query("games")
+      .withIndex("by_start_time")
+      .filter((q) => q.lt(q.field("startTime"), args.startTime))
+      .order("desc")
+      .first();
+
+    // Always start from default slots for this roster (4F/4D, etc.)
+    let slots: Slot[] = buildDefaultSlots(activePlayers);
+
+    if (prevGame) {
+      const prevLines = await ctx.db
+        .query("gameLines")
+        .withIndex("by_game", (q) => q.eq("gameId", prevGame._id))
+        .unique();
+
+      if (prevLines) {
+        // Overlay previous assignments onto the default structure,
+        // keeping only players who are still active and matching by slot id.
+        const eligiblePlayerIds = new Set(activePlayers.map((p) => p._id));
+        const prevById = new Map(
+          prevLines.slots.map((slot) => [slot.id, slot])
+        );
+
+        slots = slots.map((slot) => {
+          const prev = prevById.get(slot.id);
+          const playerId = prev?.playerId;
+          if (playerId && eligiblePlayerIds.has(playerId)) {
+            return { ...slot, playerId };
+          }
+          return slot;
+        });
+      }
+    }
+
+    // 4. Insert gameLines
+    await ctx.db.insert("gameLines", {
+      gameId: id,
+      slots,
+      createdAt: now,
+      updatedAt: now,
+    });
+
     return id;
   },
 });
@@ -389,6 +460,12 @@ export const removeGame = mutation({
     });
 
     await Promise.all(toDelete.map((rsvp) => ctx.db.delete(rsvp._id)));
+
+    // Delete associated gameLines
+    await ctx.runMutation(internal.gameLines.deleteGameLines, {
+      gameId: args.gameId,
+    });
+
     await ctx.db.delete(args.gameId);
   },
 });
@@ -437,16 +514,35 @@ export const setRsvp = mutation({
           status: args.status,
           updatedAt: now,
         });
+
+        // If changing to "out", remove player from lines
+        if (args.status === "out") {
+          await ctx.runMutation(internal.gameLines.removePlayerFromLines, {
+            gameId: args.gameId,
+            playerId: args.playerId,
+          });
+        }
+
         return existing._id;
       }
     }
 
-    return await ctx.db.insert("gameRsvps", {
+    const rsvpId = await ctx.db.insert("gameRsvps", {
       gameId: args.gameId,
       playerId: args.playerId,
       status: args.status,
       updatedAt: now,
     });
+
+    // If status is "out", remove player from lines
+    if (args.status === "out") {
+      await ctx.runMutation(internal.gameLines.removePlayerFromLines, {
+        gameId: args.gameId,
+        playerId: args.playerId,
+      });
+    }
+
+    return rsvpId;
   },
 });
 
@@ -492,9 +588,9 @@ export const getGamesPageBundle = query({
   args: {},
   handler: async (ctx) => {
     // Parallel fetch all required data
-    const [gamesWithRsvps, allPlayers, allOpponents, allSeasons] =
+    const [gamesWithRsvpsAndLines, allPlayers, allOpponents, allSeasons] =
       await Promise.all([
-        // Games with RSVPs
+        // Games with RSVPs and Lines
         (async () => {
           const games = await ctx.db
             .query("games")
@@ -503,11 +599,17 @@ export const getGamesPageBundle = query({
 
           return await Promise.all(
             games.map(async (game) => {
-              const rsvps = await ctx.db
-                .query("gameRsvps")
-                .withIndex("by_game", (q) => q.eq("gameId", game._id))
-                .collect();
-              return { game, rsvps };
+              const [rsvps, lines] = await Promise.all([
+                ctx.db
+                  .query("gameRsvps")
+                  .withIndex("by_game", (q) => q.eq("gameId", game._id))
+                  .collect(),
+                ctx.db
+                  .query("gameLines")
+                  .withIndex("by_game", (q) => q.eq("gameId", game._id))
+                  .unique(),
+              ]);
+              return { game, rsvps, lines };
             })
           );
         })(),
@@ -550,7 +652,7 @@ export const getGamesPageBundle = query({
       null;
 
     return {
-      games: gamesWithRsvps,
+      games: gamesWithRsvpsAndLines,
       players: allPlayers,
       opponents: allOpponents,
       seasons: allSeasons,

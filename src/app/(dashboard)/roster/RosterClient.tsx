@@ -3,7 +3,7 @@
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Preloaded } from "convex/react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Player } from "@/features/games/types";
 import { PlayerCard } from "@/components/roster/player-card";
@@ -101,6 +101,9 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
   });
   const [editingId, setEditingId] = useState<Id<"players"> | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const emailInputRef = useRef<HTMLInputElement | null>(null);
 
   const resetPlayerForm = () => {
     setPlayerForm({
@@ -316,6 +319,7 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
                 <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
+                  ref={nameInputRef}
                   value={playerForm.name}
                   onChange={(event) =>
                     setPlayerForm((prev) => ({
@@ -323,6 +327,12 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
                       name: event.target.value,
                     }))
                   }
+                  onKeyDown={(event) => {
+                    if (event.key === "Tab" && !event.shiftKey) {
+                      event.preventDefault();
+                      emailInputRef.current?.focus();
+                    }
+                  }}
                   required
                 />
               </div>
@@ -331,6 +341,7 @@ export function RosterClient({ preloadedPlayers }: RosterClientProps) {
                 <Input
                   id="email"
                   type="email"
+                  ref={emailInputRef}
                   value={playerForm.email}
                   onChange={(event) =>
                     setPlayerForm((prev) => ({

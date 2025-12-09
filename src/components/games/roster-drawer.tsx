@@ -31,7 +31,7 @@ export function getInitials(name: string) {
 // Player with RSVP info
 interface PlayerRsvp {
   playerId: Id<"players">;
-  status: "in" | "out";
+  status: "in" | "out" | "pending";
   player: Player | undefined;
 }
 
@@ -41,7 +41,9 @@ interface RosterDrawerProps {
   // Pre-computed values from parent for immediate updates
   inPlayers: PlayerRsvp[];
   outPlayers: PlayerRsvp[];
+  maybePlayers: PlayerRsvp[];
   inCount: number;
+  onClosed?: () => void;
 }
 
 export function RosterDrawer({
@@ -49,27 +51,41 @@ export function RosterDrawer({
   players,
   inPlayers,
   outPlayers,
+  maybePlayers,
   inCount,
+  onClosed,
 }: RosterDrawerProps) {
   const [open, setOpen] = useState(false);
 
-  // Pending = players who haven't responded yet
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (!nextOpen && onClosed) {
+      onClosed();
+    }
+  };
+
+  // Combine maybePlayers with any players who have no RSVP record (safety fallback)
   const respondedIds = new Set(
-    [...inPlayers, ...outPlayers].map((p) => p.playerId)
+    [...inPlayers, ...outPlayers, ...maybePlayers].map((p) => p.playerId)
   );
-  const pendingPlayers = players
+  const unrespondedPlayers = players
     .filter((p) => !respondedIds.has(p._id))
-    .map((p) => ({ player: p, status: "pending" as const }));
+    .map((p) => ({ playerId: p._id, player: p, status: "pending" as const }));
+
+  const allMaybePlayers = [...maybePlayers, ...unrespondedPlayers];
 
   const gameDate = new Date(game.game.startTime);
 
   return (
-    <Drawer open={open} onOpenChange={setOpen}>
+    <Drawer open={open} onOpenChange={handleOpenChange}>
       <DrawerTrigger asChild>
         <button
           type="button"
           className="flex items-center -space-x-2 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={() => setOpen(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpen(true);
+          }}
         >
           {inPlayers.slice(0, 3).map((p) => (
             <Avatar
@@ -124,26 +140,26 @@ export function RosterDrawer({
                 </div>
               </div>
 
-              {/* Pending */}
-              {pendingPlayers.length > 0 && (
+              {/* Maybe (Pending) */}
+              {allMaybePlayers.length > 0 && (
                 <div>
                   <div className="flex items-center gap-2 mb-3 text-sm font-semibold text-orange-600 bg-orange-50 w-fit px-2 py-1 rounded-lg">
                     <AlertCircle className="h-4 w-4" />
-                    Pending ({pendingPlayers.length})
+                    Maybe ({allMaybePlayers.length})
                   </div>
                   <div className="grid grid-cols-1 gap-2">
-                    {pendingPlayers.map((p) => (
+                    {allMaybePlayers.map((p) => (
                       <div
-                        key={p.player._id}
+                        key={p.playerId}
                         className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50 transition-colors"
                       >
                         <Avatar className="h-8 w-8">
                           <AvatarFallback className="bg-orange-100 text-orange-600 text-xs font-bold">
-                            {getInitials(p.player.name)}
+                            {p.player ? getInitials(p.player.name) : "??"}
                           </AvatarFallback>
                         </Avatar>
                         <span className="text-sm font-medium text-muted-foreground">
-                          {p.player.name}
+                          {p.player?.name || "Unknown"}
                         </span>
                       </div>
                     ))}
@@ -179,7 +195,14 @@ export function RosterDrawer({
           </ScrollArea>
           <DrawerFooter>
             <DrawerClose asChild>
-              <Button variant="ghost">Close</Button>
+              <Button
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              >
+                Close
+              </Button>
             </DrawerClose>
           </DrawerFooter>
         </div>

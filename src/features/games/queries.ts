@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type {
   GameWithRsvps,
   Player,
@@ -48,14 +49,46 @@ export function useSeasonSelection(params: {
 } {
   const { games, currentSeason, initialNow } = params;
 
-  const [selectedSeasonId, setSelectedSeasonId] =
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const [selectedSeasonId, setSelectedSeasonIdState] =
     useState<Id<"seasons"> | null>(null);
 
   useEffect(() => {
-    if (currentSeason && !selectedSeasonId) {
-      setSelectedSeasonId(currentSeason._id);
+    const seasonFromUrl = searchParams.get("season");
+    const seasonIdFromUrl = seasonFromUrl as Id<"seasons"> | null;
+
+    if (seasonIdFromUrl && seasonIdFromUrl !== selectedSeasonId) {
+      setSelectedSeasonIdState(seasonIdFromUrl);
+      return;
     }
-  }, [currentSeason, selectedSeasonId]);
+
+    if (!seasonFromUrl && currentSeason && !selectedSeasonId) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("season", currentSeason._id);
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+      setSelectedSeasonIdState(currentSeason._id);
+    }
+  }, [searchParams, currentSeason, selectedSeasonId, router, pathname]);
+
+  const setSelectedSeasonId = (id: Id<"seasons"> | null) => {
+    setSelectedSeasonIdState(id);
+    const params = new URLSearchParams(searchParams.toString());
+    if (id) {
+      params.set("season", id);
+    } else {
+      params.delete("season");
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  };
 
   const now = useNow({ initial: initialNow, intervalMs: 60_000 });
 

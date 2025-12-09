@@ -92,12 +92,26 @@ export default defineSchema({
   gameRsvps: defineTable({
     gameId: v.id("games"),
     playerId: v.id("players"),
-    status: v.union(v.literal("in"), v.literal("out")),
+    status: v.union(v.literal("pending"), v.literal("in"), v.literal("out")),
     updatedAt: v.number(),
   })
     .index("by_game", ["gameId"])
     .index("by_player", ["playerId"])
     .index("by_game_player", ["gameId", "playerId"]),
+  gameLines: defineTable({
+    gameId: v.id("games"),
+    slots: v.array(
+      v.object({
+        id: v.string(), // "L1-LW", "D2-RD", "G-1"
+        group: v.string(), // "EVEN" (future: "PP1", "PK1")
+        lineNumber: v.number(), // 1, 2, 3...
+        role: v.string(), // "LW"|"C"|"RW"|"LD"|"RD"|"G"
+        playerId: v.optional(v.id("players")), // undefined = empty slot
+      })
+    ),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_game", ["gameId"]),
   rsvpTokens: defineTable({
     token: v.string(),
     playerId: v.id("players"),
