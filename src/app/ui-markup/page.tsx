@@ -302,7 +302,8 @@ function LinesView({ players }: { players: Player[] }) {
     (p) => !Object.values(assignments).includes(p.id)
   );
 
-  const handlePlayerClick = (playerId: string) => {
+  const handlePlayerClick = (e: React.MouseEvent, playerId: string) => {
+    e.stopPropagation();
     if (selectedPlayerId === playerId) {
       setSelectedPlayerId(null);
     } else {
@@ -310,51 +311,88 @@ function LinesView({ players }: { players: Player[] }) {
     }
   };
 
-  const handleSlotClick = (slotId: string) => {
-    if (selectedPlayerId) {
-      // Assign selected player to this slot
-      setAssignments((prev) => {
-        // Remove player from any other slot first
-        const next = { ...prev };
-        Object.keys(next).forEach((key) => {
-          if (next[key] === selectedPlayerId) delete next[key];
-        });
-        next[slotId] = selectedPlayerId;
-        return next;
-      });
+  const handleSlotClick = (e: React.MouseEvent, slotId: string) => {
+    e.stopPropagation();
+
+    // CASE 1: No player selected yet
+    if (!selectedPlayerId) {
+      // If slot has a player, select them (to move/swap)
+      if (assignments[slotId]) {
+        setSelectedPlayerId(assignments[slotId]);
+      }
+      return;
+    }
+
+    // CASE 2: Player is already selected
+
+    // 2a. Tapping the same player/slot again -> Cancel selection
+    if (assignments[slotId] === selectedPlayerId) {
       setSelectedPlayerId(null);
-    } else if (assignments[slotId]) {
-      // If slot has player, select them (to move them) or remove them?
-      // Let's just remove them for this simple mockup
-      const pid = assignments[slotId];
-      setSelectedPlayerId(pid);
+      return;
+    }
+
+    // 2b. Move or Swap
+    setAssignments((prev) => {
+      const next = { ...prev };
+
+      // Find source slot of the currently selected player (if they are on the ice)
+      const sourceSlotId = Object.keys(next).find(
+        (key) => next[key] === selectedPlayerId
+      );
+      const targetPlayerId = next[slotId]; // Player currently in the target slot (if any)
+
+      // 1. Remove selected player from source slot (if applicable)
+      if (sourceSlotId) {
+        delete next[sourceSlotId];
+      }
+
+      // 2. Place selected player in target slot
+      next[slotId] = selectedPlayerId;
+
+      // 3. If target was occupied AND source existed, swap target player to source
+      // If source didn't exist (came from bench), target player just goes to bench (implicitly removed from map)
+      if (targetPlayerId && sourceSlotId) {
+        next[sourceSlotId] = targetPlayerId;
+      }
+
+      return next;
+    });
+
+    setSelectedPlayerId(null);
+  };
+
+  const handleBackgroundClick = () => {
+    if (selectedPlayerId) {
+      // If player was on the ice, remove them (send to bench)
       setAssignments((prev) => {
         const next = { ...prev };
-        delete next[slotId];
+        const sourceSlotId = Object.keys(next).find(
+          (key) => next[key] === selectedPlayerId
+        );
+
+        if (sourceSlotId) {
+          delete next[sourceSlotId];
+        }
         return next;
       });
+
+      // Always clear selection
+      setSelectedPlayerId(null);
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+    <div
+      className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20 min-h-[60vh]"
+      onClick={handleBackgroundClick}
+    >
       {/* Bench / Unassigned */}
-      <Card className="bg-muted/30 border-dashed border-2 overflow-hidden">
+      <Card className="bg-muted/30 border-dashed border-2 overflow-hidden transition-colors hover:bg-muted/40">
         <div className="px-4 py-2 border-b bg-muted/20 flex justify-between items-center">
           <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
             <Users className="w-3 h-3" />
             Bench ({unassignedPlayers.length})
           </h3>
-          {selectedPlayerId && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 text-xs hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => setSelectedPlayerId(null)}
-            >
-              Cancel Selection
-            </Button>
-          )}
         </div>
         <CardContent className="p-3">
           {unassignedPlayers.length === 0 ? (
@@ -366,12 +404,12 @@ function LinesView({ players }: { players: Player[] }) {
               {unassignedPlayers.map((player) => (
                 <button
                   key={player.id}
-                  onClick={() => handlePlayerClick(player.id)}
+                  onClick={(e) => handlePlayerClick(e, player.id)}
                   className={cn(
-                    "flex items-center gap-2 px-2 py-1.5 rounded-full border transition-all text-sm font-medium",
+                    "flex items-center gap-2 px-2 py-1.5 rounded-full border transition-all text-sm font-medium shadow-sm",
                     selectedPlayerId === player.id
-                      ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2"
-                      : "bg-background hover:border-primary/50"
+                      ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 scale-105"
+                      : "bg-background hover:border-primary/50 hover:scale-105"
                   )}
                 >
                   <span className="text-xs opacity-70 w-4 text-center">
@@ -411,7 +449,7 @@ function LinesView({ players }: { players: Player[] }) {
                 className="grid grid-cols-[auto_1fr] gap-3"
               >
                 <div className="flex items-center justify-center w-6">
-                  <span className="text-xs font-black text-muted-foreground/50 rotate-180 writing-mode-vertical">
+                  <span className="text-[10px] font-black text-muted-foreground/40 -rotate-90 whitespace-nowrap tracking-widest">
                     LINE {lineNum}
                   </span>
                 </div>
@@ -423,9 +461,14 @@ function LinesView({ players }: { players: Player[] }) {
                       label={pos}
                       assignment={assignments[`L${lineNum}-${pos}`]}
                       allPlayers={players}
-                      isSelected={false}
-                      isTarget={!!selectedPlayerId}
-                      onClick={() => handleSlotClick(`L${lineNum}-${pos}`)}
+                      isSelected={
+                        assignments[`L${lineNum}-${pos}`] === selectedPlayerId
+                      }
+                      isTarget={
+                        !!selectedPlayerId &&
+                        assignments[`L${lineNum}-${pos}`] !== selectedPlayerId
+                      }
+                      onClick={(e) => handleSlotClick(e, `L${lineNum}-${pos}`)}
                     />
                   ))}
                 </div>
@@ -447,7 +490,7 @@ function LinesView({ players }: { players: Player[] }) {
                 className="grid grid-cols-[auto_1fr] gap-3"
               >
                 <div className="flex items-center justify-center w-6">
-                  <span className="text-xs font-black text-muted-foreground/50 rotate-180 writing-mode-vertical">
+                  <span className="text-[10px] font-black text-muted-foreground/40 -rotate-90 whitespace-nowrap tracking-widest">
                     PAIR {pairNum}
                   </span>
                 </div>
@@ -459,9 +502,14 @@ function LinesView({ players }: { players: Player[] }) {
                       label={pos}
                       assignment={assignments[`D${pairNum}-${pos}`]}
                       allPlayers={players}
-                      isSelected={false}
-                      isTarget={!!selectedPlayerId}
-                      onClick={() => handleSlotClick(`D${pairNum}-${pos}`)}
+                      isSelected={
+                        assignments[`D${pairNum}-${pos}`] === selectedPlayerId
+                      }
+                      isTarget={
+                        !!selectedPlayerId &&
+                        assignments[`D${pairNum}-${pos}`] !== selectedPlayerId
+                      }
+                      onClick={(e) => handleSlotClick(e, `D${pairNum}-${pos}`)}
                     />
                   ))}
                 </div>
@@ -484,9 +532,11 @@ function LinesView({ players }: { players: Player[] }) {
                 label="STARTER"
                 assignment={assignments["G-1"]}
                 allPlayers={players}
-                isSelected={false}
-                isTarget={!!selectedPlayerId}
-                onClick={() => handleSlotClick("G-1")}
+                isSelected={assignments["G-1"] === selectedPlayerId}
+                isTarget={
+                  !!selectedPlayerId && assignments["G-1"] !== selectedPlayerId
+                }
+                onClick={(e) => handleSlotClick(e, "G-1")}
               />
             </div>
           </div>
@@ -511,7 +561,7 @@ function Slot({
   allPlayers: Player[];
   isSelected: boolean;
   isTarget: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent) => void;
 }) {
   const assignedPlayer = assignment
     ? allPlayers.find((p) => p.id === assignment)
