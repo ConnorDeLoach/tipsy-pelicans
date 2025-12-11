@@ -37,7 +37,7 @@
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "convex": "^1.27.3",
+    "convex": "^1.31.0",
     "date-fns": "^4.1.0",
     "jose": "^6.1.0",
     "linkify-it": "^5.0.0",
