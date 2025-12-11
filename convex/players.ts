@@ -106,7 +106,7 @@ export const updatePlayer = mutation({
         delete patch[key];
       }
     }
-    await ctx.db.patch(playerId, patch);
+    await ctx.db.patch("players", playerId, patch);
   },
 });
 
@@ -116,7 +116,7 @@ export const removePlayer = mutation({
   },
   handler: async (ctx, args) => {
     // Soft-delete: set deletedAt timestamp instead of hard delete
-    await ctx.db.patch(args.playerId, { deletedAt: Date.now() });
+    await ctx.db.patch("players", args.playerId, { deletedAt: Date.now() });
   },
 });
 
@@ -126,7 +126,7 @@ export const permanentlyDeletePlayer = mutation({
     playerId: v.id("players"),
   },
   handler: async (ctx, args) => {
-    await ctx.db.delete(args.playerId);
+    await ctx.db.delete("players", args.playerId);
   },
 });
 
@@ -136,6 +136,6 @@ export const restorePlayer = mutation({
     playerId: v.id("players"),
   },
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.playerId, { deletedAt: undefined });
+    await ctx.db.patch("players", args.playerId, { deletedAt: undefined });
   },
 });

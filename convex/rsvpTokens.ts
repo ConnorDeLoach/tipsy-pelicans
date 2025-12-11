@@ -47,6 +47,6 @@ export const markUsed = mutation({
       .withIndex("by_token", (q) => q.eq("token", token))
       .unique();
     if (!rec) return;
-    await ctx.db.patch(rec._id, { usedAt: Date.now() });
+    await ctx.db.patch("rsvpTokens", rec._id, { usedAt: Date.now() });
   },
 });

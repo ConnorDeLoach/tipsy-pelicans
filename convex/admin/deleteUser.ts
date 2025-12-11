@@ -8,7 +8,7 @@ import { v } from "convex/values";
 export const previewCascadeDelete = internalQuery({
   args: { userId: v.id("users") },
   handler: async (ctx, { userId }) => {
-    const user = await ctx.db.get(userId);
+    const user = await ctx.db.get("users", userId);
     if (!user) {
       return { error: "User not found" };
     }
@@ -130,7 +130,7 @@ export const cascadeDeleteUser = internalMutation({
     preserveMessages: v.optional(v.boolean()), // Default true - keep messages with "[Deleted User]"
   },
   handler: async (ctx, { userId, preserveMessages = true }) => {
-    const user = await ctx.db.get(userId);
+    const user = await ctx.db.get("users", userId);
     if (!user) {
       throw new Error(`User ${userId} not found`);
     }
@@ -165,14 +165,14 @@ export const cascadeDeleteUser = internalMutation({
         .filter((q) => q.eq(q.field("sessionId"), session._id))
         .collect();
       for (const token of tokens) {
-        await ctx.db.delete(token._id);
+        await ctx.db.delete("authRefreshTokens", token._id);
         results.deleted.authRefreshTokens++;
       }
     }
 
     // 2. Delete auth sessions
     for (const session of authSessions) {
-      await ctx.db.delete(session._id);
+      await ctx.db.delete("authSessions", session._id);
       results.deleted.authSessions++;
     }
 
@@ -182,7 +182,7 @@ export const cascadeDeleteUser = internalMutation({
       .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
     for (const account of authAccounts) {
-      await ctx.db.delete(account._id);
+      await ctx.db.delete("authAccounts", account._id);
       results.deleted.authAccounts++;
     }
 
@@ -192,7 +192,7 @@ export const cascadeDeleteUser = internalMutation({
       .withIndex("byUser", (q) => q.eq("userId", userId))
       .collect();
     for (const sub of pushSubs) {
-      await ctx.db.delete(sub._id);
+      await ctx.db.delete("pushSubscriptions", sub._id);
       results.deleted.pushSubscriptions++;
     }
 
@@ -202,7 +202,7 @@ export const cascadeDeleteUser = internalMutation({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
     for (const status of chatStatus) {
-      await ctx.db.delete(status._id);
+      await ctx.db.delete("chatReadStatus", status._id);
       results.deleted.chatReadStatus++;
     }
 
@@ -212,7 +212,7 @@ export const cascadeDeleteUser = internalMutation({
       .withIndex("by_user_time", (q) => q.eq("userId", userId))
       .collect();
     for (const log of auditLogs) {
-      await ctx.db.patch(log._id, { userId: undefined });
+      await ctx.db.patch("auditLog", log._id, { userId: undefined });
       results.deleted.auditLogs++;
     }
 
@@ -229,7 +229,7 @@ export const cascadeDeleteUser = internalMutation({
         .filter((q) => q.eq(q.field("playerId"), player._id))
         .collect();
       for (const token of rsvpTokens) {
-        await ctx.db.delete(token._id);
+        await ctx.db.delete("rsvpTokens", token._id);
         results.deleted.rsvpTokens++;
       }
 
@@ -239,7 +239,7 @@ export const cascadeDeleteUser = internalMutation({
         .withIndex("by_player", (q) => q.eq("playerId", player._id))
         .collect();
       for (const rsvp of gameRsvps) {
-        await ctx.db.delete(rsvp._id);
+        await ctx.db.delete("gameRsvps", rsvp._id);
         results.deleted.gameRsvps++;
       }
 
@@ -252,13 +252,13 @@ export const cascadeDeleteUser = internalMutation({
       if (preserveMessages) {
         // Update displayName to "[Deleted User]" but keep messages
         for (const msg of messages) {
-          await ctx.db.patch(msg._id, { displayName: "[Deleted User]" });
+          await ctx.db.patch("messages", msg._id, { displayName: "[Deleted User]" });
           results.deleted.messages++;
         }
       } else {
         // Hard delete messages
         for (const msg of messages) {
-          await ctx.db.delete(msg._id);
+          await ctx.db.delete("messages", msg._id);
           results.deleted.messages++;
         }
       }
@@ -269,16 +269,16 @@ export const cascadeDeleteUser = internalMutation({
         .filter((q) => q.eq(q.field("playerId"), player._id))
         .collect();
       for (const log of playerAuditLogs) {
-        await ctx.db.patch(log._id, { playerId: undefined });
+        await ctx.db.patch("auditLog", log._id, { playerId: undefined });
       }
 
       // 11. Delete player record
-      await ctx.db.delete(player._id);
+      await ctx.db.delete("players", player._id);
       results.deleted.player = true;
     }
 
     // 12. Delete user record
-    await ctx.db.delete(userId);
+    await ctx.db.delete("users", userId);
     results.deleted.user = true;
 
     console.log("Cascade delete completed:", JSON.stringify(results));

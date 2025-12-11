@@ -57,7 +57,7 @@ export const sendGif = mutation({
     }
 
     // Verify player has access to this conversation
-    const conversation = await ctx.db.get(conversationId);
+    const conversation = await ctx.db.get("conversations", conversationId);
     if (!conversation) {
       throw new Error("Conversation not found.");
     }

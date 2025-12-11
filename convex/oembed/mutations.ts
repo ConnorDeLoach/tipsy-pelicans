@@ -31,7 +31,7 @@ export const upsertCache = internalMutation({
 
     if (existing) {
       // Update existing cache entry
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("oembedCache", existing._id, {
         html: args.html,
         authorName: args.authorName,
         thumbnailUrl: args.thumbnailUrl,
@@ -64,7 +64,7 @@ export const updateEmbedStatus = internalMutation({
     errorMessage: v.optional(v.string()),
   },
   handler: async (ctx, { messageId, urlHash, status, errorMessage }) => {
-    const message = await ctx.db.get(messageId);
+    const message = await ctx.db.get("messages", messageId);
     if (!message) {
       console.error(`[oEmbed] Message not found: ${messageId}`);
       return;
@@ -85,7 +85,7 @@ export const updateEmbedStatus = internalMutation({
       return embed;
     });
 
-    await ctx.db.patch(messageId, { embeds: updatedEmbeds });
+    await ctx.db.patch("messages", messageId, { embeds: updatedEmbeds });
   },
 });
 
@@ -105,7 +105,7 @@ export const cleanupExpiredCache = internalMutation({
       .take(100);
 
     for (const entry of expired) {
-      await ctx.db.delete(entry._id);
+      await ctx.db.delete("oembedCache", entry._id);
       deleted++;
     }
 

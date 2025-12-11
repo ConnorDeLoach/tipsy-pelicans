@@ -41,7 +41,7 @@ export const logComplete = internalMutation({
     }
 
     const endTime = Date.now();
-    await ctx.db.patch(execution._id, {
+    await ctx.db.patch("cronExecutions", execution._id, {
       status: "completed",
       endTime,
       duration: endTime - execution.startTime,
@@ -72,7 +72,7 @@ export const logFailure = internalMutation({
     }
 
     const endTime = Date.now();
-    await ctx.db.patch(execution._id, {
+    await ctx.db.patch("cronExecutions", execution._id, {
       status: "failed",
       endTime,
       duration: endTime - execution.startTime,

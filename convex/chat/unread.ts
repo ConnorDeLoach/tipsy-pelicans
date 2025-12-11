@@ -43,7 +43,7 @@ export const markAsRead = mutation({
 
     const now = Date.now();
     if (existing) {
-      await ctx.db.patch(existing._id, { readAt: now });
+      await ctx.db.patch("chatReadStatus", existing._id, { readAt: now });
     } else {
       await ctx.db.insert("chatReadStatus", {
         userId,

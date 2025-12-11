@@ -17,7 +17,7 @@ export const clearLegacySeasonIds = internalMutation({
     for (const game of games) {
       // Check if seasonId is a string (legacy) rather than an ID
       if (game.seasonId && typeof game.seasonId === "string") {
-        await ctx.db.patch(game._id, { seasonId: undefined });
+        await ctx.db.patch("games", game._id, { seasonId: undefined });
         cleared++;
       }
     }
@@ -58,7 +58,7 @@ export const migrateGameSeasons = internalMutation({
         isActive: true,
         createdAt: Date.now(),
       });
-      season = await ctx.db.get(seasonId);
+      season = await ctx.db.get("seasons", seasonId);
     }
 
     if (!season) {
@@ -76,7 +76,7 @@ export const migrateGameSeasons = internalMutation({
         continue;
       }
 
-      await ctx.db.patch(game._id, { seasonId: season._id });
+      await ctx.db.patch("games", game._id, { seasonId: season._id });
       migrated++;
     }
 
@@ -158,12 +158,12 @@ export const setSeasonActive = mutation({
 
     for (const s of activeSeasons) {
       if (s._id !== season._id) {
-        await ctx.db.patch(s._id, { isActive: false });
+        await ctx.db.patch("seasons", s._id, { isActive: false });
       }
     }
 
     // Activate this season
-    await ctx.db.patch(season._id, { isActive: true });
+    await ctx.db.patch("seasons", season._id, { isActive: true });
 
     return { success: true, season: season.name };
   },

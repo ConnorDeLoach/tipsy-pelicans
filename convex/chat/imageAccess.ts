@@ -44,7 +44,7 @@ export const validateAccess = internalQuery({
 
     if (!player) {
       // Try to find by email
-      const user = await ctx.db.get(userId);
+      const user = await ctx.db.get("users", userId);
       const userEmail = user?.email;
       if (userEmail) {
         player = await ctx.db
@@ -61,7 +61,7 @@ export const validateAccess = internalQuery({
     }
 
     // Check if player is a participant in the conversation
-    const conversation = await ctx.db.get(conversationId);
+    const conversation = await ctx.db.get("conversations", conversationId);
     if (!conversation) {
       return { allowed: false, error: "Conversation not found" };
     }

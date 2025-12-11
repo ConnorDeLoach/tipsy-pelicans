@@ -36,7 +36,7 @@ export const upsertCache = internalMutation({
 
     if (existing) {
       // Update existing cache entry
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("linkPreviews", existing._id, {
         canonicalUrl: args.canonicalUrl,
         title: args.title,
         description: args.description,
@@ -117,7 +117,7 @@ export const cleanupExpiredCache = internalMutation({
       if (entry.imageThumbId) {
         await ctx.storage.delete(entry.imageThumbId);
       }
-      await ctx.db.delete(entry._id);
+      await ctx.db.delete("linkPreviews", entry._id);
       deleted++;
     }
 
@@ -148,7 +148,7 @@ export const deleteByUrlHash = internalMutation({
     if (entry.imageThumbId) {
       await ctx.storage.delete(entry.imageThumbId);
     }
-    await ctx.db.delete(entry._id);
+    await ctx.db.delete("linkPreviews", entry._id);
 
     return { deleted: true };
   },

@@ -26,7 +26,7 @@ export const get = query({
     const userId = await getAuthUserId(ctx);
     if (userId === null) return null;
 
-    const user = await ctx.db.get(userId);
+    const user = await ctx.db.get("users", userId);
     if (!user) return null;
 
     // Convex Auth's email provider stores the email on the user document.

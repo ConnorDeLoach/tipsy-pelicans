@@ -52,13 +52,13 @@ export const toggle = mutation({
     }
 
     // Get the message to verify it exists and player has access
-    const message = await ctx.db.get(messageId);
+    const message = await ctx.db.get("messages", messageId);
     if (!message) {
       throw new Error("Message not found.");
     }
 
     // Verify player has access to the conversation
-    const conversation = await ctx.db.get(message.conversationId);
+    const conversation = await ctx.db.get("conversations", message.conversationId);
     if (!conversation || !conversation.participantIds.includes(player._id)) {
       throw new Error("You are not a participant in this conversation.");
     }
@@ -75,13 +75,13 @@ export const toggle = mutation({
 
     // If they already reacted with this emoji, remove it (toggle off)
     if (existingForPlayer && existingForPlayer.emoji === emoji) {
-      await ctx.db.delete(existingForPlayer._id);
+      await ctx.db.delete("messageReactions", existingForPlayer._id);
       return { action: "removed" as const };
     }
 
     // If they reacted with a different emoji, switch to the new one
     if (existingForPlayer && existingForPlayer.emoji !== emoji) {
-      await ctx.db.patch(existingForPlayer._id, {
+      await ctx.db.patch("messageReactions", existingForPlayer._id, {
         emoji,
         createdAt: Date.now(),
       });

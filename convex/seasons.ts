@@ -103,7 +103,7 @@ export const list = query({
 export const get = query({
   args: { id: v.id("seasons") },
   handler: async (ctx, { id }) => {
-    return await ctx.db.get(id);
+    return await ctx.db.get("seasons", id);
   },
 });
 
@@ -173,7 +173,7 @@ export const create = mutation({
         .collect();
 
       for (const season of activeSeasons) {
-        await ctx.db.patch(season._id, { isActive: false });
+        await ctx.db.patch("seasons", season._id, { isActive: false });
       }
     }
 
@@ -202,7 +202,7 @@ export const setActive = mutation({
     if (!callerPlayer || callerPlayer.isAdmin !== true)
       throw new Error("Not authorized");
 
-    const season = await ctx.db.get(id);
+    const season = await ctx.db.get("seasons", id);
     if (!season) throw new Error("Season not found");
 
     // Deactivate all other seasons
@@ -213,12 +213,12 @@ export const setActive = mutation({
 
     for (const s of activeSeasons) {
       if (s._id !== id) {
-        await ctx.db.patch(s._id, { isActive: false });
+        await ctx.db.patch("seasons", s._id, { isActive: false });
       }
     }
 
     // Activate this season
-    await ctx.db.patch(id, { isActive: true });
+    await ctx.db.patch("seasons", id, { isActive: true });
   },
 });
 

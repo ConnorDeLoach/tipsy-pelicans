@@ -66,13 +66,13 @@ export const updateGameDetails = mutation({
     if (!callerPlayer || callerPlayer.isAdmin !== true)
       throw new Error("Not authorized");
 
-    const game = await ctx.db.get(args.gameId);
+    const game = await ctx.db.get("games", args.gameId);
     if (!game) throw new Error("Game not found");
 
     const patch: Record<string, any> = {};
 
     if (args.opponentId) {
-      const opp = await ctx.db.get(args.opponentId);
+      const opp = await ctx.db.get("opponents", args.opponentId);
       if (!opp) throw new Error("Opponent not found");
       patch.opponentId = opp._id;
       patch.opponent = opp.name; // snapshot
@@ -127,7 +127,7 @@ export const updateGameDetails = mutation({
       metadata: { fields: Object.keys(patch) },
     });
 
-    await ctx.db.patch(args.gameId, patch);
+    await ctx.db.patch("games", args.gameId, patch);
   },
 });
 
@@ -151,7 +151,7 @@ export const updateGameScore = mutation({
     if (args.teamScore < 0 || args.opponentScore < 0)
       throw new Error("Scores must be >= 0");
 
-    const game = await ctx.db.get(args.gameId);
+    const game = await ctx.db.get("games", args.gameId);
     if (!game) throw new Error("Game not found");
 
     const teamScore = Math.floor(args.teamScore);
@@ -168,7 +168,7 @@ export const updateGameScore = mutation({
       after: { ...game, teamScore, opponentScore, outcome, points },
     });
 
-    await ctx.db.patch(args.gameId, {
+    await ctx.db.patch("games", args.gameId, {
       teamScore,
       opponentScore,
       outcome,
@@ -190,7 +190,7 @@ export const finalizeGame = mutation({
     if (!callerPlayer || callerPlayer.isAdmin !== true)
       throw new Error("Not authorized");
 
-    const game = await ctx.db.get(gameId);
+    const game = await ctx.db.get("games", gameId);
     if (!game) throw new Error("Game not found");
 
     await logAuditEvent(ctx, {
@@ -203,7 +203,7 @@ export const finalizeGame = mutation({
       after: { ...game, status: "final" },
     });
 
-    await ctx.db.patch(gameId, { status: "final" });
+    await ctx.db.patch("games", gameId, { status: "final" });
   },
 });
 
@@ -225,10 +225,10 @@ export const setRsvpInternal = internalMutation({
 
     if (existing) {
       if (existing.status === args.status) {
-        await ctx.db.delete(existing._id);
+        await ctx.db.delete("gameRsvps", existing._id);
         return existing._id;
       } else {
-        await ctx.db.patch(existing._id, {
+        await ctx.db.patch("gameRsvps", existing._id, {
           status: args.status,
           updatedAt: now,
         });
@@ -294,7 +294,7 @@ export const createGame = mutation({
     let name: string | undefined;
 
     if (opponentId) {
-      const opp = await ctx.db.get(opponentId);
+      const opp = await ctx.db.get("opponents", opponentId);
       if (!opp) {
         throw new Error("Opponent not found");
       }
@@ -441,7 +441,7 @@ export const removeGame = mutation({
     if (!callerPlayer || callerPlayer.isAdmin !== true)
       throw new Error("Not authorized");
 
-    const game = await ctx.db.get(args.gameId);
+    const game = await ctx.db.get("games", args.gameId);
     if (!game) throw new Error("Game not found");
 
     const toDelete = await ctx.db
@@ -459,14 +459,14 @@ export const removeGame = mutation({
       metadata: { rsvpsDeleted: toDelete.length },
     });
 
-    await Promise.all(toDelete.map((rsvp) => ctx.db.delete(rsvp._id)));
+    await Promise.all(toDelete.map((rsvp) => ctx.db.delete("gameRsvps", rsvp._id)));
 
     // Delete associated gameLines
     await ctx.runMutation(internal.gameLines.deleteGameLines, {
       gameId: args.gameId,
     });
 
-    await ctx.db.delete(args.gameId);
+    await ctx.db.delete("games", args.gameId);
   },
 });
 
@@ -507,10 +507,10 @@ export const setRsvp = mutation({
 
     if (existing) {
       if (existing.status === args.status) {
-        await ctx.db.delete(existing._id);
+        await ctx.db.delete("gameRsvps", existing._id);
         return existing._id;
       } else {
-        await ctx.db.patch(existing._id, {
+        await ctx.db.patch("gameRsvps", existing._id, {
           status: args.status,
           updatedAt: now,
         });

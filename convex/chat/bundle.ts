@@ -110,7 +110,7 @@ export const getConversationsBundle = query({
         // Get display name for last message sender
         let lastMessageByName: string | undefined;
         if (conv.lastMessageBy) {
-          const sender = await ctx.db.get(conv.lastMessageBy);
+          const sender = await ctx.db.get("players", conv.lastMessageBy);
           lastMessageByName = sender?.name;
         }
 
@@ -121,7 +121,7 @@ export const getConversationsBundle = query({
             (id: Id<"players">) => id !== player._id
           );
           if (otherParticipantId) {
-            const otherPlayer = await ctx.db.get(otherParticipantId);
+            const otherPlayer = await ctx.db.get("players", otherParticipantId);
             displayName = otherPlayer?.name || "Unknown";
           }
         }
@@ -197,7 +197,7 @@ export const getConversationBundle = query({
       return { conversation: null, me: null, now: Date.now() };
     }
 
-    const conv = await ctx.db.get(conversationId);
+    const conv = await ctx.db.get("conversations", conversationId);
     if (!conv) {
       return {
         conversation: null,
@@ -226,7 +226,7 @@ export const getConversationBundle = query({
     // Get participant details
     const participants = await Promise.all(
       conv.participantIds.map(async (id: Id<"players">) => {
-        const p = await ctx.db.get(id);
+        const p = await ctx.db.get("players", id);
         return p
           ? { _id: p._id, name: p.name, role: p.role }
           : { _id: id, name: "Unknown", role: "player" as const };
@@ -240,7 +240,7 @@ export const getConversationBundle = query({
         (id: Id<"players">) => id !== player._id
       );
       if (otherParticipantId) {
-        const otherPlayer = await ctx.db.get(otherParticipantId);
+        const otherPlayer = await ctx.db.get("players", otherParticipantId);
         displayName = otherPlayer?.name || "Unknown";
       }
     }

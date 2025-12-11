@@ -17,7 +17,7 @@ export const findOrphanedRecords = internalQuery({
     // Check gameRsvps
     const rsvps = await ctx.db.query("gameRsvps").collect();
     for (const rsvp of rsvps) {
-      const player = await ctx.db.get(rsvp.playerId);
+      const player = await ctx.db.get("players", rsvp.playerId);
       if (!player) {
         orphans.gameRsvps.push(rsvp._id);
       }
@@ -26,8 +26,8 @@ export const findOrphanedRecords = internalQuery({
     // Check rsvpTokens
     const tokens = await ctx.db.query("rsvpTokens").collect();
     for (const token of tokens) {
-      const player = await ctx.db.get(token.playerId);
-      const game = await ctx.db.get(token.gameId);
+      const player = await ctx.db.get("players", token.playerId);
+      const game = await ctx.db.get("games", token.gameId);
       if (!player || !game) {
         orphans.rsvpTokens.push(token._id);
       }
@@ -36,7 +36,7 @@ export const findOrphanedRecords = internalQuery({
     // Check messages
     const messages = await ctx.db.query("messages").collect();
     for (const msg of messages) {
-      const player = await ctx.db.get(msg.createdBy);
+      const player = await ctx.db.get("players", msg.createdBy);
       if (!player) {
         orphans.messages.push(msg._id);
       }
@@ -64,10 +64,10 @@ export const cleanupOrphanedRsvps = internalMutation({
     let deleted = 0;
 
     for (const rsvp of rsvps) {
-      const player = await ctx.db.get(rsvp.playerId);
+      const player = await ctx.db.get("players", rsvp.playerId);
       if (!player) {
         if (!dryRun) {
-          await ctx.db.delete(rsvp._id);
+          await ctx.db.delete("gameRsvps", rsvp._id);
         }
         deleted++;
       }
@@ -87,11 +87,11 @@ export const cleanupOrphanedTokens = internalMutation({
     let deleted = 0;
 
     for (const token of tokens) {
-      const player = await ctx.db.get(token.playerId);
-      const game = await ctx.db.get(token.gameId);
+      const player = await ctx.db.get("players", token.playerId);
+      const game = await ctx.db.get("games", token.gameId);
       if (!player || !game) {
         if (!dryRun) {
-          await ctx.db.delete(token._id);
+          await ctx.db.delete("rsvpTokens", token._id);
         }
         deleted++;
       }
@@ -121,10 +121,10 @@ export const cleanupOrphanedMessages = internalMutation({
     let updated = 0;
 
     for (const msg of messages) {
-      const player = await ctx.db.get(msg.createdBy);
+      const player = await ctx.db.get("players", msg.createdBy);
       if (!player) {
         if (!dryRun) {
-          await ctx.db.patch(msg._id, { displayName: deletedUserName });
+          await ctx.db.patch("messages", msg._id, { displayName: deletedUserName });
         }
         updated++;
       }
@@ -154,10 +154,10 @@ export const cleanupAllOrphans = internalMutation({
     // Cleanup gameRsvps
     const rsvps = await ctx.db.query("gameRsvps").collect();
     for (const rsvp of rsvps) {
-      const player = await ctx.db.get(rsvp.playerId);
+      const player = await ctx.db.get("players", rsvp.playerId);
       if (!player) {
         if (!dryRun) {
-          await ctx.db.delete(rsvp._id);
+          await ctx.db.delete("gameRsvps", rsvp._id);
         }
         results.gameRsvps.deleted++;
       }
@@ -166,11 +166,11 @@ export const cleanupAllOrphans = internalMutation({
     // Cleanup rsvpTokens
     const tokens = await ctx.db.query("rsvpTokens").collect();
     for (const token of tokens) {
-      const player = await ctx.db.get(token.playerId);
-      const game = await ctx.db.get(token.gameId);
+      const player = await ctx.db.get("players", token.playerId);
+      const game = await ctx.db.get("games", token.gameId);
       if (!player || !game) {
         if (!dryRun) {
-          await ctx.db.delete(token._id);
+          await ctx.db.delete("rsvpTokens", token._id);
         }
         results.rsvpTokens.deleted++;
       }
@@ -179,10 +179,10 @@ export const cleanupAllOrphans = internalMutation({
     // Update orphaned messages
     const messages = await ctx.db.query("messages").collect();
     for (const msg of messages) {
-      const player = await ctx.db.get(msg.createdBy);
+      const player = await ctx.db.get("players", msg.createdBy);
       if (!player) {
         if (!dryRun) {
-          await ctx.db.patch(msg._id, { displayName: "[Deleted User]" });
+          await ctx.db.patch("messages", msg._id, { displayName: "[Deleted User]" });
         }
         results.messages.updated++;
       }

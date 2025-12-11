@@ -52,7 +52,7 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       }
 
       if (!player.userId) {
-        await ctx.db.patch(player._id, { userId });
+        await ctx.db.patch("players", player._id, { userId });
       }
     },
   },

@@ -25,7 +25,7 @@ export const heartbeat = mutation({
       .unique();
 
     if (existing) {
-      await ctx.db.patch(existing._id, { readAt: now });
+      await ctx.db.patch("chatReadStatus", existing._id, { readAt: now });
     } else {
       await ctx.db.insert("chatReadStatus", {
         userId,

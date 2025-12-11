@@ -80,7 +80,7 @@ export const sendWithImages = mutation({
     }
 
     // Verify player has access to this conversation
-    const conversation = await ctx.db.get(conversationId);
+    const conversation = await ctx.db.get("conversations", conversationId);
     if (!conversation) {
       throw new Error("Conversation not found.");
     }
@@ -180,7 +180,7 @@ export const getMessageInternal = internalQuery({
     v.null()
   ),
   handler: async (ctx, { messageId }) => {
-    const message = await ctx.db.get(messageId);
+    const message = await ctx.db.get("messages", messageId);
     if (!message) return null;
     return {
       _id: message._id,
@@ -249,11 +249,11 @@ export const getImageUrls = query({
     const player = await getCurrentPlayer(ctx);
     if (!player) return null;
 
-    const message = await ctx.db.get(messageId);
+    const message = await ctx.db.get("messages", messageId);
     if (!message || !message.images) return null;
 
     // Verify player has access to this conversation
-    const conversation = await ctx.db.get(message.conversationId);
+    const conversation = await ctx.db.get("conversations", message.conversationId);
     if (!conversation || !conversation.participantIds.includes(player._id)) {
       return null;
     }

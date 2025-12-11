@@ -97,7 +97,7 @@ export const listByConversation = query({
     }
 
     // Verify player has access to this conversation
-    const conversation = await ctx.db.get(conversationId);
+    const conversation = await ctx.db.get("conversations", conversationId);
     if (!conversation || !conversation.participantIds.includes(player._id)) {
       return { page: [], isDone: true, continueCursor: "" };
     }
@@ -171,7 +171,7 @@ export const send = mutation({
     }
 
     // Verify player has access to this conversation
-    const conversation = await ctx.db.get(conversationId);
+    const conversation = await ctx.db.get("conversations", conversationId);
     if (!conversation) {
       throw new Error("Conversation not found.");
     }
@@ -258,13 +258,13 @@ export const remove = mutation({
       throw new Error("You must be a rostered player to delete messages.");
     }
 
-    const message = await ctx.db.get(messageId);
+    const message = await ctx.db.get("messages", messageId);
     if (!message) {
       throw new Error("Message not found.");
     }
 
     // Verify player has access to this conversation
-    const conversation = await ctx.db.get(message.conversationId);
+    const conversation = await ctx.db.get("conversations", message.conversationId);
     if (!conversation || !conversation.participantIds.includes(player._id)) {
       throw new Error("You do not have access to this message.");
     }
@@ -286,13 +286,13 @@ export const remove = mutation({
 
     if (isAdmin) {
       await deleteMessageImages();
-      await ctx.db.delete(messageId);
+      await ctx.db.delete("messages", messageId);
       return null;
     }
 
     if (isOwner && withinWindow) {
       await deleteMessageImages();
-      await ctx.db.delete(messageId);
+      await ctx.db.delete("messages", messageId);
       return null;
     }
 

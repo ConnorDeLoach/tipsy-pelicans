@@ -155,7 +155,7 @@ export const updateLineSlot = mutation({
       s.id === args.slotId ? { ...s, playerId: args.playerId } : s
     );
 
-    await ctx.db.patch(gameLines._id, {
+    await ctx.db.patch("gameLines", gameLines._id, {
       slots,
       updatedAt: Date.now(),
     });
@@ -202,7 +202,7 @@ export const swapLineSlots = mutation({
       return s;
     });
 
-    await ctx.db.patch(gameLines._id, { slots, updatedAt: Date.now() });
+    await ctx.db.patch("gameLines", gameLines._id, { slots, updatedAt: Date.now() });
   },
 });
 
@@ -258,7 +258,7 @@ export const removePlayerFromLines = internalMutation({
     // Only patch if something changed
     const hasChange = gameLines.slots.some((s) => s.playerId === args.playerId);
     if (hasChange) {
-      await ctx.db.patch(gameLines._id, {
+      await ctx.db.patch("gameLines", gameLines._id, {
         slots: updatedSlots,
         updatedAt: Date.now(),
       });
@@ -278,7 +278,7 @@ export const deleteGameLines = internalMutation({
       .unique();
 
     if (gameLines) {
-      await ctx.db.delete(gameLines._id);
+      await ctx.db.delete("gameLines", gameLines._id);
     }
   },
 });

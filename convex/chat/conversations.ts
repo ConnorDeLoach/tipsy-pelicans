@@ -108,7 +108,7 @@ export const list = query({
         // Get display name for last message sender
         let lastMessageByName: string | undefined;
         if (conv.lastMessageBy) {
-          const sender = await ctx.db.get(conv.lastMessageBy);
+          const sender = await ctx.db.get("players", conv.lastMessageBy);
           lastMessageByName = sender?.name;
         }
 
@@ -120,7 +120,7 @@ export const list = query({
             (id: Id<"players">) => id !== player._id
           );
           if (otherParticipantId) {
-            const otherPlayer = await ctx.db.get(otherParticipantId);
+            const otherPlayer = await ctx.db.get("players", otherParticipantId);
             displayName = otherPlayer?.name || "Unknown";
           }
         }
@@ -175,7 +175,7 @@ export const get = query({
       return null;
     }
 
-    const conv = await ctx.db.get(conversationId);
+    const conv = await ctx.db.get("conversations", conversationId);
     if (!conv) {
       return null;
     }
@@ -188,7 +188,7 @@ export const get = query({
     // Get participant details
     const participants = await Promise.all(
       conv.participantIds.map(async (id: Id<"players">) => {
-        const p = await ctx.db.get(id);
+        const p = await ctx.db.get("players", id);
         return p
           ? { _id: p._id, name: p.name, role: p.role }
           : { _id: id, name: "Unknown", role: "player" as const };
@@ -202,7 +202,7 @@ export const get = query({
         (id: Id<"players">) => id !== player._id
       );
       if (otherParticipantId) {
-        const otherPlayer = await ctx.db.get(otherParticipantId);
+        const otherPlayer = await ctx.db.get("players", otherParticipantId);
         displayName = otherPlayer?.name || "Unknown";
       }
     }
@@ -242,7 +242,7 @@ export const getOrCreateTeamChat = mutation({
     if (existingTeamChat) {
       // Ensure current player is in participants
       if (!existingTeamChat.participantIds.includes(player._id)) {
-        await ctx.db.patch(existingTeamChat._id, {
+        await ctx.db.patch("conversations", existingTeamChat._id, {
           participantIds: [...existingTeamChat.participantIds, player._id],
           updatedAt: Date.now(),
         });
@@ -286,7 +286,7 @@ export const updateLastMessage = internalMutation({
     const truncatedPreview =
       preview.length > 100 ? preview.slice(0, 97) + "..." : preview;
 
-    await ctx.db.patch(conversationId, {
+    await ctx.db.patch("conversations", conversationId, {
       lastMessageAt: now,
       lastMessagePreview: truncatedPreview,
       lastMessageBy: senderId,
@@ -312,7 +312,7 @@ export const getInternal = internalQuery({
     v.null()
   ),
   handler: async (ctx, { conversationId }) => {
-    const conv = await ctx.db.get(conversationId);
+    const conv = await ctx.db.get("conversations", conversationId);
     if (!conv) return null;
 
     return {
@@ -337,7 +337,7 @@ export const addPlayerToTeamChat = internalMutation({
       .first();
 
     if (teamChat && !teamChat.participantIds.includes(playerId)) {
-      await ctx.db.patch(teamChat._id, {
+      await ctx.db.patch("conversations", teamChat._id, {
         participantIds: [...teamChat.participantIds, playerId],
         updatedAt: Date.now(),
       });

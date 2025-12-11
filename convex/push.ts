@@ -73,7 +73,7 @@ export const upsertSubscription = mutation({
 
     if (existing) {
       // Update ownership and keys; reset errorCount on successful upsert
-      await ctx.db.patch(existing._id, {
+      await ctx.db.patch("pushSubscriptions", existing._id, {
         userId,
         keys: args.subscription.keys,
         ua: args.ua,
@@ -111,7 +111,7 @@ export const upsertSubscription = mutation({
       );
       const toDelete = sorted.slice(MAX_SUBS_PER_USER);
       for (const sub of toDelete) {
-        await ctx.db.delete(sub._id);
+        await ctx.db.delete("pushSubscriptions", sub._id);
       }
     }
 
@@ -129,7 +129,7 @@ export const removeSubscription = mutation({
       .unique();
 
     if (existing) {
-      await ctx.db.delete(existing._id);
+      await ctx.db.delete("pushSubscriptions", existing._id);
     }
 
     return { ok: true } as const;
@@ -176,19 +176,19 @@ export const markSendResult = internalMutation({
   },
   handler: async (ctx, { id, ok, gone }) => {
     if (gone) {
-      await ctx.db.delete(id);
+      await ctx.db.delete("pushSubscriptions", id);
       return;
     }
     if (ok) {
-      await ctx.db.patch(id, {
+      await ctx.db.patch("pushSubscriptions", id, {
         lastSendAt: Date.now(),
         lastStatus: "ok",
         errorCount: 0,
       });
     } else {
-      const doc = await ctx.db.get(id);
+      const doc = await ctx.db.get("pushSubscriptions", id);
       if (!doc) return;
-      await ctx.db.patch(id, {
+      await ctx.db.patch("pushSubscriptions", id, {
         lastStatus: "error",
         errorCount: (doc.errorCount ?? 0) + 1,
       });
