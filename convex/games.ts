@@ -459,7 +459,9 @@ export const removeGame = mutation({
       metadata: { rsvpsDeleted: toDelete.length },
     });
 
-    await Promise.all(toDelete.map((rsvp) => ctx.db.delete("gameRsvps", rsvp._id)));
+    await Promise.all(
+      toDelete.map((rsvp) => ctx.db.delete("gameRsvps", rsvp._id))
+    );
 
     // Delete associated gameLines
     await ctx.runMutation(internal.gameLines.deleteGameLines, {
@@ -575,6 +577,50 @@ export const listBySeasonWithRsvps = query({
         return { game, rsvps };
       })
     );
+  },
+});
+
+export const getGameDetailsBundle = query({
+  args: { gameId: v.id("games") },
+  returns: v.any(),
+  handler: async (ctx, { gameId }) => {
+    const [game, players] = await Promise.all([
+      ctx.db.get("games", gameId),
+      (async () => {
+        const rows = await ctx.db
+          .query("players")
+          .withIndex("by_name")
+          .collect();
+        return rows.filter((p) => !p.deletedAt);
+      })(),
+    ]);
+
+    if (!game) {
+      return {
+        game: null,
+        rsvps: [],
+        lines: null,
+        players,
+      };
+    }
+
+    const [rsvps, lines] = await Promise.all([
+      ctx.db
+        .query("gameRsvps")
+        .withIndex("by_game", (q) => q.eq("gameId", game._id))
+        .collect(),
+      ctx.db
+        .query("gameLines")
+        .withIndex("by_game", (q) => q.eq("gameId", game._id))
+        .unique(),
+    ]);
+
+    return {
+      game,
+      rsvps,
+      lines,
+      players,
+    };
   },
 });
 

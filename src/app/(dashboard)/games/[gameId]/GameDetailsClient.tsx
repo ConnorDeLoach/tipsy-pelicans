@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQuery } from "convex/react";
+import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import {
@@ -9,7 +9,6 @@ import {
   Calendar,
   MapPin,
   Clock,
-  MoreVertical,
   Users,
   Swords,
 } from "lucide-react";
@@ -19,11 +18,33 @@ import { LinesEditor, PlayerWithStatus } from "@/components/games/lines-editor";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "motion/react";
-import { Badge } from "@/components/ui/badge";
+import type { GameLines, GameWithRsvps, Player } from "@/features/games/types";
 
 interface GameDetailsClientProps {
   gameId: Id<"games">;
+  preloadedData: Preloaded<typeof api.games.getGameDetailsBundle>;
 }
+
+type GameDetailsRsvp = {
+  playerId: Id<"players">;
+  status: "in" | "out" | "pending";
+};
+
+type GameDetailsGame = {
+  opponent: string;
+  startTime: number;
+  status: string;
+  location?: string;
+} & Record<string, unknown>;
+
+type GameDetailsPlayer = Player & { deletedAt?: number };
+
+type GameDetailsBundle = {
+  game: GameDetailsGame | null;
+  rsvps: Array<GameWithRsvps["rsvps"][number]>;
+  lines: GameLines | null;
+  players: GameDetailsPlayer[];
+};
 
 function SegmentedControl({
   active,
@@ -75,25 +96,32 @@ function SegmentedControl({
   );
 }
 
-export function GameDetailsClient({ gameId }: GameDetailsClientProps) {
+export function GameDetailsClient({
+  gameId,
+  preloadedData,
+}: GameDetailsClientProps) {
   const router = useRouter();
   const [view, setView] = useState<"attendance" | "lines">("lines");
 
-  const bundle = useQuery(api.games.getGamesPageBundle);
+  const bundle = usePreloadedQuery(
+    preloadedData
+  ) as unknown as GameDetailsBundle;
   const me = useQuery(api.me.get);
   const isAdmin = me?.role === "admin";
 
-  // Find game in bundle
-  // Note: getGamesPageBundle returns { games: { game, rsvps, lines? }[], ... }
-  // We need to verify if lines are included in the return type now.
   const gameData = useMemo(() => {
     if (!bundle) return null;
-    return bundle.games.find((g) => g.game._id === gameId);
-  }, [bundle, gameId]);
+    if (bundle.game === null) return null;
+    return {
+      game: bundle.game,
+      rsvps: bundle.rsvps ?? [],
+      lines: bundle.lines ?? null,
+    };
+  }, [bundle]);
 
   const players = useMemo(() => {
     if (!bundle) return [];
-    return bundle.players.filter((p) => !p.deletedAt); // Active players
+    return (bundle.players ?? []).filter((p) => !p.deletedAt); // Active players
   }, [bundle]);
 
   const playersWithStatus = useMemo(() => {
@@ -101,11 +129,11 @@ export function GameDetailsClient({ gameId }: GameDetailsClientProps) {
 
     // Create a map of RSVP status
     const rsvpMap = new Map<string, "in" | "out" | "pending">();
-    gameData.rsvps.forEach((r) => {
+    gameData.rsvps.forEach((r: GameDetailsRsvp) => {
       rsvpMap.set(r.playerId, r.status as "in" | "out" | "pending");
     });
 
-    return players.map((p) => ({
+    return players.map((p: GameDetailsPlayer) => ({
       ...p,
       status: rsvpMap.get(p._id) || "pending", // Default to pending if no RSVP
     })) as PlayerWithStatus[];
